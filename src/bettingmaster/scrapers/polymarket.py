@@ -33,6 +33,11 @@ def _normalize(value: str) -> str:
     return unicodedata.normalize("NFD", value.lower()).encode("ascii", "ignore").decode()
 
 
+def _team_similarity(left: str, right: str) -> float:
+    """Return a 0..1 fuzzy similarity score between two team names."""
+    return fuzz.token_set_ratio(_normalize(left), _normalize(right)) / 100.0
+
+
 def _prob_to_decimal(prob: float) -> Optional[float]:
     """Convert a 0..1 probability into decimal odds."""
     if prob <= 0 or prob > 1:
@@ -356,10 +361,18 @@ class PolymarketScraper(BaseScraper):
         )
         return None
 
+    def _selection_for_team(self, team_name: str, match: Match) -> Optional[str]:
+        """Map a Polymarket team label to our canonical home/away selection."""
+        home_score = _team_similarity(team_name, match.home_team)
+        away_score = _team_similarity(team_name, match.away_team)
+        if max(home_score, away_score) < 0.55:
+            return None
+        return "home" if home_score >= away_score else "away"
+
     def _extract_1x2(
         self,
         event: dict,
-        match_id: str,
+        match: Match,
         url: str,
         clob_prices: dict[str, float],
     ) -> list[RawOdds]:
@@ -380,14 +393,17 @@ class PolymarketScraper(BaseScraper):
 
             if "draw" in title:
                 selection = "draw"
-            elif not result:
-                selection = "home"
             else:
-                selection = "away"
+                selection = self._selection_for_team(
+                    market.get("groupItemTitle", ""),
+                    match,
+                )
+                if selection is None:
+                    continue
 
             result.append(
                 RawOdds(
-                    match_external_id=match_id,
+                    match_external_id=match.id,
                     market="1x2",
                     selection=selection,
                     odds=decimal_odds,
@@ -400,9 +416,7 @@ class PolymarketScraper(BaseScraper):
     def _extract_more_markets(
         self,
         event: dict,
-        home: str,
-        away: str,
-        match_id: str,
+        match: Match,
         url: str,
         clob_prices: dict[str, float],
     ) -> list[RawOdds]:
@@ -420,19 +434,19 @@ class PolymarketScraper(BaseScraper):
                 line_abs = spread_match.group(2).lstrip("+-")
                 market_key = f"handicap_{_line_key(line_abs)}"
 
-                home_score = fuzz.token_set_ratio(favored_team.lower(), home.lower())
-                away_score = fuzz.token_set_ratio(favored_team.lower(), away.lower())
-                pairs = [("home", prices[0]), ("away", prices[1])] if home_score >= away_score else [
-                    ("away", prices[0]),
-                    ("home", prices[1]),
-                ]
+                favored_selection = self._selection_for_team(favored_team, match)
+                if favored_selection is None:
+                    continue
+
+                other_selection = "away" if favored_selection == "home" else "home"
+                pairs = [(favored_selection, prices[0]), (other_selection, prices[1])]
 
                 for selection, probability in pairs:
                     decimal_odds = _prob_to_decimal(probability)
                     if decimal_odds and 1.01 <= decimal_odds <= 500:
                         result.append(
                             RawOdds(
-                                match_external_id=match_id,
+                                match_external_id=match.id,
                                 market=market_key,
                                 selection=selection,
                                 odds=decimal_odds,
@@ -459,7 +473,7 @@ class PolymarketScraper(BaseScraper):
                     if decimal_odds and 1.01 <= decimal_odds <= 500:
                         result.append(
                             RawOdds(
-                                match_external_id=match_id,
+                                match_external_id=match.id,
                                 market=market_key,
                                 selection=selection,
                                 odds=decimal_odds,
@@ -482,7 +496,7 @@ class PolymarketScraper(BaseScraper):
                     if decimal_odds and 1.01 <= decimal_odds <= 500:
                         result.append(
                             RawOdds(
-                                match_external_id=match_id,
+                                match_external_id=match.id,
                                 market="btts",
                                 selection=selection,
                                 odds=decimal_odds,
@@ -495,7 +509,7 @@ class PolymarketScraper(BaseScraper):
     def _extract_halftime(
         self,
         event: dict,
-        match_id: str,
+        match: Match,
         url: str,
         clob_prices: dict[str, float],
     ) -> list[RawOdds]:
@@ -516,14 +530,17 @@ class PolymarketScraper(BaseScraper):
 
             if "draw" in title:
                 selection = "draw"
-            elif not result:
-                selection = "home"
             else:
-                selection = "away"
+                selection = self._selection_for_team(
+                    market.get("groupItemTitle", ""),
+                    match,
+                )
+                if selection is None:
+                    continue
 
             result.append(
                 RawOdds(
-                    match_external_id=match_id,
+                    match_external_id=match.id,
                     market="1x2_ht",
                     selection=selection,
                     odds=decimal_odds,
@@ -575,15 +592,13 @@ class PolymarketScraper(BaseScraper):
             )
 
             all_odds: list[RawOdds] = []
-            all_odds.extend(self._extract_1x2(event, db_match.id, url, clob_prices))
+            all_odds.extend(self._extract_1x2(event, db_match, url, clob_prices))
 
             if more_event:
                 all_odds.extend(
                     self._extract_more_markets(
                         more_event,
-                        home,
-                        away,
-                        db_match.id,
+                        db_match,
                         url,
                         clob_prices,
                     )
@@ -593,7 +608,7 @@ class PolymarketScraper(BaseScraper):
                 all_odds.extend(
                     self._extract_halftime(
                         halftime_event,
-                        db_match.id,
+                        db_match,
                         url,
                         clob_prices,
                     )

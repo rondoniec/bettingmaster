@@ -1,3 +1,6 @@
+from datetime import datetime
+
+from bettingmaster.models.match import Match
 from bettingmaster.scrapers.polymarket import PolymarketScraper
 
 
@@ -46,3 +49,42 @@ def test_parse_market_probabilities_falls_back_when_clob_price_missing(db_sessio
 
     assert outcomes == ["Over", "Under"]
     assert prices == [0.4, 0.67]
+
+
+def test_extract_1x2_maps_team_titles_to_canonical_match_sides(db_session):
+    scraper = PolymarketScraper(db_session)
+    match = Match(
+        id="juve-bologna",
+        league_id="it-serie-a",
+        home_team="Juventus",
+        away_team="Bologna",
+        start_time=datetime(2026, 4, 19, 18, 45),
+        status="prematch",
+    )
+    event = {
+        "markets": [
+            {
+                "groupItemTitle": "Bologna FC 1909",
+                "outcomes": '["Yes","No"]',
+                "outcomePrices": "[0.125, 0.875]",
+            },
+            {
+                "groupItemTitle": "Juventus FC",
+                "outcomes": '["Yes","No"]',
+                "outcomePrices": "[0.685, 0.315]",
+            },
+            {
+                "groupItemTitle": "Draw (Juventus FC vs. Bologna FC 1909)",
+                "outcomes": '["Yes","No"]',
+                "outcomePrices": "[0.195, 0.805]",
+            },
+        ]
+    }
+
+    odds = scraper._extract_1x2(event, match, "https://polymarket.com/event/test", {})
+
+    assert {(row.selection, row.odds) for row in odds} == {
+        ("away", 8.0),
+        ("home", 1.46),
+        ("draw", 5.128),
+    }
