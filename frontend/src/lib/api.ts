@@ -1,4 +1,10 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+function getApiBase() {
+  if (typeof window === "undefined") {
+    return process.env.API_INTERNAL_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://backend:8000";
+  }
+
+  return process.env.NEXT_PUBLIC_API_URL ?? window.location.origin;
+}
 
 export type Sport = {
   id: string;
@@ -92,7 +98,7 @@ export type BestOddsMatchesQueryParams = MatchesQueryParams & {
 };
 
 async function apiFetch<T>(path: string, params?: Record<string, string>): Promise<T> {
-  const url = new URL(`${API_BASE}${path}`);
+  const url = new URL(`${getApiBase()}${path}`);
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== "") {

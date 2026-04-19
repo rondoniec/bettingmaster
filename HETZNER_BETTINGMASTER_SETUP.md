@@ -240,6 +240,7 @@ Important:
 - the scraper runs in `worker`, not in the website
 - that means scraping keeps going in the background
 - Docker is set to `restart: unless-stopped`, so services should come back after a reboot
+- inside Docker, the frontend talks to the backend using the internal service name `backend`
 
 ## Daily commands you will actually use
 
