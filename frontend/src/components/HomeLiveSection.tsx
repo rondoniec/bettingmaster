@@ -8,7 +8,6 @@ import { BestOddsMatchCard } from "@/components/BestOddsMatchCard";
 import { LiveUpdatesBadge } from "@/components/LiveUpdatesBadge";
 import {
   getMatchesWithBestOdds,
-  getSports,
   getSurebets,
   type MatchBestOdds,
   type Sport,
@@ -21,13 +20,65 @@ type Props = {
   date: string;
   sport?: string;
   market: string;
+  status?: string;
+  sort?: string;
   sports: Sport[];
   initialMatches: MatchBestOdds[];
   initialSurebets: Surebet[];
 };
 
+const DATE_FILTERS = [
+  { value: "today", label: "Today" },
+  { value: "tomorrow", label: "Tomorrow" },
+];
+
+const STATUS_FILTERS = [
+  { value: "live", label: "Live" },
+  { value: "upcoming", label: "Upcoming" },
+] as const;
+
+const SORT_OPTIONS = [
+  { value: "kickoff", label: "Kickoff" },
+  { value: "edge", label: "Best edge" },
+  { value: "coverage", label: "Coverage" },
+] as const;
+
+function isLiveMatch(match: Pick<MatchBestOdds, "status">) {
+  return match.status === "live";
+}
+
+function filterMatchesByStatus(matches: MatchBestOdds[], statusFilter: string) {
+  if (statusFilter === "live") {
+    return matches.filter((match) => isLiveMatch(match));
+  }
+
+  return matches.filter((match) => !isLiveMatch(match));
+}
+
+function sortMatches(matches: MatchBestOdds[], sort: string) {
+  const sorted = [...matches];
+  sorted.sort((left, right) => {
+    if (sort === "edge" && left.combined_margin !== right.combined_margin) {
+      return left.combined_margin - right.combined_margin;
+    }
+
+    if (sort === "coverage" && left.bookmakers.length !== right.bookmakers.length) {
+      return right.bookmakers.length - left.bookmakers.length;
+    }
+
+    return new Date(left.start_time).getTime() - new Date(right.start_time).getTime();
+  });
+  return sorted;
+}
+
 function buildHref(
-  current: { date: string; sport?: string; market: string },
+  current: {
+    date: string;
+    sport?: string;
+    market: string;
+    status?: string;
+    sort?: string;
+  },
   updates: Record<string, string | undefined>
 ) {
   const params = new URLSearchParams();
@@ -35,6 +86,12 @@ function buildHref(
   params.set("market", current.market);
   if (current.sport) {
     params.set("sport", current.sport);
+  }
+  if (current.status) {
+    params.set("status", current.status);
+  }
+  if (current.sort) {
+    params.set("sort", current.sort);
   }
 
   for (const [key, value] of Object.entries(updates)) {
@@ -49,15 +106,12 @@ function buildHref(
   return query ? `/?${query}` : "/";
 }
 
-const DATE_FILTERS = [
-  { value: "today", label: "Today" },
-  { value: "tomorrow", label: "Tomorrow" },
-];
-
 export function HomeLiveSection({
   date,
   sport,
   market,
+  status,
+  sort,
   sports,
   initialMatches,
   initialSurebets,
@@ -78,14 +132,28 @@ export function HomeLiveSection({
     initialData: initialSurebets,
   });
 
+  const liveCount = matches.filter((match) => isLiveMatch(match)).length;
+  const upcomingCount = matches.length - liveCount;
+  const statusFilter =
+    status === "live" || status === "upcoming"
+      ? status
+      : liveCount > 0
+        ? "live"
+        : "upcoming";
+  const sortMode = SORT_OPTIONS.some((option) => option.value === sort) ? sort ?? "kickoff" : "kickoff";
+  const visibleMatches = sortMatches(filterMatchesByStatus(matches, statusFilter), sortMode);
+
   const bestMarginMatch = matches.length
     ? matches.reduce((best, current) =>
         current.combined_margin < best.combined_margin ? current : best
       )
     : null;
-  const activeBookmakers = BOOKMAKER_ORDER.filter((bookmaker) =>
-    matches.some((match) => match.bookmakers.includes(bookmaker)) ||
-    surebets.some((surebet) => surebet.selections.some((selection) => selection.bookmaker === bookmaker))
+  const activeBookmakers = BOOKMAKER_ORDER.filter(
+    (bookmaker) =>
+      matches.some((match) => match.bookmakers.includes(bookmaker)) ||
+      surebets.some((surebet) =>
+        surebet.selections.some((selection) => selection.bookmaker === bookmaker)
+      )
   );
 
   return (
@@ -160,11 +228,39 @@ export function HomeLiveSection({
                 queryClient.invalidateQueries({ queryKey: surebetsQueryKey });
               }}
             />
+
+            <div className="mt-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+                Sort board
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {SORT_OPTIONS.map((option) => (
+                  <Link
+                    key={option.value}
+                    href={buildHref(
+                      { date, sport, market, status: statusFilter, sort: sortMode },
+                      { sort: option.value }
+                    )}
+                    className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
+                      sortMode === option.value
+                        ? "bg-slate-900 text-white"
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    }`}
+                  >
+                    {option.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+
             <div className="mt-4 flex flex-wrap gap-2">
               {DATE_FILTERS.map((option) => (
                 <Link
                   key={option.value}
-                  href={buildHref({ date, sport, market }, { date: option.value })}
+                  href={buildHref(
+                    { date, sport, market, status: statusFilter, sort: sortMode },
+                    { date: option.value }
+                  )}
                   className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
                     date === option.value
                       ? "bg-slate-900 text-white"
@@ -176,9 +272,39 @@ export function HomeLiveSection({
               ))}
             </div>
 
+            <div className="mt-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+                Match state
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {STATUS_FILTERS.map((option) => {
+                  const count = option.value === "live" ? liveCount : upcomingCount;
+                  return (
+                    <Link
+                      key={option.value}
+                      href={buildHref(
+                        { date, sport, market, status: statusFilter, sort: sortMode },
+                        { status: option.value }
+                      )}
+                      className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
+                        statusFilter === option.value
+                          ? "bg-rose-600 text-white"
+                          : "bg-rose-50 text-rose-700 hover:bg-rose-100"
+                      }`}
+                    >
+                      {option.label} ({count})
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="mt-4 flex flex-wrap gap-2">
               <Link
-                href={buildHref({ date, sport, market }, { sport: undefined })}
+                href={buildHref(
+                  { date, sport, market, status: statusFilter, sort: sortMode },
+                  { sport: undefined }
+                )}
                 className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
                   !sport
                     ? "bg-blue-600 text-white"
@@ -190,7 +316,10 @@ export function HomeLiveSection({
               {sports.map((item) => (
                 <Link
                   key={item.id}
-                  href={buildHref({ date, sport, market }, { sport: item.id })}
+                  href={buildHref(
+                    { date, sport, market, status: statusFilter, sort: sortMode },
+                    { sport: item.id }
+                  )}
                   className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
                     sport === item.id
                       ? "bg-blue-600 text-white"
@@ -239,7 +368,8 @@ export function HomeLiveSection({
               Best odds board
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              Showing merged {market.toUpperCase()} comparisons for {date}.
+              Showing {statusFilter} merged {market.toUpperCase()} comparisons for {date}, sorted
+              by {SORT_OPTIONS.find((option) => option.value === sortMode)?.label.toLowerCase()}.
             </p>
           </div>
           <Link
@@ -250,16 +380,16 @@ export function HomeLiveSection({
           </Link>
         </div>
 
-        {matches.length > 0 ? (
+        {visibleMatches.length > 0 ? (
           <div className="grid gap-5">
-            {matches.map((match) => (
+            {visibleMatches.map((match) => (
               <BestOddsMatchCard key={match.id} match={match} />
             ))}
           </div>
         ) : (
           <EmptyState
-            title="No merged comparisons yet"
-            body="The scraper or filters did not produce any cross-bookmaker matches for this view."
+            title={`No ${statusFilter} comparisons yet`}
+            body="The current filters did not produce any cross-bookmaker matches for this view."
           />
         )}
       </section>

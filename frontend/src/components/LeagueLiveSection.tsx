@@ -21,6 +21,8 @@ import { formatFullDate } from "@/lib/utils";
 type Props = {
   league: League;
   date: string;
+  status?: string;
+  sort?: string;
   initialMatches: Match[];
   initialPricedMatches: MatchBestOdds[];
 };
@@ -30,13 +32,95 @@ const DATE_FILTERS = [
   { value: "tomorrow", label: "Tomorrow" },
 ];
 
-function buildLeagueHref(leagueId: string, date: string) {
-  return `/league/${leagueId}?date=${encodeURIComponent(date)}`;
+const STATUS_FILTERS = [
+  { value: "live", label: "Live" },
+  { value: "upcoming", label: "Upcoming" },
+] as const;
+
+const SORT_OPTIONS = [
+  { value: "kickoff", label: "Kickoff" },
+  { value: "edge", label: "Best edge" },
+  { value: "coverage", label: "Coverage" },
+] as const;
+
+function buildLeagueHref(
+  leagueId: string,
+  current: { date: string; status?: string; sort?: string },
+  updates: Record<string, string | undefined>
+) {
+  const params = new URLSearchParams();
+  params.set("date", current.date);
+  if (current.status) {
+    params.set("status", current.status);
+  }
+  if (current.sort) {
+    params.set("sort", current.sort);
+  }
+
+  for (const [key, value] of Object.entries(updates)) {
+    if (value) {
+      params.set(key, value);
+    } else {
+      params.delete(key);
+    }
+  }
+
+  return `/league/${leagueId}?${params.toString()}`;
+}
+
+function isLiveMatch(match: Pick<Match, "status">) {
+  return match.status === "live";
+}
+
+function sortPricedMatches(matches: MatchBestOdds[], sort: string) {
+  const sorted = [...matches];
+  sorted.sort((left, right) => {
+    if (sort === "edge" && left.combined_margin !== right.combined_margin) {
+      return left.combined_margin - right.combined_margin;
+    }
+
+    if (sort === "coverage" && left.bookmakers.length !== right.bookmakers.length) {
+      return right.bookmakers.length - left.bookmakers.length;
+    }
+
+    return new Date(left.start_time).getTime() - new Date(right.start_time).getTime();
+  });
+  return sorted;
+}
+
+function sortFixtures(matches: Match[], pricedMatches: MatchBestOdds[], sort: string) {
+  const coverageByMatch = new Map(pricedMatches.map((match) => [match.id, match.bookmakers.length]));
+  const marginByMatch = new Map(pricedMatches.map((match) => [match.id, match.combined_margin]));
+  const sorted = [...matches];
+
+  sorted.sort((left, right) => {
+    if (sort === "edge") {
+      const leftMargin = marginByMatch.get(left.id) ?? Number.POSITIVE_INFINITY;
+      const rightMargin = marginByMatch.get(right.id) ?? Number.POSITIVE_INFINITY;
+      if (leftMargin !== rightMargin) {
+        return leftMargin - rightMargin;
+      }
+    }
+
+    if (sort === "coverage") {
+      const leftCoverage = coverageByMatch.get(left.id) ?? 0;
+      const rightCoverage = coverageByMatch.get(right.id) ?? 0;
+      if (leftCoverage !== rightCoverage) {
+        return rightCoverage - leftCoverage;
+      }
+    }
+
+    return new Date(left.start_time).getTime() - new Date(right.start_time).getTime();
+  });
+
+  return sorted;
 }
 
 export function LeagueLiveSection({
   league,
   date,
+  status,
+  sort,
   initialMatches,
   initialPricedMatches,
 }: Props) {
@@ -62,8 +146,27 @@ export function LeagueLiveSection({
     initialData: initialPricedMatches,
   });
 
+  const liveCount = matches.filter((match) => isLiveMatch(match)).length;
+  const upcomingCount = matches.length - liveCount;
+  const statusFilter =
+    status === "live" || status === "upcoming"
+      ? status
+      : liveCount > 0
+        ? "live"
+        : "upcoming";
+  const sortMode = SORT_OPTIONS.some((option) => option.value === sort) ? sort ?? "kickoff" : "kickoff";
+
+  const filteredMatches = matches.filter((match) =>
+    statusFilter === "live" ? isLiveMatch(match) : !isLiveMatch(match)
+  );
+  const filteredPricedMatches = pricedMatches.filter((match) =>
+    statusFilter === "live" ? isLiveMatch(match) : !isLiveMatch(match)
+  );
+  const sortedMatches = sortFixtures(filteredMatches, filteredPricedMatches, sortMode);
+  const sortedPricedMatches = sortPricedMatches(filteredPricedMatches, sortMode);
+
   const bestOddsByMatch = new Map(
-    pricedMatches.map((match) => [
+    filteredPricedMatches.map((match) => [
       match.id,
       {
         match_id: match.id,
@@ -73,10 +176,10 @@ export function LeagueLiveSection({
       } satisfies BestOdds,
     ])
   );
-  const crossBookmakerMatches = pricedMatches.filter((match) => match.bookmakers.length >= 2);
-  const nextMatch = matches[0];
+  const crossBookmakerMatches = sortedPricedMatches.filter((match) => match.bookmakers.length >= 2);
+  const nextMatch = sortedMatches[0];
   const activeBookmakers = BOOKMAKER_ORDER.filter((bookmaker) =>
-    pricedMatches.some((match) => match.bookmakers.includes(bookmaker))
+    filteredPricedMatches.some((match) => match.bookmakers.includes(bookmaker))
   );
 
   return (
@@ -101,7 +204,7 @@ export function LeagueLiveSection({
           </div>
 
           <div className="rounded-[1.5rem] border border-white/80 bg-white/80 p-4 backdrop-blur">
-            <p className="text-sm font-semibold text-slate-900">Date filter</p>
+            <p className="text-sm font-semibold text-slate-900">Filters</p>
             <LiveUpdatesBadge
               leagueId={league.id}
               date={date}
@@ -111,11 +214,41 @@ export function LeagueLiveSection({
                 queryClient.invalidateQueries({ queryKey: pricedMatchesQueryKey });
               }}
             />
+
+            <div className="mt-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+                Sort board
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {SORT_OPTIONS.map((option) => (
+                  <Link
+                    key={option.value}
+                    href={buildLeagueHref(
+                      league.id,
+                      { date, status: statusFilter, sort: sortMode },
+                      { sort: option.value }
+                    )}
+                    className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
+                      sortMode === option.value
+                        ? "bg-slate-900 text-white"
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    }`}
+                  >
+                    {option.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+
             <div className="mt-3 flex flex-wrap gap-2">
               {DATE_FILTERS.map((option) => (
                 <Link
                   key={option.value}
-                  href={buildLeagueHref(league.id, option.value)}
+                  href={buildLeagueHref(
+                    league.id,
+                    { date, status: statusFilter, sort: sortMode },
+                    { date: option.value }
+                  )}
                   className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
                     date === option.value
                       ? "bg-slate-900 text-white"
@@ -125,6 +258,34 @@ export function LeagueLiveSection({
                   {option.label}
                 </Link>
               ))}
+            </div>
+
+            <div className="mt-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+                Match state
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {STATUS_FILTERS.map((option) => {
+                  const count = option.value === "live" ? liveCount : upcomingCount;
+                  return (
+                    <Link
+                      key={option.value}
+                      href={buildLeagueHref(
+                        league.id,
+                        { date, status: statusFilter, sort: sortMode },
+                        { status: option.value }
+                      )}
+                      className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
+                        statusFilter === option.value
+                          ? "bg-rose-600 text-white"
+                          : "bg-rose-50 text-rose-700 hover:bg-rose-100"
+                      }`}
+                    >
+                      {option.label} ({count})
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
@@ -142,7 +303,7 @@ export function LeagueLiveSection({
           />
           <MetricCard
             label="Cross-bookmaker"
-            value={String(crossBookmakerMatches.length)}
+            value={String(pricedMatches.filter((match) => match.bookmakers.length >= 2).length)}
             icon={<ChartNoAxesCombined className="h-4 w-4" />}
           />
         </div>
@@ -175,7 +336,7 @@ export function LeagueLiveSection({
         {nextMatch ? (
           <div className="mt-6 rounded-[1.5rem] border border-slate-200 bg-white/75 p-5">
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
-              Next kickoff
+              Next in this tab
             </p>
             <p className="mt-2 text-lg font-semibold text-slate-950">
               {nextMatch.home_team} vs {nextMatch.away_team}
@@ -191,7 +352,8 @@ export function LeagueLiveSection({
             Best odds in this league
           </h2>
           <p className="mt-1 text-sm text-slate-500">
-            Cross-bookmaker matches with direct 1X2 comparison.
+            {statusFilter} 1X2 comparisons, sorted by{" "}
+            {SORT_OPTIONS.find((option) => option.value === sortMode)?.label.toLowerCase()}.
           </p>
         </div>
 
@@ -203,8 +365,8 @@ export function LeagueLiveSection({
           </div>
         ) : (
           <EmptyState
-            title="No merged comparisons yet"
-            body="This league has fixtures, but not enough overlapping bookmaker coverage for a merged board on the selected day."
+            title={`No ${statusFilter} merged comparisons yet`}
+            body="This league has no overlapping bookmaker coverage for the current tab and filters."
           />
         )}
       </section>
@@ -213,20 +375,21 @@ export function LeagueLiveSection({
         <div>
           <h2 className="text-2xl font-semibold tracking-tight text-slate-950">All fixtures</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Every scheduled match for the selected date, with best available 1X2 prices when present.
+            Every {statusFilter} fixture for the selected date, with best available 1X2 prices when
+            present.
           </p>
         </div>
 
-        {matches.length > 0 ? (
+        {sortedMatches.length > 0 ? (
           <div className="grid gap-3">
-            {matches.map((match) => (
+            {sortedMatches.map((match) => (
               <MatchCard key={match.id} match={match} bestOdds={bestOddsByMatch.get(match.id)} />
             ))}
           </div>
         ) : (
           <EmptyState
-            title="No fixtures for this date"
-            body="Try switching between today and tomorrow, or come back after the next scraper cycle."
+            title={`No ${statusFilter} fixtures for this date`}
+            body="Try switching tabs or dates, or come back after the next scraper cycle."
           />
         )}
       </section>

@@ -11,6 +11,8 @@ type LeaguePageProps = {
   }>;
   searchParams?: Promise<{
     date?: string;
+    status?: string;
+    sort?: string;
   }>;
 };
 
@@ -36,6 +38,8 @@ export default async function LeaguePage({ params, searchParams }: LeaguePagePro
   const { id } = await params;
   const resolvedSearch = await searchParams;
   const date = resolvedSearch?.date ?? "today";
+  const status = resolvedSearch?.status;
+  const sort = resolvedSearch?.sort;
   const data = await loadLeaguePageData(id, date);
 
   if (!data) {
@@ -46,6 +50,8 @@ export default async function LeaguePage({ params, searchParams }: LeaguePagePro
     <LeagueLiveSection
       league={data.league}
       date={date}
+      status={status}
+      sort={sort}
       initialMatches={data.matches}
       initialPricedMatches={data.pricedMatches}
     />

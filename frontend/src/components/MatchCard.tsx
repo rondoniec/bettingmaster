@@ -20,6 +20,7 @@ export function MatchCard({ match, bestOdds }: Props) {
   const homeOdds = best1x2?.selections.find((selection) => selection.selection === "home");
   const drawOdds = best1x2?.selections.find((selection) => selection.selection === "draw");
   const awayOdds = best1x2?.selections.find((selection) => selection.selection === "away");
+  const isLive = match.status === "live";
 
   return (
     <Link href={`/match/${match.id}`} className="group block">
@@ -32,7 +33,14 @@ export function MatchCard({ match, bestOdds }: Props) {
         </div>
 
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-slate-900">{match.home_team}</p>
+          <div className="flex items-center gap-2">
+            <p className="truncate text-sm font-semibold text-slate-900">{match.home_team}</p>
+            {isLive ? (
+              <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-red-600">
+                Live
+              </span>
+            ) : null}
+          </div>
           <p className="truncate text-sm text-slate-600">{match.away_team}</p>
         </div>
 

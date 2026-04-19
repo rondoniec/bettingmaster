@@ -21,6 +21,8 @@ type HomePageProps = {
     sport?: string;
     market?: string;
     q?: string;
+    status?: string;
+    sort?: string;
   }>;
 };
 
@@ -67,6 +69,8 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const sport = resolvedParams?.sport;
   const market = resolvedParams?.market ?? "1x2";
   const q = resolvedParams?.q?.trim();
+  const status = resolvedParams?.status;
+  const sort = resolvedParams?.sort;
 
   const { sports, surebets, matches, searchResults, error } = await loadHomeData({
     date,
@@ -141,6 +145,8 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           date={date}
           sport={sport}
           market={market}
+          status={status}
+          sort={sort}
           sports={sports}
           initialMatches={matches}
           initialSurebets={surebets}

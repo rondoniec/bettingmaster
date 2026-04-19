@@ -10,7 +10,7 @@ type Props = {
 };
 
 export function BestOddsMatchCard({ match }: Props) {
-  const isLive = new Date(match.start_time) <= new Date() || match.status === "live";
+  const isLive = match.status === "live";
 
   return (
     <article className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_18px_45px_-32px_rgba(15,23,42,0.45)]">
