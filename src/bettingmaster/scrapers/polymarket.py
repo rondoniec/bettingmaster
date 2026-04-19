@@ -1,34 +1,6 @@
-"""Polymarket scraper using the public Gamma API.
+"""Polymarket odds ingestion using Gamma discovery plus public CLOB pricing."""
 
-Polymarket is a prediction market where prices are probabilities (0–1).
-We convert them to decimal odds via: decimal_odds = 1 / probability.
-
-Confirmed API:
-  GET https://gamma-api.polymarket.com/events/pagination
-      ?tag_slug=soccer&active=true&closed=false&limit=100
-      &order=startDate&ascending=true&offset=0
-  → { data: [...events], pagination: { total, limit, offset } }
-
-  GET https://gamma-api.polymarket.com/events/slug/{slug}
-  → single event with markets (1X2)
-
-  GET https://gamma-api.polymarket.com/events/slug/{slug}-more-markets
-  → spreads (±1.5/±2.5), O/U (1.5/2.5/3.5/4.5), BTTS
-
-  GET https://gamma-api.polymarket.com/events/slug/{slug}-halftime-result
-  → halftime 1X2
-
-Market name mapping:
-  1x2 event         → market="1x2",            selections: home/draw/away
-  Spread -1.5/-2.5  → market="handicap_1_5"/"handicap_2_5", selections: home/away
-  O/U X.5           → market="over_under_1_5"/"over_under_2_5"/...  selections: over/under
-  BTTS              → market="btts",            selections: yes/no
-  Halftime 1X2      → market="1x2_ht",         selections: home/draw/away
-
-Polymarket does NOT require league-specific IDs; it fetches all soccer events by tag.
-This scraper overrides run() to iterate over all Polymarket soccer events and
-cross-reference them with matches already in our DB.
-"""
+from __future__ import annotations
 
 import json
 import logging
@@ -48,50 +20,46 @@ from bettingmaster.scrapers.base import BaseScraper, RawOdds
 logger = logging.getLogger(__name__)
 
 GAMMA_API = "https://gamma-api.polymarket.com"
+CLOB_API = "https://clob.polymarket.com"
 DEBUG_DIR = DATA_DIR / "debug"
 
-# Match a handicap question: "Spread: FC Barcelona (-1.5)"
 _SPREAD_RE = re.compile(r"Spread:\s*(.+?)\s*\(([+-]?\d+\.5)\)", re.IGNORECASE)
-
-# Match a totals question: "... O/U 2.5 ..." or "... 2.5 O/U ..."
 _TOTAL_RE = re.compile(r"O/U\s+(\d+\.5)|(\d+\.5)\s+O/U", re.IGNORECASE)
-
-# Match a BTTS question
 _BTTS_RE = re.compile(r"both teams (to )?score", re.IGNORECASE)
 
 
-def _normalize(s: str) -> str:
-    """Lowercase + strip accents so 'Atlético' == 'Atletico' for matching."""
-    return unicodedata.normalize("NFD", s.lower()).encode("ascii", "ignore").decode()
+def _normalize(value: str) -> str:
+    """Lowercase and strip accents so 'Atletico' and 'Atlético' compare cleanly."""
+    return unicodedata.normalize("NFD", value.lower()).encode("ascii", "ignore").decode()
 
 
 def _prob_to_decimal(prob: float) -> Optional[float]:
-    """Convert a probability (0–1) to decimal odds. Returns None if <= 0 or > 1."""
+    """Convert a 0..1 probability into decimal odds."""
     if prob <= 0 or prob > 1:
         return None
     return round(1.0 / prob, 3)
 
 
 def _parse_outcomes(market: dict) -> tuple[list[str], list[float]]:
-    """Return (outcomes, probabilities) from a market dict."""
+    """Return (outcomes, probabilities) from a Gamma market object."""
     raw_outcomes = market.get("outcomes", "[]")
     raw_prices = market.get("outcomePrices", "[]")
     try:
         outcomes = json.loads(raw_outcomes) if isinstance(raw_outcomes, str) else list(raw_outcomes)
         prices_raw = json.loads(raw_prices) if isinstance(raw_prices, str) else list(raw_prices)
-        prices = [float(p) for p in prices_raw]
+        prices = [float(price) for price in prices_raw]
     except Exception:
         return [], []
     return outcomes, prices
 
 
 def _line_key(line: str) -> str:
-    """Convert "1.5" → "1_5", "2.5" → "2_5", etc."""
+    """Convert '2.5' to '2_5' for market keys like over_under_2_5."""
     return line.replace(".", "_")
 
 
 class PolymarketScraper(BaseScraper):
-    """Scrapes football match odds from Polymarket's public Gamma API."""
+    """Fetch football odds from Polymarket's public APIs."""
 
     BOOKMAKER = "polymarket"
     BASE_URL = GAMMA_API
@@ -100,53 +68,162 @@ class PolymarketScraper(BaseScraper):
     def __init__(self, db_session, http_client: httpx.Client | None = None):
         super().__init__(db_session, http_client)
 
-    # ------------------------------------------------------------------
-    # API helpers
-    # ------------------------------------------------------------------
-
     def _get(self, path: str, params: dict | None = None) -> dict | list:
-        url = f"{GAMMA_API}{path}"
-        resp = self._request("GET", url, params=params)
-        return resp.json()
+        response = self._request("GET", f"{GAMMA_API}{path}", params=params)
+        return response.json()
+
+    def _post_clob(self, path: str, payload: list[dict]) -> dict | list:
+        response = self._request("POST", f"{CLOB_API}{path}", json=payload)
+        return response.json()
 
     def _get_slug(self, slug: str) -> Optional[dict]:
-        """Fetch a single event by slug. Returns None on 404 / error."""
+        """Fetch a single Gamma event by slug. Returns None on 404."""
         url = f"{GAMMA_API}/events/slug/{slug}"
         self._rate_limit()
         self._last_request_time = __import__("time").time()
         try:
-            resp = self._client.get(url)
-            if resp.status_code == 404:
+            response = self._client.get(url)
+            if response.status_code == 404:
                 return None
-            resp.raise_for_status()
-            return resp.json()
-        except httpx.HTTPStatusError as e:
-            logger.debug(f"[polymarket] Slug '{slug}' HTTP {e.response.status_code}")
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as exc:
+            logger.debug(f"[polymarket] Slug '{slug}' HTTP {exc.response.status_code}")
             return None
-        except Exception as e:
-            logger.debug(f"[polymarket] Slug '{slug}' error: {e}")
+        except Exception as exc:
+            logger.debug(f"[polymarket] Slug '{slug}' error: {exc}")
             return None
 
     def _dump_debug(self, name: str, data):
         if not settings.debug_dump:
             return
         DEBUG_DIR.mkdir(parents=True, exist_ok=True)
-        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-        path = DEBUG_DIR / f"polymarket_{name}_{ts}.json"
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2, default=str)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        path = DEBUG_DIR / f"polymarket_{name}_{timestamp}.json"
+        with open(path, "w", encoding="utf-8") as handle:
+            json.dump(data, handle, ensure_ascii=False, indent=2, default=str)
         logger.info(f"[polymarket] Debug dump: {path}")
 
-    # ------------------------------------------------------------------
-    # Fetch all active soccer events (paginated)
-    # ------------------------------------------------------------------
+    def _parse_clob_token_ids(self, market: dict) -> list[str]:
+        raw = market.get("clobTokenIds", "[]")
+        if not raw:
+            return []
+
+        try:
+            parsed = json.loads(raw) if isinstance(raw, str) else raw
+        except json.JSONDecodeError:
+            if isinstance(raw, str) and "," in raw:
+                parsed = [part.strip() for part in raw.split(",")]
+            elif isinstance(raw, str):
+                parsed = [raw]
+            else:
+                return []
+
+        if isinstance(parsed, str):
+            return [parsed]
+        if isinstance(parsed, (list, tuple)):
+            return [str(token_id) for token_id in parsed if token_id]
+        return []
+
+    def _fetch_clob_midpoints(self, token_ids: list[str]) -> dict[str, float]:
+        if not token_ids:
+            return {}
+
+        try:
+            response = self._post_clob(
+                "/midpoints",
+                [{"token_id": token_id} for token_id in token_ids],
+            )
+        except Exception as exc:
+            logger.warning(f"[polymarket] Failed to fetch CLOB midpoints: {exc}")
+            return {}
+
+        prices: dict[str, float] = {}
+        if isinstance(response, dict):
+            for token_id, price in response.items():
+                try:
+                    prices[str(token_id)] = float(price)
+                except (TypeError, ValueError):
+                    continue
+        return prices
+
+    def _fetch_clob_last_trades(self, token_ids: list[str]) -> dict[str, float]:
+        if not token_ids:
+            return {}
+
+        try:
+            response = self._post_clob(
+                "/last-trades-prices",
+                [{"token_id": token_id} for token_id in token_ids],
+            )
+        except Exception as exc:
+            logger.warning(f"[polymarket] Failed to fetch CLOB last trades: {exc}")
+            return {}
+
+        prices: dict[str, float] = {}
+        if isinstance(response, list):
+            for row in response:
+                if not isinstance(row, dict):
+                    continue
+                token_id = row.get("token_id")
+                if not token_id:
+                    continue
+                try:
+                    prices[str(token_id)] = float(row["price"])
+                except (KeyError, TypeError, ValueError):
+                    continue
+        return prices
+
+    def _fetch_clob_prices(self, token_ids: list[str]) -> dict[str, float]:
+        prices = self._fetch_clob_midpoints(token_ids)
+        missing = [token_id for token_id in token_ids if token_id not in prices]
+        if missing:
+            prices.update(self._fetch_clob_last_trades(missing))
+        return prices
+
+    def _collect_clob_token_ids(self, *events: Optional[dict]) -> list[str]:
+        token_ids: list[str] = []
+        seen: set[str] = set()
+
+        for event in events:
+            if not event:
+                continue
+            for market in event.get("markets", []):
+                for token_id in self._parse_clob_token_ids(market):
+                    if token_id in seen:
+                        continue
+                    seen.add(token_id)
+                    token_ids.append(token_id)
+
+        return token_ids
+
+    def _parse_market_probabilities(
+        self,
+        market: dict,
+        clob_prices: dict[str, float] | None = None,
+    ) -> tuple[list[str], list[float]]:
+        outcomes, prices = _parse_outcomes(market)
+        if not prices:
+            return outcomes, prices
+
+        if clob_prices:
+            token_ids = self._parse_clob_token_ids(market)
+            for idx, token_id in enumerate(token_ids):
+                price = clob_prices.get(token_id)
+                if price is None:
+                    continue
+                if idx < len(prices):
+                    prices[idx] = price
+                else:
+                    prices.append(price)
+
+        return outcomes, prices
 
     def _fetch_all_soccer_events(self) -> list[dict]:
-        """Paginate through all active soccer events (newest start date first)."""
         all_events: list[dict] = []
         offset = 0
         limit = 100
-        max_pages = 20  # safety cap (~2000 events)
+        max_pages = 20
 
         for _ in range(max_pages):
             try:
@@ -157,14 +234,13 @@ class PolymarketScraper(BaseScraper):
                         "active": "true",
                         "closed": "false",
                         "limit": limit,
-                        # Newest first so upcoming matches come before old closed ones
                         "order": "startDate",
                         "ascending": "false",
                         "offset": offset,
                     },
                 )
-            except Exception as e:
-                logger.error(f"[polymarket] Pagination fetch failed (offset={offset}): {e}")
+            except Exception as exc:
+                logger.error(f"[polymarket] Pagination fetch failed (offset={offset}): {exc}")
                 break
 
             data = result.get("data", []) if isinstance(result, dict) else []
@@ -174,24 +250,13 @@ class PolymarketScraper(BaseScraper):
             all_events.extend(data)
             offset += limit
 
-            # API returns None for total — stop when a page comes back short
             if len(data) < limit:
                 break
 
         logger.info(f"[polymarket] Fetched {len(all_events)} active soccer events")
         return all_events
 
-    # ------------------------------------------------------------------
-    # Identify which events are match-level 1X2 events
-    # ------------------------------------------------------------------
-
     def _is_match_event(self, event: dict) -> bool:
-        """
-        Returns True if this event is a main 1X2 match event (not -more-markets,
-        not -halftime-result, not an aggregate/outright).
-        A match event has exactly 3 markets whose groupItemTitle values look like
-        two team names + a draw entry.
-        """
         slug = event.get("slug", "")
         if slug.endswith("-more-markets") or slug.endswith("-halftime-result"):
             return False
@@ -200,55 +265,40 @@ class PolymarketScraper(BaseScraper):
         if len(markets) != 3:
             return False
 
-        titles = [m.get("groupItemTitle", "") for m in markets]
-        has_draw = any("draw" in t.lower() for t in titles)
-        return has_draw
-
-    # ------------------------------------------------------------------
-    # Parse team names and match date from main event
-    # ------------------------------------------------------------------
+        titles = [market.get("groupItemTitle", "") for market in markets]
+        return any("draw" in title.lower() for title in titles)
 
     def _parse_team_names(self, event: dict) -> tuple[str, str]:
-        """
-        Extract (home_team, away_team) from an event's markets.
-        The 3 markets have groupItemTitle = [home_name, "Draw (...)", away_name]
-        in order.
-        """
         markets = event.get("markets", [])
         if len(markets) != 3:
             return "", ""
 
         non_draw = [
-            m.get("groupItemTitle", "")
-            for m in markets
-            if "draw" not in m.get("groupItemTitle", "").lower()
+            market.get("groupItemTitle", "")
+            for market in markets
+            if "draw" not in market.get("groupItemTitle", "").lower()
         ]
         if len(non_draw) < 2:
             return "", ""
 
-        home = non_draw[0].strip()
-        away = non_draw[1].strip()
-        return home, away
+        return non_draw[0].strip(), non_draw[1].strip()
 
     def _parse_match_date(self, event: dict) -> Optional[datetime]:
         raw = event.get("startDate") or event.get("endDate")
         if not raw:
             return None
-        for fmt in [
+
+        for fmt in (
             "%Y-%m-%dT%H:%M:%SZ",
             "%Y-%m-%dT%H:%M:%S.%fZ",
             "%Y-%m-%dT%H:%M:%S",
             "%Y-%m-%d",
-        ]:
+        ):
             try:
                 return datetime.strptime(raw[: len(fmt)], fmt)
             except ValueError:
                 continue
         return None
-
-    # ------------------------------------------------------------------
-    # Find matching DB match by team name fuzzy matching + date
-    # ------------------------------------------------------------------
 
     def _find_db_match(
         self,
@@ -256,10 +306,6 @@ class PolymarketScraper(BaseScraper):
         away: str,
         match_date: Optional[datetime],
     ) -> Optional[Match]:
-        """
-        Query all DB matches and return the one whose (home_team, away_team, date)
-        best matches the Polymarket teams. Date window: ±1 day.
-        """
         query = self._db.query(Match)
 
         if match_date:
@@ -275,33 +321,31 @@ class PolymarketScraper(BaseScraper):
             return None
 
         best_score = 0.0
-        best_match = None
+        best_match: Optional[Match] = None
+        home_normalized = _normalize(home)
+        away_normalized = _normalize(away)
 
-        hn = _normalize(home)
-        an = _normalize(away)
+        for candidate in candidates:
+            candidate_home = _normalize(candidate.home_team)
+            candidate_away = _normalize(candidate.away_team)
 
-        for m in candidates:
-            mhn = _normalize(m.home_team)
-            man = _normalize(m.away_team)
+            normal_score = (
+                fuzz.token_set_ratio(home_normalized, candidate_home) / 100.0
+                + fuzz.token_set_ratio(away_normalized, candidate_away) / 100.0
+            )
+            swapped_score = (
+                fuzz.token_set_ratio(home_normalized, candidate_away) / 100.0
+                + fuzz.token_set_ratio(away_normalized, candidate_home) / 100.0
+            )
 
-            home_score = fuzz.token_set_ratio(hn, mhn) / 100.0
-            away_score = fuzz.token_set_ratio(an, man) / 100.0
-            score = home_score + away_score
-
-            # Also try swapped (Polymarket sometimes lists away first)
-            home_score_sw = fuzz.token_set_ratio(hn, man) / 100.0
-            away_score_sw = fuzz.token_set_ratio(an, mhn) / 100.0
-            score_sw = home_score_sw + away_score_sw
-
-            final_score = max(score, score_sw)
+            final_score = max(normal_score, swapped_score)
             if final_score > best_score:
                 best_score = final_score
-                best_match = m
+                best_match = candidate
 
-        # Require combined score >= 1.4 (each team ~0.7 similarity)
         if best_score >= 1.4 and best_match:
             logger.debug(
-                f"[polymarket] Matched '{home} vs {away}' → "
+                f"[polymarket] Matched '{home} vs {away}' -> "
                 f"'{best_match.home_team} vs {best_match.away_team}' (score={best_score:.2f})"
             )
             return best_match
@@ -312,11 +356,13 @@ class PolymarketScraper(BaseScraper):
         )
         return None
 
-    # ------------------------------------------------------------------
-    # Odds extraction from main event (1X2)
-    # ------------------------------------------------------------------
-
-    def _extract_1x2(self, event: dict, match_id: str, url: str) -> list[RawOdds]:
+    def _extract_1x2(
+        self,
+        event: dict,
+        match_id: str,
+        url: str,
+        clob_prices: dict[str, float],
+    ) -> list[RawOdds]:
         markets = event.get("markets", [])
         if len(markets) != 3:
             return []
@@ -324,17 +370,12 @@ class PolymarketScraper(BaseScraper):
         result: list[RawOdds] = []
         for market in markets:
             title = market.get("groupItemTitle", "").lower()
-            outcomes, prices = _parse_outcomes(market)
-            if not outcomes or not prices:
+            _, prices = self._parse_market_probabilities(market, clob_prices)
+            if not prices:
                 continue
 
-            # Each market is a YES/NO market; the YES price (index 0) is what we want
-            yes_price = prices[0] if len(prices) >= 1 else None
-            if yes_price is None:
-                continue
-
-            dec = _prob_to_decimal(yes_price)
-            if not dec or not (1.01 <= dec <= 500):
+            decimal_odds = _prob_to_decimal(prices[0])
+            if not decimal_odds or not (1.01 <= decimal_odds <= 500):
                 continue
 
             if "draw" in title:
@@ -344,19 +385,17 @@ class PolymarketScraper(BaseScraper):
             else:
                 selection = "away"
 
-            result.append(RawOdds(
-                match_external_id=match_id,
-                market="1x2",
-                selection=selection,
-                odds=dec,
-                url=url,
-            ))
+            result.append(
+                RawOdds(
+                    match_external_id=match_id,
+                    market="1x2",
+                    selection=selection,
+                    odds=decimal_odds,
+                    url=url,
+                )
+            )
 
         return result
-
-    # ------------------------------------------------------------------
-    # Odds extraction from -more-markets event (spreads, O/U, BTTS)
-    # ------------------------------------------------------------------
 
     def _extract_more_markets(
         self,
@@ -365,56 +404,49 @@ class PolymarketScraper(BaseScraper):
         away: str,
         match_id: str,
         url: str,
+        clob_prices: dict[str, float],
     ) -> list[RawOdds]:
-        markets = event.get("markets", [])
         result: list[RawOdds] = []
 
-        for market in markets:
+        for market in event.get("markets", []):
             question = market.get("question", "") or market.get("groupItemTitle", "")
-            outcomes, prices = _parse_outcomes(market)
+            outcomes, prices = self._parse_market_probabilities(market, clob_prices)
             if not outcomes or not prices:
                 continue
 
-            # --- Spread / Handicap ---
-            spread_m = _SPREAD_RE.search(question)
-            if spread_m:
-                favored_team = spread_m.group(1).strip()
-                line = spread_m.group(2)  # e.g. "-1.5"
-                line_abs = line.lstrip("+-")  # "1.5"
+            spread_match = _SPREAD_RE.search(question)
+            if spread_match:
+                favored_team = spread_match.group(1).strip()
+                line_abs = spread_match.group(2).lstrip("+-")
                 market_key = f"handicap_{_line_key(line_abs)}"
 
-                # Determine which outcome is home vs away
-                # outcomes[0] = favored team, outcomes[1] = underdog
-                home_sim = fuzz.token_set_ratio(favored_team.lower(), home.lower())
-                away_sim = fuzz.token_set_ratio(favored_team.lower(), away.lower())
+                home_score = fuzz.token_set_ratio(favored_team.lower(), home.lower())
+                away_score = fuzz.token_set_ratio(favored_team.lower(), away.lower())
+                pairs = [("home", prices[0]), ("away", prices[1])] if home_score >= away_score else [
+                    ("away", prices[0]),
+                    ("home", prices[1]),
+                ]
 
-                if home_sim >= away_sim:
-                    # favored = home (home -X.5, away +X.5)
-                    pairs = [("home", prices[0]), ("away", prices[1])]
-                else:
-                    # favored = away (away -X.5, home +X.5)
-                    pairs = [("away", prices[0]), ("home", prices[1])]
-
-                for selection, prob in pairs:
-                    dec = _prob_to_decimal(prob)
-                    if dec and 1.01 <= dec <= 500:
-                        result.append(RawOdds(
-                            match_external_id=match_id,
-                            market=market_key,
-                            selection=selection,
-                            odds=dec,
-                            url=url,
-                        ))
+                for selection, probability in pairs:
+                    decimal_odds = _prob_to_decimal(probability)
+                    if decimal_odds and 1.01 <= decimal_odds <= 500:
+                        result.append(
+                            RawOdds(
+                                match_external_id=match_id,
+                                market=market_key,
+                                selection=selection,
+                                odds=decimal_odds,
+                                url=url,
+                            )
+                        )
                 continue
 
-            # --- Totals (Over/Under) ---
-            total_m = _TOTAL_RE.search(question)
-            if total_m:
-                line = total_m.group(1) or total_m.group(2)  # e.g. "2.5"
+            totals_match = _TOTAL_RE.search(question)
+            if totals_match:
+                line = totals_match.group(1) or totals_match.group(2)
                 market_key = f"over_under_{_line_key(line)}"
 
-                # outcomes order: ["Over", "Under"] or similar
-                for outcome, prob in zip(outcomes, prices):
+                for outcome, probability in zip(outcomes, prices):
                     outcome_lower = outcome.lower()
                     if "over" in outcome_lower:
                         selection = "over"
@@ -422,20 +454,22 @@ class PolymarketScraper(BaseScraper):
                         selection = "under"
                     else:
                         continue
-                    dec = _prob_to_decimal(prob)
-                    if dec and 1.01 <= dec <= 500:
-                        result.append(RawOdds(
-                            match_external_id=match_id,
-                            market=market_key,
-                            selection=selection,
-                            odds=dec,
-                            url=url,
-                        ))
+
+                    decimal_odds = _prob_to_decimal(probability)
+                    if decimal_odds and 1.01 <= decimal_odds <= 500:
+                        result.append(
+                            RawOdds(
+                                match_external_id=match_id,
+                                market=market_key,
+                                selection=selection,
+                                odds=decimal_odds,
+                                url=url,
+                            )
+                        )
                 continue
 
-            # --- Both Teams to Score ---
             if _BTTS_RE.search(question):
-                for outcome, prob in zip(outcomes, prices):
+                for outcome, probability in zip(outcomes, prices):
                     outcome_lower = outcome.lower()
                     if "yes" in outcome_lower:
                         selection = "yes"
@@ -443,24 +477,28 @@ class PolymarketScraper(BaseScraper):
                         selection = "no"
                     else:
                         continue
-                    dec = _prob_to_decimal(prob)
-                    if dec and 1.01 <= dec <= 500:
-                        result.append(RawOdds(
-                            match_external_id=match_id,
-                            market="btts",
-                            selection=selection,
-                            odds=dec,
-                            url=url,
-                        ))
-                continue
+
+                    decimal_odds = _prob_to_decimal(probability)
+                    if decimal_odds and 1.01 <= decimal_odds <= 500:
+                        result.append(
+                            RawOdds(
+                                match_external_id=match_id,
+                                market="btts",
+                                selection=selection,
+                                odds=decimal_odds,
+                                url=url,
+                            )
+                        )
 
         return result
 
-    # ------------------------------------------------------------------
-    # Odds extraction from -halftime-result event
-    # ------------------------------------------------------------------
-
-    def _extract_halftime(self, event: dict, match_id: str, url: str) -> list[RawOdds]:
+    def _extract_halftime(
+        self,
+        event: dict,
+        match_id: str,
+        url: str,
+        clob_prices: dict[str, float],
+    ) -> list[RawOdds]:
         markets = event.get("markets", [])
         if len(markets) != 3:
             return []
@@ -468,16 +506,12 @@ class PolymarketScraper(BaseScraper):
         result: list[RawOdds] = []
         for market in markets:
             title = market.get("groupItemTitle", "").lower()
-            outcomes, prices = _parse_outcomes(market)
+            _, prices = self._parse_market_probabilities(market, clob_prices)
             if not prices:
                 continue
 
-            yes_price = prices[0] if len(prices) >= 1 else None
-            if yes_price is None:
-                continue
-
-            dec = _prob_to_decimal(yes_price)
-            if not dec or not (1.01 <= dec <= 500):
+            decimal_odds = _prob_to_decimal(prices[0])
+            if not decimal_odds or not (1.01 <= decimal_odds <= 500):
                 continue
 
             if "draw" in title:
@@ -487,19 +521,17 @@ class PolymarketScraper(BaseScraper):
             else:
                 selection = "away"
 
-            result.append(RawOdds(
-                match_external_id=match_id,
-                market="1x2_ht",
-                selection=selection,
-                odds=dec,
-                url=url,
-            ))
+            result.append(
+                RawOdds(
+                    match_external_id=match_id,
+                    market="1x2_ht",
+                    selection=selection,
+                    odds=decimal_odds,
+                    url=url,
+                )
+            )
 
         return result
-
-    # ------------------------------------------------------------------
-    # Required abstract methods (not used directly; run() is overridden)
-    # ------------------------------------------------------------------
 
     def scrape_matches(self, league_external_id: str) -> list:
         return []
@@ -507,16 +539,7 @@ class PolymarketScraper(BaseScraper):
     def scrape_odds(self, match_external_id: str) -> list[RawOdds]:
         return []
 
-    # ------------------------------------------------------------------
-    # Main entry point
-    # ------------------------------------------------------------------
-
     def run(self, league_ids: dict | None = None, normalizer=None):
-        """
-        Fetch all active Polymarket soccer events and persist odds for any
-        match already in our DB. league_ids is ignored — Polymarket fetches
-        by sport tag globally.
-        """
         events = self._fetch_all_soccer_events()
         self._dump_debug("all_events", events)
 
@@ -545,46 +568,59 @@ class PolymarketScraper(BaseScraper):
 
             matched += 1
             url = f"https://polymarket.com/event/{slug}"
-            all_odds: list[RawOdds] = []
-
-            # 1X2 from main event
-            all_odds.extend(self._extract_1x2(event, db_match.id, url))
-
-            # More markets (spreads, O/U, BTTS)
             more_event = self._get_slug(f"{slug}-more-markets")
+            halftime_event = self._get_slug(f"{slug}-halftime-result")
+            clob_prices = self._fetch_clob_prices(
+                self._collect_clob_token_ids(event, more_event, halftime_event)
+            )
+
+            all_odds: list[RawOdds] = []
+            all_odds.extend(self._extract_1x2(event, db_match.id, url, clob_prices))
+
             if more_event:
                 all_odds.extend(
-                    self._extract_more_markets(more_event, home, away, db_match.id, url)
+                    self._extract_more_markets(
+                        more_event,
+                        home,
+                        away,
+                        db_match.id,
+                        url,
+                        clob_prices,
+                    )
                 )
 
-            # Halftime result
-            ht_event = self._get_slug(f"{slug}-halftime-result")
-            if ht_event:
-                all_odds.extend(self._extract_halftime(ht_event, db_match.id, url))
+            if halftime_event:
+                all_odds.extend(
+                    self._extract_halftime(
+                        halftime_event,
+                        db_match.id,
+                        url,
+                        clob_prices,
+                    )
+                )
 
             if not all_odds:
                 logger.debug(f"[polymarket] No odds extracted for '{home} vs {away}'")
                 continue
 
-            # Persist
             try:
-                # Update match external_ids
                 ext = dict(db_match.external_ids or {})
                 ext["polymarket"] = slug
                 db_match.external_ids = ext
 
                 now = datetime.utcnow()
-                for ro in all_odds:
-                    snap = OddsSnapshot(
-                        match_id=db_match.id,
-                        bookmaker=self.BOOKMAKER,
-                        market=ro.market,
-                        selection=ro.selection,
-                        odds=ro.odds,
-                        url=ro.url,
-                        scraped_at=now,
+                for raw_odds in all_odds:
+                    self._db.add(
+                        OddsSnapshot(
+                            match_id=db_match.id,
+                            bookmaker=self.BOOKMAKER,
+                            market=raw_odds.market,
+                            selection=raw_odds.selection,
+                            odds=raw_odds.odds,
+                            url=raw_odds.url,
+                            scraped_at=now,
+                        )
                     )
-                    self._db.add(snap)
 
                 self._db.commit()
                 logger.info(
@@ -598,6 +634,5 @@ class PolymarketScraper(BaseScraper):
                 )
 
         logger.info(
-            f"[polymarket] Done. Processed {processed} match events, "
-            f"matched {matched} to DB."
+            f"[polymarket] Done. Processed {processed} match events, matched {matched} to DB."
         )
