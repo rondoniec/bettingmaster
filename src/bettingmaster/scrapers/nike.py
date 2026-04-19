@@ -150,6 +150,40 @@ class NikeScraper(BaseScraper):
     def scrape_odds(self, match_external_id: str) -> list[RawOdds]:
         return []
 
+    def scrape_odds_for_raw_match(self, raw_match: RawMatch) -> list[RawOdds]:
+        tournament_id = raw_match.league_external_id
+        fallback = TOURNAMENT_MAP.get(tournament_id, {})
+        dynamic = self._get_tournament_catalog().get(tournament_id, {})
+        box_id = dynamic.get("box_id", fallback.get("box_id", ""))
+        if not box_id:
+            return []
+
+        detail = self._nike_get(
+            "/api-gw/nikeone/v1/boxes/extended/sport-event-id"
+            f"?boxId={box_id}&sportEventId={raw_match.external_id}"
+        )
+        if not detail:
+            return []
+
+        match_url = raw_match.url or f"{self.BASE_URL}/tipovanie/zapas/{raw_match.external_id}"
+        best: dict[tuple[str, str], float] = {}
+        for bet in detail.get("bets", []):
+            for market, selection, rate in self._parse_bet(bet):
+                key = (market, selection)
+                if rate > best.get(key, 0.0):
+                    best[key] = rate
+
+        return [
+            RawOdds(
+                match_external_id=raw_match.external_id,
+                market=market,
+                selection=selection,
+                odds=rate,
+                url=match_url,
+            )
+            for (market, selection), rate in best.items()
+        ]
+
     def run(self, league_ids: dict[str, str], normalizer=None):
         from bettingmaster.models.match import Match
         from bettingmaster.models.odds import OddsSnapshot

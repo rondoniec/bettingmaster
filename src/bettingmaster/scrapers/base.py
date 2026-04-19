@@ -101,6 +101,14 @@ class BaseScraper(ABC):
         """Scrape odds for a single match. Returns raw odds data."""
         ...
 
+    def scrape_odds_for_raw_match(self, raw_match: RawMatch) -> list[RawOdds]:
+        """Scrape odds for a discovered raw match.
+
+        Scrapers that need additional match context beyond the external ID
+        can override this hook.
+        """
+        return self.scrape_odds(raw_match.external_id)
+
     def run(self, league_ids: dict[str, str], normalizer=None):
         """
         Main entry point. Scrape matches and odds for the given leagues.

@@ -400,6 +400,31 @@ class DoxxbetScraper(BaseScraper):
     def scrape_odds(self, match_external_id: str) -> list[RawOdds]:
         return []  # handled inline in run()
 
+    def scrape_odds_for_raw_match(self, raw_match: RawMatch) -> list[RawOdds]:
+        event_url = raw_match.url or ""
+        event_id = int(raw_match.external_id)
+        if not event_url:
+            return []
+
+        relative_url = event_url
+        if relative_url.startswith(self.BASE_URL):
+            relative_url = relative_url[len(self.BASE_URL):]
+
+        chance_types = self._load_match_detail(event_id, relative_url)
+        if not chance_types:
+            return []
+
+        return [
+            RawOdds(
+                match_external_id=raw_match.external_id,
+                market=market,
+                selection=selection,
+                odds=rate,
+                url=raw_match.url,
+            )
+            for market, selection, rate in self._parse_chance_types(chance_types)
+        ]
+
     def run(self, league_ids: dict[str, str], normalizer=None):
         from bettingmaster.scrapers.base import generate_match_id
         from bettingmaster.models.match import Match
