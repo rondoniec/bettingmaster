@@ -38,6 +38,24 @@ def test_match_detail_filters_latest_odds_by_market_and_bookmaker(client, seeded
     assert {odd["url"] for odd in payload["odds"]} == {"https://www.nike.sk/tipovanie/zapas/1010917852"}
 
 
+def test_match_detail_excludes_stale_live_odds(client, seeded_db):
+    match = seeded_db.get(Match, "match-upcoming")
+    assert match is not None
+    match.status = "live"
+
+    stale_time = seeded_db.info["seed_now"] - timedelta(hours=2)
+    for odds in seeded_db.query(OddsSnapshot).filter(OddsSnapshot.match_id == "match-upcoming"):
+        odds.scraped_at = stale_time
+    seeded_db.commit()
+
+    response = client.get("/api/matches/match-upcoming")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "live"
+    assert payload["odds"] == []
+
+
 def test_best_odds_returns_top_price_per_selection(client, seeded_db):
     response = client.get("/api/matches/match-upcoming/best-odds", params={"market": "1x2"})
 
@@ -74,6 +92,22 @@ def test_best_odds_match_list_returns_merged_matches_only(client, seeded_db):
         "home": "nike",
     }
     assert best_match["combined_margin"] < 0
+
+
+def test_best_odds_match_list_excludes_stale_live_matches(client, seeded_db):
+    match = seeded_db.get(Match, "match-upcoming")
+    assert match is not None
+    match.status = "live"
+
+    stale_time = seeded_db.info["seed_now"] - timedelta(hours=2)
+    for odds in seeded_db.query(OddsSnapshot).filter(OddsSnapshot.match_id == "match-upcoming"):
+        odds.scraped_at = stale_time
+    seeded_db.commit()
+
+    response = client.get("/api/matches/best-odds", params={"market": "1x2"})
+
+    assert response.status_code == 200
+    assert response.json() == []
 
 
 def test_best_odds_match_list_can_filter_by_league_and_min_bookmakers(client, seeded_db):

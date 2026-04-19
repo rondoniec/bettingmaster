@@ -56,13 +56,21 @@ def utc_day_bounds_for_local_date(target_date: date) -> tuple[datetime, datetime
 
 
 ODDS_MAX_AGE_HOURS = 4
+LIVE_ODDS_MAX_AGE_MINUTES = 20
+
+
+def odds_max_age_hours_for_status(status: str | None) -> float:
+    """Return the freshness window for odds based on match status."""
+    if status == "live":
+        return LIVE_ODDS_MAX_AGE_MINUTES / 60
+    return ODDS_MAX_AGE_HOURS
 
 
 def build_latest_odds_subquery(
     db: Session,
     *,
     match_id: str | None = None,
-    max_age_hours: int = ODDS_MAX_AGE_HOURS,
+    max_age_hours: float = ODDS_MAX_AGE_HOURS,
 ):
     """Return the latest timestamp per odds key, excluding stale rows."""
     cutoff = datetime.now(UTC).replace(tzinfo=None) - timedelta(hours=max_age_hours)
@@ -91,7 +99,12 @@ def latest_odds_for_match(
     bookmakers: list[str] | None = None,
 ) -> list[OddsSnapshot]:
     """Return the latest odds rows for a single match."""
-    latest_subquery = build_latest_odds_subquery(db, match_id=match_id)
+    match = db.get(Match, match_id)
+    latest_subquery = build_latest_odds_subquery(
+        db,
+        match_id=match_id,
+        max_age_hours=odds_max_age_hours_for_status(match.status if match else None),
+    )
     query = (
         db.query(OddsSnapshot)
         .join(
@@ -229,6 +242,14 @@ def list_best_odds_matches(
 
     result: list[MatchBestOddsOut] = []
     for match, odds_rows in grouped_rows.values():
+        if match.status == "live":
+            live_cutoff = datetime.now(UTC).replace(tzinfo=None) - timedelta(
+                minutes=LIVE_ODDS_MAX_AGE_MINUTES
+            )
+            odds_rows = [odds_row for odds_row in odds_rows if odds_row.scraped_at >= live_cutoff]
+            if not odds_rows:
+                continue
+
         participating_bookmakers = sorted({odds_row.bookmaker for odds_row in odds_rows})
         if len(participating_bookmakers) < min_bookmakers:
             continue

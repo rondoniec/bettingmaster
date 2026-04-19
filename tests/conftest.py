@@ -52,9 +52,19 @@ def client(db_session: Session):
 
 @pytest.fixture()
 def seeded_db(db_session: Session) -> Session:
-    local_now = datetime.now(ZoneInfo(settings.timezone)).replace(second=0, microsecond=0)
-    now = local_now.astimezone(UTC).replace(tzinfo=None)
+    real_local_now = datetime.now(ZoneInfo(settings.timezone)).replace(second=0, microsecond=0)
+    now = real_local_now.astimezone(UTC).replace(tzinfo=None)
     db_session.info["seed_now"] = now
+
+    # Pin match schedules to local midday so date-based API tests do not drift
+    # when the suite runs close to midnight in the configured timezone.
+    schedule_local_now = real_local_now.replace(
+        hour=12,
+        minute=0,
+        second=0,
+        microsecond=0,
+    )
+    schedule_now = schedule_local_now.astimezone(UTC).replace(tzinfo=None)
 
     db_session.add_all([
         Sport(id="football", name="Football"),
@@ -68,7 +78,7 @@ def seeded_db(db_session: Session) -> Session:
         league_id="sk-fortuna-liga",
         home_team="Slovan Bratislava",
         away_team="Spartak Trnava",
-        start_time=now + timedelta(hours=6),
+        start_time=schedule_now + timedelta(hours=6),
         status="prematch",
         external_ids={"nike": "1010917852", "fortuna": "ufo:match:1"},
     )
@@ -77,7 +87,7 @@ def seeded_db(db_session: Session) -> Session:
         league_id="sk-fortuna-liga",
         home_team="MSK Zilina",
         away_team="DAC 1904",
-        start_time=now + timedelta(days=1, hours=3),
+        start_time=schedule_now + timedelta(days=1, hours=3),
         status="prematch",
     )
     finished_match = Match(
@@ -85,7 +95,7 @@ def seeded_db(db_session: Session) -> Session:
         league_id="sk-fortuna-liga",
         home_team="Kosice",
         away_team="Trencin",
-        start_time=now - timedelta(days=2),
+        start_time=schedule_now - timedelta(days=2),
         status="finished",
     )
     hockey_match = Match(
@@ -93,7 +103,7 @@ def seeded_db(db_session: Session) -> Session:
         league_id="sk-tipos-extraliga",
         home_team="Kosice HC",
         away_team="Nitra HC",
-        start_time=now + timedelta(hours=8),
+        start_time=schedule_now + timedelta(hours=8),
         status="prematch",
         external_ids={"nike": "1010917999"},
     )
