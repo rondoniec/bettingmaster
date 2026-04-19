@@ -1,0 +1,17 @@
+.git
+.gitignore
+.pytest_cache
+.ruff_cache
+.venv
+__pycache__
+*.py[cod]
+*.egg-info
+build
+dist
+alembic/__pycache__
+data/*.db
+data/debug
+data/preview-logs
+frontend/.next
+frontend/node_modules
+

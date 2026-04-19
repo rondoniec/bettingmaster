@@ -1,0 +1,121 @@
+{
+  "Slovan Bratislava": {
+    "tipsport": ["Slovan Bratislava", "SK Slovan Bratislava", "ŠK Slovan Bratislava"],
+    "fortuna": ["Sl. Bratislava", "Slovan BA", "Slovan Bratislava"],
+    "nike": ["SK Slovan Bratislava", "Slovan Bratislava"],
+    "tipos": ["Slovan Bratislava"],
+    "doxxbet": ["Slovan Bratislava"]
+  },
+  "Spartak Trnava": {
+    "tipsport": ["Spartak Trnava", "FC Spartak Trnava"],
+    "fortuna": ["Spartak Trnava", "Sp. Trnava", "Trnava"],
+    "nike": ["FC Spartak Trnava", "Spartak Trnava"],
+    "tipos": ["Spartak Trnava"],
+    "doxxbet": ["Spartak Trnava", "Trnava"]
+  },
+  "DAC Dunajska Streda": {
+    "tipsport": ["DAC Dunajská Streda", "FC DAC 1904 Dunajská Streda", "DAC 1904 D. Streda"],
+    "fortuna": ["DAC D. Streda", "DAC Dunajská Streda", "Dun.Streda"],
+    "nike": ["DAC 1904 Dunajská Streda", "Dunajská Streda"],
+    "tipos": ["DAC Dunajská Streda"],
+    "doxxbet": ["DAC Dunajská Streda", "Dunajská Streda"]
+  },
+  "MFK Ruzomberok": {
+    "tipsport": ["MFK Ružomberok", "Ružomberok"],
+    "fortuna": ["Ružomberok", "MFK Ružomberok"],
+    "nike": ["MFK Ružomberok", "Ružomberok"],
+    "tipos": ["MFK Ružomberok"],
+    "doxxbet": ["Ružomberok", "MFK Ružomberok"]
+  },
+  "MSK Zilina": {
+    "tipsport": ["MŠK Žilina", "Žilina"],
+    "fortuna": ["Žilina", "MŠK Žilina"],
+    "nike": ["MŠK Žilina", "Žilina"],
+    "tipos": ["MŠK Žilina"],
+    "doxxbet": ["Žilina", "MŠK Žilina"]
+  },
+  "AS Trencin": {
+    "tipsport": ["AS Trenčín", "Trenčín"],
+    "fortuna": ["Trenčín", "AS Trenčín"],
+    "nike": ["AS Trenčín", "Trenčín"],
+    "tipos": ["AS Trenčín"],
+    "doxxbet": ["Trenčín", "AS Trenčín"]
+  },
+  "MFK Zemplin Michalovce": {
+    "tipsport": ["Zemplín Michalovce", "MFK Zemplín Michalovce"],
+    "fortuna": ["Michalovce", "Zemplín Michalovce"],
+    "nike": ["MFK Zemplín Michalovce", "Michalovce"],
+    "tipos": ["Zemplín Michalovce"],
+    "doxxbet": ["Michalovce", "Zemplín Michalovce"]
+  },
+  "FC Nitra": {
+    "tipsport": ["FC Nitra", "Nitra"],
+    "fortuna": ["Nitra", "FC Nitra"],
+    "nike": ["FC Nitra", "Nitra"],
+    "tipos": ["FC Nitra"],
+    "doxxbet": ["Nitra"]
+  },
+  "FK Pohronie": {
+    "tipsport": ["FK Pohronie", "Pohronie"],
+    "fortuna": ["Pohronie", "FK Pohronie"],
+    "nike": ["FK Pohronie", "Pohronie"],
+    "tipos": ["FK Pohronie"],
+    "doxxbet": ["Pohronie"]
+  },
+  "FC Petrzalka": {
+    "tipsport": ["FC Petržalka", "Petržalka"],
+    "fortuna": ["Petržalka", "FC Petržalka"],
+    "nike": ["FC Petržalka", "Petržalka"],
+    "tipos": ["FC Petržalka"],
+    "doxxbet": ["Petržalka"]
+  },
+  "FK Dukla Banska Bystrica": {
+    "tipsport": ["Dukla Banská Bystrica", "FK Dukla B. Bystrica"],
+    "fortuna": ["Dukla B. Bystrica", "Dukla Banská Bystrica"],
+    "nike": ["FK Dukla Banská Bystrica", "Dukla B. Bystrica"],
+    "tipos": ["Dukla Banská Bystrica"],
+    "doxxbet": ["Dukla B. Bystrica"]
+  },
+  "FC ViOn Zlate Moravce": {
+    "tipsport": ["ViOn Zlaté Moravce", "FC ViOn Zlaté Moravce"],
+    "fortuna": ["Zl. Moravce", "ViOn Zlaté Moravce"],
+    "nike": ["FC ViOn Zlaté Moravce", "Zlaté Moravce"],
+    "tipos": ["ViOn Zlaté Moravce"],
+    "doxxbet": ["Zlaté Moravce"]
+  },
+  "FK Zeleziarne Podbrezova": {
+    "tipsport": ["Podbrezová", "FK Železiarne Podbrezová"],
+    "fortuna": ["Podbrezová"],
+    "nike": ["FK Železiarne Podbrezová", "Podbrezová"],
+    "tipos": ["Podbrezová"],
+    "doxxbet": ["Podbrezová"]
+  },
+  "MFK Skalica": {
+    "tipsport": ["Skalica", "MFK Skalica"],
+    "fortuna": ["Skalica"],
+    "nike": ["MFK Skalica", "Skalica"],
+    "tipos": ["Skalica"],
+    "doxxbet": ["Skalica"]
+  },
+  "Tatran Presov": {
+    "tipsport": ["Tatran Prešov", "1. FC Tatran Prešov", "Prešov"],
+    "fortuna": ["Prešov", "Tatran Prešov"],
+    "nike": ["1. FC Tatran Prešov", "Tatran Prešov", "Prešov"],
+    "tipos": ["Tatran Prešov"],
+    "doxxbet": ["Tatran Prešov", "Prešov"]
+  },
+  "KFC Komarno": {
+    "tipsport": ["KFC Komárno", "Komárno"],
+    "fortuna": ["Komárno"],
+    "nike": ["KFC Komárno", "Komárno"],
+    "tipos": ["Komárno"],
+    "doxxbet": ["Komárno", "KFC Komárno"]
+  },
+  "FC Kosice": {
+    "tipsport": ["FC Košice", "Košice"],
+    "fortuna": ["FC Košice"],
+    "nike": ["FC Košice", "Košice"],
+    "tipos": ["FC Košice"],
+    "doxxbet": ["FC Košice"]
+  }
+}

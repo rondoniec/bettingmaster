@@ -1,0 +1,20 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+*.db
+data/debug/
+data/preview-logs/
+.env
+
+# Frontend build artifacts
+frontend/.next/
+frontend/node_modules/
+frontend/out/
+
+# Scratch scripts
+explore_tipos*.py
+explore_*.py
+find_madrid_bayern.py
