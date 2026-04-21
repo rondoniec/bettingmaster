@@ -16,6 +16,7 @@ from tenacity import (
     wait_exponential,
 )
 
+from bettingmaster.match_identity import find_similar_match
 from bettingmaster.models.match import Match
 from bettingmaster.models.odds import OddsSnapshot
 
@@ -142,6 +143,17 @@ class BaseScraper(ABC):
                 match_id = generate_match_id(
                     league_id, home, away, rm.start_time.strftime("%Y-%m-%d")
                 )
+                existing_match = find_similar_match(
+                    self._db,
+                    league_id,
+                    home,
+                    away,
+                    rm.start_time,
+                )
+                if existing_match is not None:
+                    match_id = existing_match.id
+                    home = existing_match.home_team
+                    away = existing_match.away_team
 
                 # Upsert match
                 match = self._db.get(Match, match_id)

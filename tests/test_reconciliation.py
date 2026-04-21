@@ -121,3 +121,50 @@ def test_reconcile_matches_merges_doxxbet_abbreviations(db_session):
     assert {
         odds.match_id for odds in db_session.query(OddsSnapshot).all()
     } == {match.id}
+
+
+def test_reconcile_matches_fuzzy_merges_existing_duplicate_rows(db_session):
+    db_session.add(Sport(id="football", name="Football"))
+    db_session.add(
+        League(id="it-serie-a", sport_id="football", name="Serie A", country="IT")
+    )
+    start_time = datetime(2026, 4, 19, 16, 0)
+    canonical_match = Match(
+        id="canonical",
+        league_id="it-serie-a",
+        home_team="Juventus",
+        away_team="Bologna",
+        start_time=start_time,
+        status="prematch",
+        external_ids={"nike": "n-1"},
+    )
+    duplicate_match = Match(
+        id="duplicate",
+        league_id="it-serie-a",
+        home_team="Juventus FC",
+        away_team="Bologna FC 1909",
+        start_time=start_time,
+        status="prematch",
+        external_ids={"doxxbet": "d-1"},
+    )
+    db_session.add_all([canonical_match, duplicate_match])
+    db_session.flush()
+    db_session.add(
+        OddsSnapshot(
+            match_id="duplicate",
+            bookmaker="doxxbet",
+            market="1x2",
+            selection="home",
+            odds=1.5,
+            scraped_at=start_time,
+        )
+    )
+    db_session.commit()
+
+    summary = reconcile_matches(db_session)
+
+    assert summary.merged == 1
+    matches = db_session.query(Match).all()
+    assert len(matches) == 1
+    assert matches[0].external_ids == {"nike": "n-1", "doxxbet": "d-1"}
+    assert db_session.query(OddsSnapshot).one().match_id == matches[0].id

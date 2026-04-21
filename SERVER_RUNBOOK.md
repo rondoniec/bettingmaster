@@ -136,23 +136,27 @@ This only stops the log view. It does not stop the scraper.
 
 ## 10. Force a scrape manually
 
-Run these if you do not want to wait for the worker schedule:
+Run this if you do not want to wait for the worker schedule. This uses the
+match-first order: discover matches, then scrape the same match across all
+selected bookmakers before moving to the next match.
 
 ```bash
-docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner exec worker python -m bettingmaster.cli scrape fortuna
-docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner exec worker python -m bettingmaster.cli scrape nike
-docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner exec worker python -m bettingmaster.cli scrape doxxbet
-docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner exec worker python -m bettingmaster.cli scrape polymarket
+docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner exec worker python -m bettingmaster.cli scrape-cycle --bookmaker fortuna --bookmaker nike --bookmaker doxxbet --bookmaker polymarket
 ```
 
-Optional scrapers:
+Optional scrapers can be added too:
 
 ```bash
-docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner exec worker python -m bettingmaster.cli scrape tipsport
-docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner exec worker python -m bettingmaster.cli scrape tipos
+docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner exec worker python -m bettingmaster.cli scrape-cycle --bookmaker fortuna --bookmaker nike --bookmaker doxxbet --bookmaker polymarket --bookmaker tipsport --bookmaker tipos
 ```
 
 Note: `tipsport` and `tipos` may fail or return no data more often than the others.
+
+The older command also still exists for debugging one bookmaker only:
+
+```bash
+docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner exec worker python -m bettingmaster.cli scrape doxxbet
+```
 
 ## 11. Check API health
 
@@ -228,8 +232,7 @@ docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzn
 Force missing scrapers:
 
 ```bash
-docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner exec worker python -m bettingmaster.cli scrape nike
-docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner exec worker python -m bettingmaster.cli scrape doxxbet
+docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner exec worker python -m bettingmaster.cli scrape-cycle --bookmaker nike --bookmaker doxxbet
 ```
 
 Then check health again:

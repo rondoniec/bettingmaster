@@ -197,6 +197,23 @@ def scrape(bookmaker: str, discover: bool):
     click.echo("Done.")
 
 
+@main.command("scrape-cycle")
+@click.option(
+    "--bookmaker",
+    "bookmakers",
+    multiple=True,
+    help="Limit the round-robin cycle to one bookmaker. Can be used more than once.",
+)
+def scrape_cycle(bookmakers: tuple[str, ...]):
+    """Run one match-first scrape cycle manually."""
+    from bettingmaster.scheduler import run_round_robin_cycle
+
+    selected = list(bookmakers) or None
+    click.echo("Running match-first scrape cycle...")
+    run_round_robin_cycle(force_bookmakers=selected)
+    click.echo("Done.")
+
+
 def _discover_tipsport():
     """Run Tipsport scraper in discovery mode — dumps raw API responses."""
     from bettingmaster.database import SessionLocal

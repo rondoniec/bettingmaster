@@ -10,6 +10,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 from bettingmaster.config import settings
 from bettingmaster.database import SessionLocal
+from bettingmaster.match_identity import MATCH_SCORE_THRESHOLD, match_similarity, find_similar_match
 from bettingmaster.models.match import Match
 from bettingmaster.models.odds import OddsSnapshot
 from bettingmaster.scrapers.base import RawMatch, generate_match_id
@@ -87,6 +88,7 @@ def _configured_league_map(db, bookmaker: str) -> dict[str, str]:
 def _build_round_robin_work_items(
     discovered_matches: list[RoundRobinWorkItem],
 ) -> list[RoundRobinWorkItem]:
+    discovered_matches = _coalesce_discovered_matches(discovered_matches)
     grouped: dict[str, list[RoundRobinWorkItem]] = {}
     for item in discovered_matches:
         grouped.setdefault(item.match_id, []).append(item)
@@ -112,6 +114,62 @@ def _build_round_robin_work_items(
         )
 
     return ordered
+
+
+def _coalesce_discovered_matches(
+    discovered_matches: list[RoundRobinWorkItem],
+) -> list[RoundRobinWorkItem]:
+    representatives: list[RoundRobinWorkItem] = []
+    ordered = sorted(
+        discovered_matches,
+        key=lambda item: (
+            item.start_time,
+            item.league_id,
+            _bookmaker_priority(item.bookmaker),
+            item.home_team,
+            item.away_team,
+        ),
+    )
+
+    for item in ordered:
+        representative = _find_discovered_representative(item, representatives)
+        if representative is None:
+            representatives.append(item)
+            continue
+
+        item.match_id = representative.match_id
+        item.home_team = representative.home_team
+        item.away_team = representative.away_team
+        item.start_time = representative.start_time
+
+    return discovered_matches
+
+
+def _find_discovered_representative(
+    item: RoundRobinWorkItem,
+    representatives: list[RoundRobinWorkItem],
+) -> RoundRobinWorkItem | None:
+    best: tuple[float, RoundRobinWorkItem] | None = None
+    for candidate in representatives:
+        if candidate.league_id != item.league_id:
+            continue
+        if abs(candidate.start_time - item.start_time).total_seconds() > 3 * 60 * 60:
+            continue
+
+        score, swapped = match_similarity(
+            item.home_team,
+            item.away_team,
+            candidate.home_team,
+            candidate.away_team,
+        )
+        if swapped:
+            continue
+        if score < MATCH_SCORE_THRESHOLD:
+            continue
+        if best is None or score > best[0]:
+            best = (score, candidate)
+
+    return best[1] if best else None
 
 
 def _upsert_match_record(db, item: RoundRobinWorkItem) -> Match:
@@ -182,6 +240,17 @@ def _discover_round_robin_matches(
                     away,
                     raw_match.start_time.strftime("%Y-%m-%d"),
                 )
+                existing_match = find_similar_match(
+                    db,
+                    league_id,
+                    home,
+                    away,
+                    raw_match.start_time,
+                )
+                if existing_match is not None:
+                    match_id = existing_match.id
+                    home = existing_match.home_team
+                    away = existing_match.away_team
                 discovered.append(
                     RoundRobinWorkItem(
                         bookmaker=bookmaker,

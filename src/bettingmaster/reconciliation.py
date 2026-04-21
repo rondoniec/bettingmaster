@@ -4,12 +4,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from bettingmaster.match_identity import MATCH_SCORE_THRESHOLD, match_similarity
 from bettingmaster.models.match import Match
 from bettingmaster.models.odds import OddsSnapshot
 from bettingmaster.normalizer import TeamNormalizer
 from bettingmaster.scrapers.base import generate_match_id
 
-BOOKMAKER_PRIORITY = ("fortuna", "nike", "doxxbet", "tipsport", "tipos")
+BOOKMAKER_PRIORITY = ("fortuna", "nike", "doxxbet", "tipsport", "tipos", "polymarket")
 
 
 @dataclass
@@ -92,6 +93,7 @@ def reconcile_matches(db_session) -> ReconcileSummary:
         db_session.delete(match)
         summary.merged += 1
 
+    _merge_similar_matches(db_session, summary)
     db_session.commit()
     return summary
 
@@ -101,3 +103,74 @@ def _primary_bookmaker(external_ids: dict[str, str]) -> str | None:
         if bookmaker in external_ids:
             return bookmaker
     return next(iter(external_ids), None)
+
+
+def _merge_similar_matches(db_session, summary: ReconcileSummary):
+    while True:
+        match_pair = _find_similar_match_pair(db_session)
+        if match_pair is None:
+            return
+
+        target, duplicate = match_pair
+        _merge_match_rows(db_session, target, duplicate)
+        summary.merged += 1
+        db_session.flush()
+
+
+def _find_similar_match_pair(db_session) -> tuple[Match, Match] | None:
+    matches = (
+        db_session.query(Match)
+        .order_by(Match.league_id, Match.start_time, Match.id)
+        .all()
+    )
+
+    for index, left in enumerate(matches):
+        for right in matches[index + 1:]:
+            if left.league_id != right.league_id:
+                continue
+            if abs(left.start_time - right.start_time).total_seconds() > 3 * 60 * 60:
+                continue
+
+            score, swapped = match_similarity(
+                left.home_team,
+                left.away_team,
+                right.home_team,
+                right.away_team,
+            )
+            if swapped or score < MATCH_SCORE_THRESHOLD:
+                continue
+            return _choose_canonical_match(left, right)
+
+    return None
+
+
+def _choose_canonical_match(left: Match, right: Match) -> tuple[Match, Match]:
+    left_rank = _match_rank(left)
+    right_rank = _match_rank(right)
+    if right_rank < left_rank:
+        return right, left
+    return left, right
+
+
+def _match_rank(match: Match) -> tuple[int, int, str]:
+    external_ids = match.external_ids or {}
+    priorities = [
+        BOOKMAKER_PRIORITY.index(bookmaker)
+        for bookmaker in external_ids
+        if bookmaker in BOOKMAKER_PRIORITY
+    ]
+    priority = min(priorities) if priorities else len(BOOKMAKER_PRIORITY)
+    return (priority, -len(external_ids), match.id)
+
+
+def _merge_match_rows(db_session, target: Match, duplicate: Match):
+    merged_external_ids = dict(target.external_ids or {})
+    merged_external_ids.update(duplicate.external_ids or {})
+    target.external_ids = merged_external_ids
+    if duplicate.status == "live":
+        target.status = "live"
+    db_session.query(OddsSnapshot).filter_by(match_id=duplicate.id).update(
+        {OddsSnapshot.match_id: target.id},
+        synchronize_session=False,
+    )
+    db_session.delete(duplicate)
