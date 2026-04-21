@@ -18,7 +18,8 @@ from tenacity import (
 
 from bettingmaster.match_identity import find_similar_match
 from bettingmaster.models.match import Match
-from bettingmaster.models.odds import OddsSnapshot
+from bettingmaster.odds_writer import add_odds_snapshot
+from bettingmaster.scope import is_match_in_active_scope
 
 logger = logging.getLogger(__name__)
 
@@ -134,6 +135,8 @@ class BaseScraper(ABC):
 
         for rm in raw_matches:
             try:
+                if not is_match_in_active_scope(league_id, rm.start_time):
+                    continue
                 home = rm.home_team
                 away = rm.away_team
                 if normalizer:
@@ -180,7 +183,8 @@ class BaseScraper(ABC):
                 raw_odds = self.scrape_odds(rm.external_id)
                 now = datetime.utcnow()
                 for ro in raw_odds:
-                    snap = OddsSnapshot(
+                    add_odds_snapshot(
+                        self._db,
                         match_id=match_id,
                         bookmaker=self.BOOKMAKER,
                         market=ro.market,
@@ -189,7 +193,6 @@ class BaseScraper(ABC):
                         url=ro.url,
                         scraped_at=now,
                     )
-                    self._db.add(snap)
 
                 self._db.commit()
                 logger.debug(

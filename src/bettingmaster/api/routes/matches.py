@@ -14,6 +14,7 @@ from bettingmaster.schemas.common import (
     OddsOut,
 )
 from bettingmaster.services.odds import (
+    NEXT_24_SENTINEL,
     build_best_odds,
     latest_odds_for_match,
     list_best_odds_matches,
@@ -21,6 +22,7 @@ from bettingmaster.services.odds import (
     resolve_date_filter,
     utc_day_bounds_for_local_date,
 )
+from bettingmaster.scope import active_match_window, apply_active_match_scope
 
 router = APIRouter()
 
@@ -31,7 +33,7 @@ def list_matches(
     day: date | None = Query(None, alias="date", description="Filter by date (YYYY-MM-DD)"),
     db: Session = Depends(get_db),
 ):
-    q = db.query(Match).filter(Match.league_id == league_id)
+    q = apply_active_match_scope(db.query(Match).filter(Match.league_id == league_id))
     if day:
         q = q.filter(
             Match.start_time >= datetime.combine(day, datetime.min.time()),
@@ -45,7 +47,7 @@ def list_all_matches(
     date_filter: str | None = Query(
         None,
         alias="date",
-        description="Date filter: 'today' (default), 'tomorrow', or ISO date YYYY-MM-DD",
+        description="Date filter: 'next24' (default), 'today', 'tomorrow', or YYYY-MM-DD",
     ),
     sport: str | None = Query(None, description="Filter by sport id, e.g. 'football'"),
     status: str | None = Query(None, description="Filter by match status, e.g. 'prematch', 'live'"),
@@ -55,20 +57,23 @@ def list_all_matches(
 
     Optionally filter by sport and/or status.
     """
-    try:
-        target_date = resolve_date_filter(date_filter)
-    except ValueError:
-        raise HTTPException(
-            status_code=422,
-            detail=(
-                f"Invalid date format '{date_filter}'. "
-                "Use 'today', 'tomorrow', or 'YYYY-MM-DD'."
-            ),
-        )
+    if date_filter in (None, NEXT_24_SENTINEL):
+        day_start, day_end = active_match_window()
+    else:
+        try:
+            target_date = resolve_date_filter(date_filter)
+        except ValueError:
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    f"Invalid date format '{date_filter}'. "
+                    "Use 'next24', 'today', 'tomorrow', or 'YYYY-MM-DD'."
+                ),
+            )
 
-    day_start, day_end = utc_day_bounds_for_local_date(target_date)
+        day_start, day_end = utc_day_bounds_for_local_date(target_date)
 
-    q = (
+    q = apply_active_match_scope(
         db.query(Match)
         .filter(
             Match.start_time >= day_start,
@@ -90,7 +95,7 @@ def list_matches_with_best_odds(
     date_filter: str | None = Query(
         None,
         alias="date",
-        description="Date filter: 'today' (default), 'tomorrow', or ISO date YYYY-MM-DD",
+        description="Date filter: 'next24' (default), 'today', 'tomorrow', or YYYY-MM-DD",
     ),
     market: str = Query("1x2", description="Market to compare, e.g. '1x2'"),
     sport: str | None = Query(None, description="Filter by sport id, e.g. 'football'"),
@@ -103,21 +108,27 @@ def list_matches_with_best_odds(
     min_bookmakers: int = Query(2, ge=1, le=20, description="Minimum bookmakers required"),
     db: Session = Depends(get_db),
 ):
-    try:
-        target_date = resolve_date_filter(date_filter)
-    except ValueError:
-        raise HTTPException(
-            status_code=422,
-            detail=(
-                f"Invalid date format '{date_filter}'. "
-                "Use 'today', 'tomorrow', or 'YYYY-MM-DD'."
-            ),
-        )
+    target_date = None
+    time_window = None
+    if date_filter in (None, NEXT_24_SENTINEL):
+        time_window = active_match_window()
+    else:
+        try:
+            target_date = resolve_date_filter(date_filter)
+        except ValueError:
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    f"Invalid date format '{date_filter}'. "
+                    "Use 'next24', 'today', 'tomorrow', or 'YYYY-MM-DD'."
+                ),
+            )
 
     bookmaker_list = [item.strip() for item in bookmakers.split(",") if item.strip()] if bookmakers else None
     return list_best_odds_matches(
         db,
         target_date=target_date,
+        time_window=time_window,
         market=market,
         sport=sport,
         league_id=league_id,

@@ -9,7 +9,7 @@ import {
   resolveSelectionLabel,
   SELECTION_ORDER,
 } from "@/lib/constants";
-import { cn, formatMargin, formatOdds } from "@/lib/utils";
+import { cn, formatLastUpdated, formatMargin, formatOdds } from "@/lib/utils";
 
 type Props = {
   market: string;
@@ -139,29 +139,34 @@ export function OddsTable({ market, odds, combinedMargin, focusedBookmaker, focu
                     return (
                       <td key={selection} className="px-4 py-3 text-center">
                         {entry ? (
-                          <div
-                            className={cn(
-                              "inline-flex items-center gap-1 rounded-lg px-2 py-1 font-bold tabular-nums",
-                              isFocused
-                                ? "ring-2 ring-blue-500 ring-offset-1"
-                                : undefined,
-                              isBest ? "best-odds bg-emerald-100 text-emerald-800" : "text-slate-700"
-                            )}
-                          >
-                            {formatOdds(entry.odds)}
-                            {isBest && entry.url ? (
-                              <a
-                                href={entry.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={(event) => event.stopPropagation()}
-                                className="ml-1 text-emerald-600 hover:text-emerald-800"
-                                title={`Open at ${bookmakerData.displayName}`}
-                              >
-                                <ExternalLink className="h-3 w-3" />
-                              </a>
-                            ) : null}
-                          </div>
+                          <>
+                            <div
+                              className={cn(
+                                "inline-flex items-center gap-1 rounded-lg px-2 py-1 font-bold tabular-nums",
+                                isFocused
+                                  ? "ring-2 ring-blue-500 ring-offset-1"
+                                  : undefined,
+                                isBest ? "best-odds bg-emerald-100 text-emerald-800" : "text-slate-700"
+                              )}
+                            >
+                              {formatOdds(entry.odds)}
+                              {isBest && entry.url ? (
+                                <a
+                                  href={entry.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(event) => event.stopPropagation()}
+                                  className="ml-1 text-emerald-600 hover:text-emerald-800"
+                                  title={`Open at ${bookmakerData.displayName}`}
+                                >
+                                  <ExternalLink className="h-3 w-3" />
+                                </a>
+                              ) : null}
+                            </div>
+                            <div className="mt-1 text-[10px] text-slate-400">
+                              from {formatLastUpdated(entry.scraped_at)}
+                            </div>
+                          </>
                         ) : (
                           <span className="text-slate-300">-</span>
                         )}

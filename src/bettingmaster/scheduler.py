@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -12,8 +12,9 @@ from bettingmaster.config import settings
 from bettingmaster.database import SessionLocal
 from bettingmaster.match_identity import MATCH_SCORE_THRESHOLD, match_similarity, find_similar_match
 from bettingmaster.models.match import Match
-from bettingmaster.models.odds import OddsSnapshot
+from bettingmaster.odds_writer import add_odds_snapshot
 from bettingmaster.scrapers.base import RawMatch, generate_match_id
+from bettingmaster.scope import is_active_league, is_match_in_active_scope
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +44,7 @@ class RoundRobinWorkItem:
 
 
 _last_round_robin_run: dict[str, datetime] = {}
+_bookmaker_cooldowns: dict[str, datetime] = {}
 
 
 def _register_scrapers():
@@ -80,7 +82,7 @@ def _configured_league_map(db, bookmaker: str) -> dict[str, str]:
     league_map: dict[str, str] = {}
     for league in leagues:
         ext_ids = league.external_ids or {}
-        if bookmaker in ext_ids:
+        if bookmaker in ext_ids and is_active_league(league.id):
             league_map[league.id] = ext_ids[bookmaker]
     return league_map
 
@@ -200,16 +202,15 @@ def _upsert_match_record(db, item: RoundRobinWorkItem) -> Match:
 def _persist_odds_snapshots(db, item: RoundRobinWorkItem, odds_rows):
     now = datetime.now(UTC).replace(tzinfo=None)
     for raw_odds in odds_rows:
-        db.add(
-            OddsSnapshot(
-                match_id=item.match_id,
-                bookmaker=item.bookmaker,
-                market=raw_odds.market,
-                selection=raw_odds.selection,
-                odds=raw_odds.odds,
-                url=raw_odds.url,
-                scraped_at=now,
-            )
+        add_odds_snapshot(
+            db,
+            match_id=item.match_id,
+            bookmaker=item.bookmaker,
+            market=raw_odds.market,
+            selection=raw_odds.selection,
+            odds=raw_odds.odds,
+            url=raw_odds.url,
+            scraped_at=now,
         )
 
 
@@ -225,13 +226,17 @@ def _discover_round_robin_matches(
     for league_id, ext_id in league_map.items():
         try:
             raw_matches = scraper.scrape_matches(ext_id)
-        except Exception:
+        except Exception as exc:
+            if _is_rate_limit_error(bookmaker, exc):
+                raise
             logger.exception(f"[{bookmaker}] Failed to discover matches in {league_id}")
             continue
 
         logger.info(f"[{bookmaker}] Discovered {len(raw_matches)} matches in {league_id}")
         for raw_match in raw_matches:
             try:
+                if not is_match_in_active_scope(league_id, raw_match.start_time):
+                    continue
                 home = normalizer.normalize(raw_match.home_team, bookmaker) or raw_match.home_team
                 away = normalizer.normalize(raw_match.away_team, bookmaker) or raw_match.away_team
                 match_id = generate_match_id(
@@ -275,6 +280,9 @@ def _discover_round_robin_matches(
 def _due_bookmakers(now: datetime) -> list[str]:
     due: list[str] = []
     for bookmaker, interval_attr in BOOKMAKER_INTERVAL_ATTRS:
+        cooldown_until = _bookmaker_cooldowns.get(bookmaker)
+        if cooldown_until and cooldown_until > now:
+            continue
         interval_seconds = getattr(settings, interval_attr)
         last_run = _last_round_robin_run.get(bookmaker)
         if last_run is None or (now - last_run).total_seconds() >= interval_seconds:
@@ -285,6 +293,21 @@ def _due_bookmakers(now: datetime) -> list[str]:
 def _round_robin_tick_seconds() -> int:
     min_interval = min(getattr(settings, attr) for _, attr in BOOKMAKER_INTERVAL_ATTRS)
     return max(15, min(60, max(1, min_interval // 4)))
+
+
+def _is_rate_limit_error(bookmaker: str, exc: BaseException) -> bool:
+    return bookmaker == "nike" and exc.__class__.__name__ == "NikeRateLimitError"
+
+
+def _cool_down_bookmaker(bookmaker: str):
+    _bookmaker_cooldowns[bookmaker] = datetime.now(UTC) + timedelta(
+        seconds=settings.nike_rate_limit_cooldown_seconds
+    )
+    logger.warning(
+        "[%s] Rate limited; cooling down until %s",
+        bookmaker,
+        _bookmaker_cooldowns[bookmaker],
+    )
 
 
 def run_scraper(bookmaker: str):
@@ -332,7 +355,14 @@ def run_round_robin_cycle(force_bookmakers: list[str] | None = None):
         _register_scrapers()
 
     now = datetime.now(UTC)
-    due_bookmakers = force_bookmakers or _due_bookmakers(now)
+    if force_bookmakers:
+        due_bookmakers = [
+            bookmaker
+            for bookmaker in force_bookmakers
+            if _bookmaker_cooldowns.get(bookmaker, now) <= now
+        ]
+    else:
+        due_bookmakers = _due_bookmakers(now)
     if not due_bookmakers:
         logger.debug("No bookmakers due for round-robin scrape")
         return
@@ -363,9 +393,15 @@ def run_round_robin_cycle(force_bookmakers: list[str] | None = None):
                 _last_round_robin_run[bookmaker] = now
                 continue
 
-            discovered.extend(
-                _discover_round_robin_matches(db, bookmaker, scraper, league_map, normalizer)
-            )
+            try:
+                discovered.extend(
+                    _discover_round_robin_matches(db, bookmaker, scraper, league_map, normalizer)
+                )
+            except Exception as exc:
+                if _is_rate_limit_error(bookmaker, exc):
+                    _cool_down_bookmaker(bookmaker)
+                    continue
+                logger.exception("[%s] Round-robin discovery failed", bookmaker)
 
         work_items = _build_round_robin_work_items(discovered)
         logger.info(
@@ -376,6 +412,10 @@ def run_round_robin_cycle(force_bookmakers: list[str] | None = None):
         )
 
         for item in work_items:
+            cooldown_until = _bookmaker_cooldowns.get(item.bookmaker)
+            if cooldown_until and cooldown_until > datetime.now(UTC):
+                continue
+
             scraper = scrapers.get(item.bookmaker)
             if scraper is None:
                 continue
@@ -392,8 +432,10 @@ def run_round_robin_cycle(force_bookmakers: list[str] | None = None):
                     item.home_team,
                     item.away_team,
                 )
-            except Exception:
+            except Exception as exc:
                 db.rollback()
+                if _is_rate_limit_error(item.bookmaker, exc):
+                    _cool_down_bookmaker(item.bookmaker)
                 logger.exception(
                     "[%s] Round-robin failed for %s vs %s",
                     item.bookmaker,

@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { getSurebets, type Surebet } from "@/lib/api";
 import { getBookmakerDisplay, resolveSelectionLabel } from "@/lib/constants";
-import { formatFullDate, formatProfitPercent } from "@/lib/utils";
+import { formatFullDate, formatLastUpdated, formatProfitPercent } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -89,6 +89,9 @@ export default async function SurebetsPage() {
                       </p>
                       <p className="mt-2 text-sm font-medium" style={{ color: bookmaker.color }}>
                         {bookmaker.displayName}
+                      </p>
+                      <p className="mt-2 text-xs text-slate-400">
+                        Data from {formatLastUpdated(selection.scraped_at)}
                       </p>
                       <Link
                         href={focusHref}

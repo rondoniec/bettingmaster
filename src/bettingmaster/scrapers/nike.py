@@ -10,7 +10,9 @@ from typing import Optional
 
 from scrapling.fetchers import Fetcher
 
+from bettingmaster.odds_writer import add_odds_snapshot
 from bettingmaster.scrapers.base import BaseScraper, RawMatch, RawOdds
+from bettingmaster.scope import is_match_in_active_scope
 
 logger = logging.getLogger(__name__)
 
@@ -323,6 +325,8 @@ class NikeScraper(BaseScraper):
         )
 
         start_time = self._parse_start_time(match_data.get("startTime", ""))
+        if not is_match_in_active_scope(league_id, start_time):
+            return
         match_id = generate_match_id(
             league_id,
             home,
@@ -369,16 +373,15 @@ class NikeScraper(BaseScraper):
 
         odds_count = len(best)
         for (market, selection), rate in best.items():
-            self._db.add(
-                OddsSnapshot(
-                    match_id=match_id,
-                    bookmaker=self.BOOKMAKER,
-                    market=market,
-                    selection=selection,
-                    odds=rate,
-                    url=match_url,
-                    scraped_at=now,
-                )
+            add_odds_snapshot(
+                self._db,
+                match_id=match_id,
+                bookmaker=self.BOOKMAKER,
+                market=market,
+                selection=selection,
+                odds=rate,
+                url=match_url,
+                scraped_at=now,
             )
 
         self._db.commit()

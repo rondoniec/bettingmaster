@@ -65,7 +65,7 @@ async function loadHomeData({
 
 export default async function HomePage({ searchParams }: HomePageProps) {
   const resolvedParams = await searchParams;
-  const date = resolvedParams?.date ?? "today";
+  const date = resolvedParams?.date ?? "next24";
   const sport = resolvedParams?.sport;
   const market = resolvedParams?.market ?? "1x2";
   const q = resolvedParams?.q?.trim();

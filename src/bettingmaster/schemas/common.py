@@ -53,6 +53,7 @@ class BestOddsSelection(BaseModel):
     odds: float
     bookmaker: str
     url: Optional[str] = None
+    scraped_at: datetime
 
 
 class BestOddsOut(BaseModel):
@@ -74,6 +75,7 @@ class SurebetSelection(BaseModel):
     odds: float
     bookmaker: str
     url: Optional[str] = None
+    scraped_at: datetime
 
 
 class SurebetOut(BaseModel):

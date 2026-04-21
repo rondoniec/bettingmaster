@@ -45,6 +45,7 @@ export type BestOddsSelection = {
   odds: number;
   bookmaker: string;
   url?: string;
+  scraped_at: string;
 };
 
 export type BestOdds = {

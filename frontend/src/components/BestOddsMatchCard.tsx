@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import type { MatchBestOdds } from "@/lib/api";
 import { getBookmakerDisplay, resolveSelectionLabel } from "@/lib/constants";
-import { cn, formatMargin, formatMatchTime, formatOdds } from "@/lib/utils";
+import { cn, formatLastUpdated, formatMargin, formatMatchTime, formatOdds } from "@/lib/utils";
 
 type Props = {
   match: MatchBestOdds;
@@ -108,6 +108,9 @@ export function BestOddsMatchCard({ match }: Props) {
                   </a>
                 ) : null}
               </div>
+              <p className="mt-3 text-xs text-slate-400">
+                Data from {formatLastUpdated(selection.scraped_at)}
+              </p>
             </div>
           );
         })}

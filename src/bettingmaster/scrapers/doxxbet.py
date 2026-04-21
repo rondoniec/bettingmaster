@@ -26,8 +26,10 @@ from datetime import UTC, datetime
 from typing import Optional
 from zoneinfo import ZoneInfo
 
-from bettingmaster.scrapers.base import BaseScraper, RawMatch, RawOdds
 from bettingmaster.config import settings
+from bettingmaster.odds_writer import add_odds_snapshot
+from bettingmaster.scrapers.base import BaseScraper, RawMatch, RawOdds
+from bettingmaster.scope import is_match_in_active_scope
 
 logger = logging.getLogger(__name__)
 
@@ -428,7 +430,6 @@ class DoxxbetScraper(BaseScraper):
     def run(self, league_ids: dict[str, str], normalizer=None):
         from bettingmaster.scrapers.base import generate_match_id
         from bettingmaster.models.match import Match
-        from bettingmaster.models.odds import OddsSnapshot
 
         league_map = {int(ext_id): our_id for our_id, ext_id in league_ids.items()}
         relevant: list[dict] = []
@@ -470,6 +471,8 @@ class DoxxbetScraper(BaseScraper):
                 away = normalizer.normalize(away_raw, self.BOOKMAKER) or away_raw if normalizer else away_raw
 
                 start_time = self._parse_date(event.get("date", ""), event.get("datetime"))
+                if not is_match_in_active_scope(our_league, start_time):
+                    continue
                 match_id = generate_match_id(our_league, home, away, start_time.strftime("%Y-%m-%d"))
                 ext_id = str(event_id)
 
@@ -506,7 +509,8 @@ class DoxxbetScraper(BaseScraper):
                 parsed = self._parse_chance_types(chance_types)
                 odds_count = 0
                 for market, selection, rate in parsed:
-                    snap = OddsSnapshot(
+                    add_odds_snapshot(
+                        self._db,
                         match_id=match_id,
                         bookmaker=self.BOOKMAKER,
                         market=market,
@@ -515,7 +519,6 @@ class DoxxbetScraper(BaseScraper):
                         url=match_url,
                         scraped_at=now,
                     )
-                    self._db.add(snap)
                     odds_count += 1
 
                 self._db.commit()

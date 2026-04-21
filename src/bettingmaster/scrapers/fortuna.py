@@ -43,7 +43,9 @@ from typing import Optional
 
 from scrapling.fetchers import Fetcher
 
+from bettingmaster.odds_writer import add_odds_snapshot
 from bettingmaster.scrapers.base import BaseScraper, RawMatch, RawOdds
+from bettingmaster.scope import is_match_in_active_scope
 
 logger = logging.getLogger(__name__)
 
@@ -157,13 +159,12 @@ class FortunaScraper(BaseScraper):
         """Override base run for efficient per-tournament fetching with inline odds."""
         from bettingmaster.scrapers.base import generate_match_id
         from bettingmaster.models.match import Match
-        from bettingmaster.models.odds import OddsSnapshot
 
         for our_league_id, ext_id in league_ids.items():
             try:
                 self._scrape_tournament(
                     our_league_id, ext_id, normalizer,
-                    generate_match_id, Match, OddsSnapshot,
+                    generate_match_id, Match,
                 )
             except Exception:
                 logger.exception(
@@ -171,7 +172,7 @@ class FortunaScraper(BaseScraper):
                 )
 
     def _scrape_tournament(self, league_id, tournament_id, normalizer,
-                           generate_match_id, Match, OddsSnapshot):
+                           generate_match_id, Match):
         """Fetch all matches for a tournament and their odds."""
         # Step 1: Get fixtures
         path = f"{STRUCTURE}/tournament/{tournament_id}/matches"
@@ -187,14 +188,14 @@ class FortunaScraper(BaseScraper):
             try:
                 self._process_fixture(
                     fixture, league_id, normalizer,
-                    generate_match_id, Match, OddsSnapshot,
+                    generate_match_id, Match,
                 )
             except Exception:
                 name = fixture.get("name", "?")
                 logger.exception(f"[fortuna] Failed: {name}")
 
     def _process_fixture(self, fixture, league_id, normalizer,
-                         generate_match_id, Match, OddsSnapshot):
+                         generate_match_id, Match):
         """Process a single fixture: parse teams, fetch odds, save."""
         participants = fixture.get("participants", [])
         home_raw = ""
@@ -231,6 +232,9 @@ class FortunaScraper(BaseScraper):
             start_time = _utc_from_timestamp(start_ms)
         else:
             start_time = _utc_now()
+
+        if not is_match_in_active_scope(league_id, start_time):
+            return
 
         match_id = generate_match_id(
             league_id, home, away, start_time.strftime("%Y-%m-%d")
@@ -301,7 +305,8 @@ class FortunaScraper(BaseScraper):
                     if not sel_name:
                         continue
 
-                    snap = OddsSnapshot(
+                    add_odds_snapshot(
+                        self._db,
                         match_id=match_id,
                         bookmaker=self.BOOKMAKER,
                         market=canonical_market,
@@ -310,7 +315,6 @@ class FortunaScraper(BaseScraper):
                         url=match_url,
                         scraped_at=now,
                     )
-                    self._db.add(snap)
                     odds_count += 1
 
         self._db.commit()

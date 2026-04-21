@@ -14,8 +14,9 @@ from rapidfuzz import fuzz
 
 from bettingmaster.config import DATA_DIR, settings
 from bettingmaster.models.match import Match
-from bettingmaster.models.odds import OddsSnapshot
+from bettingmaster.odds_writer import add_odds_snapshot
 from bettingmaster.scrapers.base import BaseScraper, RawOdds
+from bettingmaster.scope import apply_active_match_scope
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +73,10 @@ class PolymarketScraper(BaseScraper):
 
     def __init__(self, db_session, http_client: httpx.Client | None = None):
         super().__init__(db_session, http_client)
+
+    # ------------------------------------------------------------------
+    # API helpers
+    # ------------------------------------------------------------------
 
     def _get(self, path: str, params: dict | None = None) -> dict | list:
         response = self._request("GET", f"{GAMMA_API}{path}", params=params)
@@ -180,6 +185,8 @@ class PolymarketScraper(BaseScraper):
         return prices
 
     def _fetch_clob_prices(self, token_ids: list[str]) -> dict[str, float]:
+        # Polymarket displays midpoint prices when available; last trade is the
+        # nearest public fallback when midpoint is missing.
         prices = self._fetch_clob_midpoints(token_ids)
         missing = [token_id for token_id in token_ids if token_id not in prices]
         if missing:
@@ -223,6 +230,10 @@ class PolymarketScraper(BaseScraper):
                     prices.append(price)
 
         return outcomes, prices
+
+    # ------------------------------------------------------------------
+    # Event discovery and DB matching
+    # ------------------------------------------------------------------
 
     def _fetch_all_soccer_events(self) -> list[dict]:
         all_events: list[dict] = []
@@ -311,7 +322,7 @@ class PolymarketScraper(BaseScraper):
         away: str,
         match_date: Optional[datetime],
     ) -> Optional[Match]:
-        query = self._db.query(Match)
+        query = apply_active_match_scope(self._db.query(Match))
 
         if match_date:
             date_from = match_date - timedelta(days=1)
@@ -368,6 +379,10 @@ class PolymarketScraper(BaseScraper):
         if max(home_score, away_score) < 0.55:
             return None
         return "home" if home_score >= away_score else "away"
+
+    # ------------------------------------------------------------------
+    # Odds extraction
+    # ------------------------------------------------------------------
 
     def _extract_1x2(
         self,
@@ -550,11 +565,19 @@ class PolymarketScraper(BaseScraper):
 
         return result
 
+    # ------------------------------------------------------------------
+    # Required abstract methods (unused; run() is overridden)
+    # ------------------------------------------------------------------
+
     def scrape_matches(self, league_external_id: str) -> list:
         return []
 
     def scrape_odds(self, match_external_id: str) -> list[RawOdds]:
         return []
+
+    # ------------------------------------------------------------------
+    # Main entry point
+    # ------------------------------------------------------------------
 
     def run(self, league_ids: dict | None = None, normalizer=None):
         events = self._fetch_all_soccer_events()
@@ -625,16 +648,15 @@ class PolymarketScraper(BaseScraper):
 
                 now = datetime.utcnow()
                 for raw_odds in all_odds:
-                    self._db.add(
-                        OddsSnapshot(
-                            match_id=db_match.id,
-                            bookmaker=self.BOOKMAKER,
-                            market=raw_odds.market,
-                            selection=raw_odds.selection,
-                            odds=raw_odds.odds,
-                            url=raw_odds.url,
-                            scraped_at=now,
-                        )
+                    add_odds_snapshot(
+                        self._db,
+                        match_id=db_match.id,
+                        bookmaker=self.BOOKMAKER,
+                        market=raw_odds.market,
+                        selection=raw_odds.selection,
+                        odds=raw_odds.odds,
+                        url=raw_odds.url,
+                        scraped_at=now,
                     )
 
                 self._db.commit()

@@ -37,6 +37,22 @@ def db_session() -> Session:
         engine.dispose()
 
 
+@pytest.fixture(autouse=True)
+def _disable_active_scope_for_tests():
+    previous_leagues = settings.active_league_ids
+    previous_window = settings.active_match_window_hours
+    previous_lookback = settings.active_match_lookback_hours
+    settings.active_league_ids = ""
+    settings.active_match_window_hours = 24 * 365
+    settings.active_match_lookback_hours = 24 * 365
+    try:
+        yield
+    finally:
+        settings.active_league_ids = previous_leagues
+        settings.active_match_window_hours = previous_window
+        settings.active_match_lookback_hours = previous_lookback
+
+
 @pytest.fixture()
 def client(db_session: Session):
     app = create_app()

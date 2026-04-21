@@ -5,13 +5,13 @@ LIKE on SQLite (case-insensitive for ASCII by default) and to ILIKE on
 PostgreSQL, so it works correctly on both backends.
 """
 
-from datetime import UTC, datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from bettingmaster.database import get_db
 from bettingmaster.models.league import League
 from bettingmaster.models.match import Match
+from bettingmaster.scope import apply_active_match_scope
 from bettingmaster.schemas.common import MatchSearchResult
 
 router = APIRouter()
@@ -37,14 +37,10 @@ def search(
         raise HTTPException(status_code=422, detail="Query parameter 'q' must not be blank")
 
     pattern = f"%{q.strip()}%"
-    yesterday = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=1)
-
     matches = (
-        db.query(Match)
+        apply_active_match_scope(db.query(Match))
         .join(League, Match.league_id == League.id)
         .filter(
-            Match.status != "finished",
-            Match.start_time > yesterday,
             (
                 Match.home_team.ilike(pattern)
                 | Match.away_team.ilike(pattern)

@@ -19,9 +19,11 @@ from bettingmaster.schemas.common import (
     SurebetOut,
     SurebetSelection,
 )
+from bettingmaster.scope import active_match_window, apply_active_match_scope
 
 TODAY_SENTINEL = "today"
 TOMORROW_SENTINEL = "tomorrow"
+NEXT_24_SENTINEL = "next24"
 NIKE_MATCH_URL = "https://www.nike.sk/tipovanie/zapas/{sport_event_id}"
 
 
@@ -55,7 +57,7 @@ def utc_day_bounds_for_local_date(target_date: date) -> tuple[datetime, datetime
     )
 
 
-ODDS_MAX_AGE_HOURS = 4
+ODDS_MAX_AGE_HOURS = 24
 LIVE_ODDS_MAX_AGE_MINUTES = 20
 
 
@@ -175,6 +177,7 @@ def build_best_odds(match: Match, odds_rows: list[OddsSnapshot]) -> list[BestOdd
                     selection_odds.bookmaker,
                     selection_odds.url,
                 ),
+                scraped_at=selection_odds.scraped_at,
             )
             for selection, selection_odds in sorted(best_per_selection.items())
         ]
@@ -195,7 +198,8 @@ def build_best_odds(match: Match, odds_rows: list[OddsSnapshot]) -> list[BestOdd
 def list_best_odds_matches(
     db: Session,
     *,
-    target_date: date,
+    target_date: date | None = None,
+    time_window: tuple[datetime, datetime] | None = None,
     market: str,
     sport: str | None = None,
     league_id: str | None = None,
@@ -204,7 +208,13 @@ def list_best_odds_matches(
     min_bookmakers: int = 2,
 ) -> list[MatchBestOddsOut]:
     """Return match summaries with best odds for a single market."""
-    day_start, day_end = utc_day_bounds_for_local_date(target_date)
+    if time_window is None:
+        time_window = (
+            utc_day_bounds_for_local_date(target_date)
+            if target_date is not None
+            else active_match_window()
+        )
+    window_start, window_end = time_window
     latest_subquery = build_latest_odds_subquery(db)
     query = (
         db.query(OddsSnapshot, Match)
@@ -218,11 +228,12 @@ def list_best_odds_matches(
         )
         .join(Match, OddsSnapshot.match_id == Match.id)
         .filter(
-            Match.start_time >= day_start,
-            Match.start_time <= day_end,
+            Match.start_time >= window_start,
+            Match.start_time <= window_end,
             OddsSnapshot.market == market,
         )
     )
+    query = apply_active_match_scope(query)
     if sport:
         query = query.join(League, Match.league_id == League.id).filter(League.sport_id == sport)
     if league_id:
@@ -350,6 +361,7 @@ def query_upcoming_latest_odds(
             Match.start_time > now,
         )
     )
+    query = apply_active_match_scope(query)
     if sport:
         query = query.join(League, Match.league_id == League.id).filter(League.sport_id == sport)
     return query
@@ -402,6 +414,7 @@ def build_surebets(
                 odds=item.odds,
                 bookmaker=item.bookmaker,
                 url=resolve_bookmaker_url(match, item.bookmaker, item.url),
+                scraped_at=item.scraped_at,
             )
             for item in sorted(selections_list, key=lambda odds_row: odds_row.selection)
         ]
