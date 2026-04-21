@@ -198,6 +198,48 @@ curl "http://127.0.0.1:8000/api/matches/best-odds"
 
 If `/api/matches` has data but `/api/matches/best-odds` is empty, it usually means only one bookmaker has scraped so far. The homepage needs overlapping bookmaker data.
 
+## 12.1. If only some scrapers appear
+
+If `/api/health` only shows some bookmakers with a timestamp, it means only those bookmakers have saved odds recently.
+
+Check the worker logs:
+
+```bash
+docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner logs worker --tail=300
+```
+
+Look for lines containing:
+
+```text
+[nike]
+[doxxbet]
+[fortuna]
+[polymarket]
+Round-robin scrape cycle
+```
+
+You can also filter logs for one scraper:
+
+```bash
+docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner logs worker --tail=500 | grep nike
+docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner logs worker --tail=500 | grep doxxbet
+```
+
+Force missing scrapers:
+
+```bash
+docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner exec worker python -m bettingmaster.cli scrape nike
+docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner exec worker python -m bettingmaster.cli scrape doxxbet
+```
+
+Then check health again:
+
+```bash
+curl http://127.0.0.1:8000/api/health
+```
+
+If a forced scraper finishes but still does not show in health, it found no odds to save or failed before saving. Check worker logs immediately after forcing it.
+
 ## 13. Useful browser links
 
 Main site:
@@ -284,4 +326,3 @@ docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzn
 ```
 
 The `-v` deletes Docker volumes, including the database.
-
