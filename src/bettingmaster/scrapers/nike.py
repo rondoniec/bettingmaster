@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import re
+import time
 from datetime import UTC, datetime
 from typing import Optional
 
@@ -12,6 +13,10 @@ from scrapling.fetchers import Fetcher
 from bettingmaster.scrapers.base import BaseScraper, RawMatch, RawOdds
 
 logger = logging.getLogger(__name__)
+
+
+class NikeRateLimitError(RuntimeError):
+    """Raised when Nike keeps returning HTTP 429 after retries."""
 
 
 def _normalized_text(value: str | None) -> str:
@@ -113,7 +118,7 @@ _BTTS_HEADER_RE = re.compile(r"Obaj[ai]\s+daj[úu]\s+gól|Obaja\s+daj", re.IGNOR
 class NikeScraper(BaseScraper):
     BOOKMAKER = "nike"
     BASE_URL = "https://www.nike.sk"
-    REQUEST_DELAY = 1.0
+    REQUEST_DELAY = 3.0
 
     def __init__(self, db_session, http_client=None):
         super().__init__(db_session, http_client)
@@ -121,15 +126,29 @@ class NikeScraper(BaseScraper):
 
     def _nike_get(self, path: str) -> dict | list | None:
         url = f"{self.BASE_URL}{path}"
-        try:
+        retry_delays = (10, 30, 60)
+        for attempt in range(len(retry_delays) + 1):
+            self._rate_limit()
+            self._last_request_time = time.time()
             page = Fetcher.get(url, impersonate="chrome", stealthy_headers=True)
             if page.status == 200 and page.body:
                 return page.json()
+            if page.status == 429:
+                if attempt >= len(retry_delays):
+                    raise NikeRateLimitError(f"[nike] Rate limited after retries: {url}")
+                delay = retry_delays[attempt]
+                logger.warning(
+                    "[nike] %s returned 429; sleeping %ss before retry %s/%s",
+                    url,
+                    delay,
+                    attempt + 1,
+                    len(retry_delays),
+                )
+                time.sleep(delay)
+                continue
             logger.warning(f"[nike] {url} returned {page.status}")
             return None
-        except Exception:
-            logger.exception(f"[nike] Failed to fetch {url}")
-            return None
+        return None
 
     def scrape_matches(self, league_external_id: str) -> list[RawMatch]:
         path = (

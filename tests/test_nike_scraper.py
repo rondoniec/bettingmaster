@@ -4,7 +4,7 @@ from datetime import datetime
 
 from bettingmaster.models.match import Match
 from bettingmaster.models.odds import OddsSnapshot
-from bettingmaster.scrapers.nike import NikeScraper
+from bettingmaster.scrapers.nike import NikeRateLimitError, NikeScraper
 
 
 def test_nike_menu_catalog_and_run_use_dynamic_box_ids_and_slugs(db_session, monkeypatch):
@@ -154,3 +154,52 @@ def test_nike_parser_maps_btts_half_headers_to_half_markets(db_session):
     assert full_time == [("btts", "yes", 1.43), ("btts", "no", 2.7)]
     assert first_half == [("btts_ht", "yes", 3.2), ("btts_ht", "no", 1.3)]
     assert second_half == [("btts_2h", "yes", 2.5), ("btts_2h", "no", 1.46)]
+
+
+class _NikePage:
+    def __init__(self, status, body=None, payload=None):
+        self.status = status
+        self.body = body
+        self._payload = payload
+
+    def json(self):
+        return self._payload
+
+
+def test_nike_get_retries_429_before_success(db_session, monkeypatch):
+    scraper = NikeScraper(db_session=db_session)
+    calls = []
+    sleeps = []
+    responses = [
+        _NikePage(429),
+        _NikePage(429),
+        _NikePage(200, body=b"{}", payload={"ok": True}),
+    ]
+
+    def fake_get(url, **kwargs):
+        calls.append(url)
+        return responses.pop(0)
+
+    monkeypatch.setattr("bettingmaster.scrapers.nike.Fetcher.get", fake_get)
+    monkeypatch.setattr("bettingmaster.scrapers.nike.time.sleep", sleeps.append)
+
+    assert scraper._nike_get("/test") == {"ok": True}
+    assert len(calls) == 3
+    assert 10 in sleeps
+    assert 30 in sleeps
+
+
+def test_nike_get_raises_after_repeated_429(db_session, monkeypatch):
+    scraper = NikeScraper(db_session=db_session)
+    monkeypatch.setattr(
+        "bettingmaster.scrapers.nike.Fetcher.get",
+        lambda url, **kwargs: _NikePage(429),
+    )
+    monkeypatch.setattr("bettingmaster.scrapers.nike.time.sleep", lambda seconds: None)
+
+    try:
+        scraper._nike_get("/test")
+    except NikeRateLimitError:
+        pass
+    else:
+        raise AssertionError("Expected NikeRateLimitError")
