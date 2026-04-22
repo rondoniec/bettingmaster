@@ -633,6 +633,39 @@ class PolymarketScraper(BaseScraper):
 
         return result
 
+    def _extract_event_bundle(self, slug: str, event: dict, match: Match) -> list[RawOdds]:
+        url = f"https://polymarket.com/event/{slug}"
+        more_event = self._get_slug(f"{slug}-more-markets")
+        halftime_event = self._get_slug(f"{slug}-halftime-result")
+        clob_prices = self._fetch_clob_prices(
+            self._collect_clob_token_ids(event, more_event, halftime_event)
+        )
+
+        all_odds: list[RawOdds] = []
+        all_odds.extend(self._extract_1x2(event, match, url, clob_prices))
+
+        if more_event:
+            all_odds.extend(
+                self._extract_more_markets(
+                    more_event,
+                    match,
+                    url,
+                    clob_prices,
+                )
+            )
+
+        if halftime_event:
+            all_odds.extend(
+                self._extract_halftime(
+                    halftime_event,
+                    match,
+                    url,
+                    clob_prices,
+                )
+            )
+
+        return all_odds
+
     # ------------------------------------------------------------------
     # Required abstract methods (unused; run() is overridden)
     # ------------------------------------------------------------------
@@ -642,6 +675,61 @@ class PolymarketScraper(BaseScraper):
 
     def scrape_odds(self, match_external_id: str) -> list[RawOdds]:
         return []
+
+    def refresh_match(self, match: Match) -> int:
+        """Refresh a previously matched Polymarket event for one DB match."""
+        slug = (match.external_ids or {}).get("polymarket")
+        if not slug:
+            return 0
+
+        event = self._get_slug(slug)
+        if not event or not self._is_match_event(event):
+            return 0
+
+        home, away = self._parse_team_names(event)
+        score, _ = _team_pair_score(home, away, match.home_team, match.away_team)
+        if score < 1.8:
+            self._db.query(OddsSnapshot).filter_by(
+                match_id=match.id,
+                bookmaker=self.BOOKMAKER,
+            ).delete(synchronize_session=False)
+            ext = dict(match.external_ids or {})
+            ext.pop("polymarket", None)
+            match.external_ids = ext
+            self._db.commit()
+            logger.warning(
+                "[polymarket] Removed mismatched event '%s' from %s vs %s during refresh",
+                slug,
+                match.home_team,
+                match.away_team,
+            )
+            return 0
+
+        all_odds = self._extract_event_bundle(slug, event, match)
+        if not all_odds:
+            return 0
+
+        now = datetime.utcnow()
+        for raw_odds in all_odds:
+            add_odds_snapshot(
+                self._db,
+                match_id=match.id,
+                bookmaker=self.BOOKMAKER,
+                market=raw_odds.market,
+                selection=raw_odds.selection,
+                odds=raw_odds.odds,
+                url=raw_odds.url,
+                scraped_at=now,
+            )
+
+        self._db.commit()
+        logger.info(
+            "[polymarket] Refreshed %s odds for %s vs %s",
+            len(all_odds),
+            match.home_team,
+            match.away_team,
+        )
+        return len(all_odds)
 
     def _prune_mismatched_existing_events(self):
         matches = apply_active_match_scope(self._db.query(Match)).all()
@@ -707,35 +795,7 @@ class PolymarketScraper(BaseScraper):
                 continue
 
             matched += 1
-            url = f"https://polymarket.com/event/{slug}"
-            more_event = self._get_slug(f"{slug}-more-markets")
-            halftime_event = self._get_slug(f"{slug}-halftime-result")
-            clob_prices = self._fetch_clob_prices(
-                self._collect_clob_token_ids(event, more_event, halftime_event)
-            )
-
-            all_odds: list[RawOdds] = []
-            all_odds.extend(self._extract_1x2(event, db_match, url, clob_prices))
-
-            if more_event:
-                all_odds.extend(
-                    self._extract_more_markets(
-                        more_event,
-                        db_match,
-                        url,
-                        clob_prices,
-                    )
-                )
-
-            if halftime_event:
-                all_odds.extend(
-                    self._extract_halftime(
-                        halftime_event,
-                        db_match,
-                        url,
-                        clob_prices,
-                    )
-                )
+            all_odds = self._extract_event_bundle(slug, event, db_match)
 
             if not all_odds:
                 logger.debug(f"[polymarket] No odds extracted for '{home} vs {away}'")

@@ -48,13 +48,22 @@ export function MarketOddsBoard({
   awayTeam,
 }: Props) {
   const marginByMarket = new Map(bestOdds.map((market) => [market.market, market.combined_margin]));
+  const displayMarkets = markets
+    .map((market) => {
+      const marketOdds = odds.filter((entry) => entry.market === market);
+      const selections = orderSelections(market, marketOdds).filter(
+        (selection) => marketOdds.filter((entry) => entry.selection === selection).length >= 2
+      );
+      return { market, marketOdds, selections };
+    })
+    .filter((item) => item.selections.length > 0);
 
-  if (markets.length === 0) {
+  if (displayMarkets.length === 0) {
     return (
       <div className="rounded-[1.75rem] border border-dashed border-slate-300 bg-white px-6 py-12 text-center">
-        <h2 className="text-xl font-semibold text-slate-950">No odds on this match yet</h2>
+        <h2 className="text-xl font-semibold text-slate-950">No comparable odds on this match yet</h2>
         <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-500">
-          The match is tracked, but no bookmaker has returned prices for the current scope.
+          We only show outcomes when at least two bookmakers have returned a price for the same market.
         </p>
       </div>
     );
@@ -62,9 +71,7 @@ export function MarketOddsBoard({
 
   return (
     <section className="space-y-5">
-      {markets.map((market) => {
-        const marketOdds = odds.filter((entry) => entry.market === market);
-        const selections = orderSelections(market, marketOdds);
+      {displayMarkets.map(({ market, marketOdds, selections }) => {
         const gridClass =
           selections.length >= 3
             ? "lg:grid-cols-3"

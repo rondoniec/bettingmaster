@@ -17,7 +17,8 @@ class Settings(BaseSettings):
     scrape_interval_nike: int = 900
     scrape_interval_fortuna: int = 120
     scrape_interval_doxxbet: int = 180  # Slower — uses headless browser
-    scrape_interval_polymarket: int = 300  # Slow — prediction market, updates slowly
+    scrape_interval_polymarket: int = 120
+    on_demand_polymarket_max_age_seconds: int = 60
     scrape_interval_default: int = 120
     live_feed_poll_seconds: int = 3
     active_league_ids: str = "en-premier-league,es-la-liga"
