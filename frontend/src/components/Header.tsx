@@ -25,10 +25,11 @@ export function Header() {
       <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 sm:px-6 lg:px-8">
         <Link
           href="/"
-          className="flex shrink-0 items-center gap-2 text-xl font-bold tracking-tight text-blue-600"
+          className="flex shrink-0 items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 text-xl font-bold tracking-tight text-blue-600 transition hover:bg-blue-100"
+          aria-label="Go to homepage"
         >
           <TrendingUp className="h-6 w-6" aria-hidden="true" />
-          <span>BettingMaster</span>
+          <span>Home</span>
         </Link>
 
         <form onSubmit={handleSearch} className="hidden flex-1 sm:flex" role="search">

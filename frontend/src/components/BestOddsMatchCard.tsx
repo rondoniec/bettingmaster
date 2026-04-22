@@ -109,8 +109,7 @@ export function BestOddsMatchCard({ match }: Props) {
                 ) : null}
               </div>
               <p className="mt-3 text-xs text-slate-400">
-                Price from {formatLastUpdated(selection.scraped_at)}
-                {selection.checked_at ? ` • checked ${formatLastUpdated(selection.checked_at)}` : ""}
+                Checked {formatLastUpdated(selection.checked_at ?? selection.scraped_at)}
               </p>
             </div>
           );

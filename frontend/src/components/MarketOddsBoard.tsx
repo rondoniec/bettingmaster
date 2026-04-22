@@ -172,7 +172,7 @@ export function MarketOddsBoard({
                               {entry.url ? <ExternalLink className="h-3.5 w-3.5 text-slate-400" /> : null}
                             </span>
                             <span className="sr-only">
-                              Price from {formatLastUpdated(entry.scraped_at)}
+                              Checked {formatLastUpdated(entry.checked_at ?? entry.scraped_at)}
                             </span>
                           </a>
                         );
@@ -181,8 +181,7 @@ export function MarketOddsBoard({
 
                     {best ? (
                       <p className="mt-3 text-xs text-slate-400">
-                        Best price from {formatLastUpdated(best.scraped_at)}
-                        {best.checked_at ? ` | checked ${formatLastUpdated(best.checked_at)}` : ""}
+                        Checked {formatLastUpdated(best.checked_at ?? best.scraped_at)}
                       </p>
                     ) : null}
                   </div>

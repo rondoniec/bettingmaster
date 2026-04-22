@@ -88,7 +88,7 @@ export function MatchLiveSection({ initialMatch, initialBestOdds, focusTarget }:
     <div className="space-y-6">
       <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.18),_transparent_30%),linear-gradient(180deg,_#ffffff,_#f8fbff)] px-6 py-8 shadow-[0_24px_70px_-44px_rgba(15,23,42,0.45)] sm:px-8">
         <Link href="/" className="text-sm font-medium text-blue-600 hover:text-blue-700">
-          Back to board
+          Back to homepage
         </Link>
         <div className="mt-4 flex items-center gap-2">
           <Link

@@ -164,8 +164,7 @@ export function OddsTable({ market, odds, combinedMargin, focusedBookmaker, focu
                               ) : null}
                             </div>
                             <div className="mt-1 text-[10px] text-slate-400">
-                              price {formatLastUpdated(entry.scraped_at)}
-                              {entry.checked_at ? ` • checked ${formatLastUpdated(entry.checked_at)}` : ""}
+                              checked {formatLastUpdated(entry.checked_at ?? entry.scraped_at)}
                             </div>
                           </>
                         ) : (

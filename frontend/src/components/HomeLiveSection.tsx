@@ -168,8 +168,8 @@ export function HomeLiveSection({
               Premier League and La Liga odds, next 24 hours only.
             </h1>
             <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">
-              We only track near-term Premier League and La Liga matches now, with stale prices clearly marked
-              by the time the price last changed.
+              We only track near-term Premier League and La Liga matches now, with each price marked
+              by the time it was last checked.
             </p>
 
             <div className="mt-6 flex flex-wrap gap-3">

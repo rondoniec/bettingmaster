@@ -186,7 +186,7 @@ export function LeagueLiveSection({
     <>
       <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(37,99,235,0.18),_transparent_34%),radial-gradient(circle_at_top_right,_rgba(14,165,233,0.16),_transparent_28%),linear-gradient(135deg,_#f8fbff,_#ffffff_46%,_#f5fbff)] px-6 py-8 shadow-[0_28px_80px_-40px_rgba(15,23,42,0.45)] sm:px-8 sm:py-10">
         <Link href="/" className="text-sm font-medium text-blue-600 hover:text-blue-700">
-          Back to board
+          Back to homepage
         </Link>
 
         <div className="mt-4 flex flex-wrap items-start justify-between gap-6">
