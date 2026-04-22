@@ -14,6 +14,7 @@ from rapidfuzz import fuzz
 
 from bettingmaster.config import DATA_DIR, settings
 from bettingmaster.models.match import Match
+from bettingmaster.models.odds import OddsSnapshot
 from bettingmaster.odds_writer import add_odds_snapshot
 from bettingmaster.scrapers.base import BaseScraper, RawOdds
 from bettingmaster.scope import apply_active_match_scope
@@ -27,6 +28,7 @@ DEBUG_DIR = DATA_DIR / "debug"
 _SPREAD_RE = re.compile(r"Spread:\s*(.+?)\s*\(([+-]?\d+\.5)\)", re.IGNORECASE)
 _TOTAL_RE = re.compile(r"O/U\s+(\d+\.5)|(\d+\.5)\s+O/U", re.IGNORECASE)
 _BTTS_RE = re.compile(r"both teams (to )?score", re.IGNORECASE)
+_PROTECTED_EXTRA_TOKENS = {"sc", "sporting"}
 
 
 def _normalize(value: str) -> str:
@@ -34,9 +36,53 @@ def _normalize(value: str) -> str:
     return unicodedata.normalize("NFD", value.lower()).encode("ascii", "ignore").decode()
 
 
+def _normalize_team_for_match(value: str) -> str:
+    normalized = _normalize(value)
+    normalized = re.sub(r"\b(fc|cf|afc)\b", " ", normalized)
+    normalized = re.sub(r"\b(18|19|20)\d{2}\b", " ", normalized)
+    normalized = re.sub(r"[^a-z0-9]+", " ", normalized)
+    return " ".join(normalized.split())
+
+
 def _team_similarity(left: str, right: str) -> float:
     """Return a 0..1 fuzzy similarity score between two team names."""
-    return fuzz.token_set_ratio(_normalize(left), _normalize(right)) / 100.0
+    left_key = _normalize_team_for_match(left)
+    right_key = _normalize_team_for_match(right)
+    if _has_protected_extra_token(left_key, right_key):
+        return 0.0
+    return fuzz.WRatio(left_key, right_key) / 100.0
+
+
+def _has_protected_extra_token(left_key: str, right_key: str) -> bool:
+    if left_key == right_key:
+        return False
+    left_tokens = set(left_key.split())
+    right_tokens = set(right_key.split())
+    if not left_tokens or not right_tokens:
+        return False
+    if right_tokens < left_tokens:
+        return bool((left_tokens - right_tokens) & _PROTECTED_EXTRA_TOKENS)
+    if left_tokens < right_tokens:
+        return bool((right_tokens - left_tokens) & _PROTECTED_EXTRA_TOKENS)
+    return False
+
+
+def _team_pair_score(
+    home: str,
+    away: str,
+    candidate_home: str,
+    candidate_away: str,
+) -> tuple[float, bool]:
+    normal_home = _team_similarity(home, candidate_home)
+    normal_away = _team_similarity(away, candidate_away)
+    swapped_home = _team_similarity(home, candidate_away)
+    swapped_away = _team_similarity(away, candidate_home)
+
+    normal_score = normal_home + normal_away if min(normal_home, normal_away) >= 0.9 else 0.0
+    swapped_score = swapped_home + swapped_away if min(swapped_home, swapped_away) >= 0.9 else 0.0
+    if swapped_score > normal_score:
+        return swapped_score, True
+    return normal_score, False
 
 
 def _prob_to_decimal(prob: float) -> Optional[float]:
@@ -369,28 +415,19 @@ class PolymarketScraper(BaseScraper):
 
         best_score = 0.0
         best_match: Optional[Match] = None
-        home_normalized = _normalize(home)
-        away_normalized = _normalize(away)
 
         for candidate in candidates:
-            candidate_home = _normalize(candidate.home_team)
-            candidate_away = _normalize(candidate.away_team)
-
-            normal_score = (
-                fuzz.token_set_ratio(home_normalized, candidate_home) / 100.0
-                + fuzz.token_set_ratio(away_normalized, candidate_away) / 100.0
+            final_score, _ = _team_pair_score(
+                home,
+                away,
+                candidate.home_team,
+                candidate.away_team,
             )
-            swapped_score = (
-                fuzz.token_set_ratio(home_normalized, candidate_away) / 100.0
-                + fuzz.token_set_ratio(away_normalized, candidate_home) / 100.0
-            )
-
-            final_score = max(normal_score, swapped_score)
             if final_score > best_score:
                 best_score = final_score
                 best_match = candidate
 
-        if best_score >= 1.4 and best_match:
+        if best_score >= 1.8 and best_match:
             logger.debug(
                 f"[polymarket] Matched '{home} vs {away}' -> "
                 f"'{best_match.home_team} vs {best_match.away_team}' (score={best_score:.2f})"
@@ -407,7 +444,7 @@ class PolymarketScraper(BaseScraper):
         """Map a Polymarket team label to our canonical home/away selection."""
         home_score = _team_similarity(team_name, match.home_team)
         away_score = _team_similarity(team_name, match.away_team)
-        if max(home_score, away_score) < 0.55:
+        if max(home_score, away_score) < 0.9:
             return None
         return "home" if home_score >= away_score else "away"
 
@@ -606,11 +643,43 @@ class PolymarketScraper(BaseScraper):
     def scrape_odds(self, match_external_id: str) -> list[RawOdds]:
         return []
 
+    def _prune_mismatched_existing_events(self):
+        matches = apply_active_match_scope(self._db.query(Match)).all()
+        for match in matches:
+            slug = (match.external_ids or {}).get("polymarket")
+            if not slug:
+                continue
+
+            event = self._get_slug(slug)
+            if not event or not self._is_match_event(event):
+                continue
+
+            home, away = self._parse_team_names(event)
+            score, _ = _team_pair_score(home, away, match.home_team, match.away_team)
+            if score >= 1.8:
+                continue
+
+            self._db.query(OddsSnapshot).filter_by(
+                match_id=match.id,
+                bookmaker=self.BOOKMAKER,
+            ).delete(synchronize_session=False)
+            ext = dict(match.external_ids or {})
+            ext.pop("polymarket", None)
+            match.external_ids = ext
+            logger.warning(
+                "[polymarket] Removed mismatched event '%s' from %s vs %s",
+                slug,
+                match.home_team,
+                match.away_team,
+            )
+        self._db.commit()
+
     # ------------------------------------------------------------------
     # Main entry point
     # ------------------------------------------------------------------
 
     def run(self, league_ids: dict | None = None, normalizer=None):
+        self._prune_mismatched_existing_events()
         events = self._fetch_all_soccer_events()
         self._dump_debug("all_events", events)
 

@@ -51,6 +51,7 @@ def test_add_odds_snapshot_preserves_timestamp_when_price_is_unchanged(db_sessio
     )
 
     assert snapshot.scraped_at == first_seen
+    assert snapshot.checked_at == later_seen
 
 
 def test_add_odds_snapshot_uses_new_timestamp_when_price_changes(db_session):
@@ -96,3 +97,4 @@ def test_add_odds_snapshot_uses_new_timestamp_when_price_changes(db_session):
     )
 
     assert snapshot.scraped_at == later_seen
+    assert snapshot.checked_at == later_seen

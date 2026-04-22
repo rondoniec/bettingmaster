@@ -36,6 +36,7 @@ def add_odds_snapshot(
         odds=odds,
         url=url,
         scraped_at=timestamp,
+        checked_at=scraped_at,
     )
     db_session.add(snapshot)
     return snapshot

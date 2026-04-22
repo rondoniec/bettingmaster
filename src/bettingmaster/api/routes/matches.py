@@ -169,6 +169,7 @@ def get_match(
                 odds=odds_row.odds,
                 url=resolve_bookmaker_url(match, odds_row.bookmaker, odds_row.url),
                 scraped_at=odds_row.scraped_at,
+                checked_at=odds_row.checked_at,
             )
             for odds_row in odds
         ],

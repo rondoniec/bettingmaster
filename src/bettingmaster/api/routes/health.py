@@ -25,7 +25,10 @@ def health_check(db: Session = Depends(get_db)):
         for bookmaker, _ in BOOKMAKER_INTERVAL_ATTRS
     }
     rows = (
-        db.query(OddsSnapshot.bookmaker, func.max(OddsSnapshot.scraped_at))
+        db.query(
+            OddsSnapshot.bookmaker,
+            func.max(func.coalesce(OddsSnapshot.checked_at, OddsSnapshot.scraped_at)),
+        )
         .group_by(OddsSnapshot.bookmaker)
         .all()
     )

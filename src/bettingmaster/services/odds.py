@@ -178,6 +178,7 @@ def build_best_odds(match: Match, odds_rows: list[OddsSnapshot]) -> list[BestOdd
                     selection_odds.url,
                 ),
                 scraped_at=selection_odds.scraped_at,
+                checked_at=selection_odds.checked_at,
             )
             for selection, selection_odds in sorted(best_per_selection.items())
         ]
@@ -415,6 +416,7 @@ def build_surebets(
                 bookmaker=item.bookmaker,
                 url=resolve_bookmaker_url(match, item.bookmaker, item.url),
                 scraped_at=item.scraped_at,
+                checked_at=item.checked_at,
             )
             for item in sorted(selections_list, key=lambda odds_row: odds_row.selection)
         ]

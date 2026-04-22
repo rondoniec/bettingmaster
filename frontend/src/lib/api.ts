@@ -34,6 +34,7 @@ export type OddsEntry = {
   odds: number;
   url?: string;
   scraped_at: string;
+  checked_at?: string | null;
 };
 
 export type MatchDetail = Match & {
@@ -46,6 +47,7 @@ export type BestOddsSelection = {
   bookmaker: string;
   url?: string;
   scraped_at: string;
+  checked_at?: string | null;
 };
 
 export type BestOdds = {

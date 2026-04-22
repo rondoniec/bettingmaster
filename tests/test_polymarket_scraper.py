@@ -1,6 +1,8 @@
 from datetime import datetime
 
+from bettingmaster.models.league import League
 from bettingmaster.models.match import Match
+from bettingmaster.models.sport import Sport
 from bettingmaster.scrapers.polymarket import PolymarketScraper
 
 
@@ -114,3 +116,27 @@ def test_extract_1x2_maps_team_titles_to_canonical_match_sides(db_session):
         ("home", 1.46),
         ("draw", 5.128),
     }
+
+
+def test_find_db_match_rejects_barcelona_sc_for_fc_barcelona(db_session):
+    db_session.add(Sport(id="football", name="Football"))
+    db_session.add(
+        League(id="es-la-liga", sport_id="football", name="La Liga", country="ES")
+    )
+    start_time = datetime(2026, 4, 22, 19, 0)
+    db_session.add(
+        Match(
+            id="barca-celta",
+            league_id="es-la-liga",
+            home_team="Barcelona",
+            away_team="Celta Vigo",
+            start_time=start_time,
+            status="prematch",
+        )
+    )
+    db_session.commit()
+
+    scraper = PolymarketScraper(db_session)
+
+    assert scraper._find_db_match("Barcelona SC", "Celta Vigo", start_time) is None
+    assert scraper._find_db_match("FC Barcelona", "Celta Vigo", start_time).id == "barca-celta"

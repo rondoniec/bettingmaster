@@ -27,7 +27,7 @@ def test_alembic_upgrade_creates_schema(tmp_path):
     ]
 
     odds_indexes = {index["name"] for index in inspector.get_indexes("odds_snapshots")}
-    assert {"ix_odds_lookup", "ix_odds_scraped_at"} <= odds_indexes
+    assert {"ix_odds_lookup", "ix_odds_scraped_at", "ix_odds_checked_at"} <= odds_indexes
     engine.dispose()
 
 

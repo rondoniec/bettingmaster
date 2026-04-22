@@ -29,6 +29,7 @@ class OddsOut(BaseModel):
     odds: float
     url: Optional[str] = None
     scraped_at: datetime
+    checked_at: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
 
@@ -54,6 +55,7 @@ class BestOddsSelection(BaseModel):
     bookmaker: str
     url: Optional[str] = None
     scraped_at: datetime
+    checked_at: Optional[datetime] = None
 
 
 class BestOddsOut(BaseModel):
@@ -76,6 +78,7 @@ class SurebetSelection(BaseModel):
     bookmaker: str
     url: Optional[str] = None
     scraped_at: datetime
+    checked_at: Optional[datetime] = None
 
 
 class SurebetOut(BaseModel):

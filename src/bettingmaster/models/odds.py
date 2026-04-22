@@ -21,6 +21,7 @@ class OddsSnapshot(Base):
     odds: Mapped[float] = mapped_column(Float)
     url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     scraped_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    checked_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     match: Mapped["Match"] = relationship(back_populates="odds_snapshots")
 
@@ -33,4 +34,5 @@ class OddsSnapshot(Base):
             "selection",
         ),
         Index("ix_odds_scraped_at", "scraped_at"),
+        Index("ix_odds_checked_at", "checked_at"),
     )

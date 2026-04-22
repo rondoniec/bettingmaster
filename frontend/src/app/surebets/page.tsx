@@ -91,7 +91,8 @@ export default async function SurebetsPage() {
                         {bookmaker.displayName}
                       </p>
                       <p className="mt-2 text-xs text-slate-400">
-                        Data from {formatLastUpdated(selection.scraped_at)}
+                        Price from {formatLastUpdated(selection.scraped_at)}
+                        {selection.checked_at ? ` • checked ${formatLastUpdated(selection.checked_at)}` : ""}
                       </p>
                       <Link
                         href={focusHref}
