@@ -60,6 +60,12 @@ export function Header() {
           >
             Surebets
           </Link>
+          <Link
+            href="/polymarket-new"
+            className="rounded-full bg-blue-50 px-3 py-1 text-blue-700 transition-colors hover:bg-blue-100"
+          >
+            New markets
+          </Link>
         </nav>
 
         <button
@@ -105,6 +111,13 @@ export function Header() {
               className="rounded px-2 py-1 text-emerald-700 hover:bg-emerald-50"
             >
               Surebets
+            </Link>
+            <Link
+              href="/polymarket-new"
+              onClick={() => setMenuOpen(false)}
+              className="rounded px-2 py-1 text-blue-700 hover:bg-blue-50"
+            >
+              New markets
             </Link>
           </nav>
         </div>

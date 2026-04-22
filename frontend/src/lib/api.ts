@@ -88,6 +88,16 @@ export type Surebet = {
   profit_percent: number;
 };
 
+export type NewPolymarketMarket = {
+  title: string;
+  slug: string;
+  url: string;
+  start_time?: string | null;
+  created_at?: string | null;
+  market_count: number;
+  league_hint?: string | null;
+};
+
 export type MatchesQueryParams = {
   date?: string;
   sport?: string;
@@ -200,6 +210,10 @@ export async function getOddsHistory(
 
 export async function getSurebets(): Promise<Surebet[]> {
   return apiFetch<Surebet[]>("/api/surebets");
+}
+
+export async function getNewPolymarketMarkets(): Promise<NewPolymarketMarket[]> {
+  return apiFetch<NewPolymarketMarket[]>("/api/polymarket/new-football-markets");
 }
 
 export async function searchMatches(q: string): Promise<Match[]> {

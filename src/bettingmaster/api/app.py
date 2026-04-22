@@ -62,6 +62,7 @@ def create_app() -> FastAPI:
     from bettingmaster.api.routes.surebets import router as surebets_router
     from bettingmaster.api.routes.search import router as search_router
     from bettingmaster.api.routes.history import router as history_router
+    from bettingmaster.api.routes.polymarket import router as polymarket_router
     from bettingmaster.api.routes.ws import router as ws_router
 
     app.include_router(health_router, prefix="/api", tags=["health"])
@@ -70,6 +71,7 @@ def create_app() -> FastAPI:
     app.include_router(surebets_router, prefix="/api", tags=["surebets"])
     app.include_router(search_router, prefix="/api", tags=["search"])
     app.include_router(history_router, prefix="/api", tags=["history"])
+    app.include_router(polymarket_router, prefix="/api", tags=["polymarket"])
     app.include_router(ws_router, tags=["ws"])
 
     return app

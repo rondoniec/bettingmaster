@@ -8,6 +8,7 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import func
 from sqlalchemy.orm import Query, Session
 
+from bettingmaster.bookmaker_validation import is_valid_bookmaker_odds
 from bettingmaster.config import settings
 from bettingmaster.models.league import League
 from bettingmaster.models.match import Match
@@ -128,6 +129,8 @@ def latest_odds_for_match(
     # at the same max_ts (from legacy duplicate writes), keep the row with the
     # highest id — it was written last and is most authoritative.
     rows = query.all()
+    if match is not None:
+        rows = [row for row in rows if is_valid_bookmaker_odds(match, row)]
     seen: dict[tuple[str, str, str], OddsSnapshot] = {}
     for row in rows:
         key = (row.bookmaker, row.market, row.selection)
@@ -248,6 +251,8 @@ def list_best_odds_matches(
 
     grouped_rows: dict[str, tuple[Match, list[OddsSnapshot]]] = {}
     for odds_row, match in rows:
+        if not is_valid_bookmaker_odds(match, odds_row):
+            continue
         if match.id not in grouped_rows:
             grouped_rows[match.id] = (match, [])
         grouped_rows[match.id][1].append(odds_row)
@@ -380,6 +385,8 @@ def build_surebets(
     groups: dict[tuple[str, str], dict[str, OddsSnapshot]] = {}
 
     for odds_row, match in rows:
+        if not is_valid_bookmaker_odds(match, odds_row):
+            continue
         if market_filter and odds_row.market != market_filter:
             continue
         if bookmakers and odds_row.bookmaker not in bookmakers:
