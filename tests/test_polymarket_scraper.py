@@ -34,6 +34,32 @@ def test_parse_market_probabilities_prefers_clob_prices(db_session):
     assert prices == [0.45, 0.55]
 
 
+def test_fetch_clob_prices_prefers_executable_buy_prices(db_session, monkeypatch):
+    scraper = PolymarketScraper(db_session)
+
+    monkeypatch.setattr(
+        scraper,
+        "_fetch_clob_buy_prices",
+        lambda token_ids: {"tok-a": 0.53},
+    )
+    monkeypatch.setattr(
+        scraper,
+        "_fetch_clob_midpoints",
+        lambda token_ids: {"tok-b": 0.48},
+    )
+    monkeypatch.setattr(
+        scraper,
+        "_fetch_clob_last_trades",
+        lambda token_ids: {"tok-c": 0.44},
+    )
+
+    assert scraper._fetch_clob_prices(["tok-a", "tok-b", "tok-c"]) == {
+        "tok-a": 0.53,
+        "tok-b": 0.48,
+        "tok-c": 0.44,
+    }
+
+
 def test_parse_market_probabilities_falls_back_when_clob_price_missing(db_session):
     scraper = PolymarketScraper(db_session)
     market = {

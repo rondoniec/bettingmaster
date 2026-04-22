@@ -157,6 +157,33 @@ class PolymarketScraper(BaseScraper):
                     continue
         return prices
 
+    def _fetch_clob_buy_prices(self, token_ids: list[str]) -> dict[str, float]:
+        if not token_ids:
+            return {}
+
+        try:
+            response = self._post_clob(
+                "/prices",
+                [{"token_id": token_id, "side": "BUY"} for token_id in token_ids],
+            )
+        except Exception as exc:
+            logger.warning(f"[polymarket] Failed to fetch CLOB BUY prices: {exc}")
+            return {}
+
+        prices: dict[str, float] = {}
+        if isinstance(response, dict):
+            for token_id, row in response.items():
+                try:
+                    if isinstance(row, dict):
+                        raw_price = row.get("BUY")
+                    else:
+                        raw_price = row
+                    if raw_price is not None:
+                        prices[str(token_id)] = float(raw_price)
+                except (TypeError, ValueError):
+                    continue
+        return prices
+
     def _fetch_clob_last_trades(self, token_ids: list[str]) -> dict[str, float]:
         if not token_ids:
             return {}
@@ -185,10 +212,14 @@ class PolymarketScraper(BaseScraper):
         return prices
 
     def _fetch_clob_prices(self, token_ids: list[str]) -> dict[str, float]:
-        # Polymarket displays midpoint prices when available; last trade is the
-        # nearest public fallback when midpoint is missing.
-        prices = self._fetch_clob_midpoints(token_ids)
+        # For betting comparison we need executable odds. BUY is the best ask:
+        # the price a user pays to buy the outcome token. Midpoint/display
+        # prices are only fallbacks when the executable quote is unavailable.
+        prices = self._fetch_clob_buy_prices(token_ids)
         missing = [token_id for token_id in token_ids if token_id not in prices]
+        if missing:
+            prices.update(self._fetch_clob_midpoints(missing))
+            missing = [token_id for token_id in token_ids if token_id not in prices]
         if missing:
             prices.update(self._fetch_clob_last_trades(missing))
         return prices

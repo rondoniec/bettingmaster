@@ -165,10 +165,10 @@ export function HomeLiveSection({
               Market view
             </div>
             <h1 className="mt-4 max-w-3xl text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl">
-              Premier League odds, next 24 hours only.
+              Premier League and La Liga odds, next 24 hours only.
             </h1>
             <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">
-              We only track near-term Premier League matches now, with stale prices clearly marked
+              We only track near-term Premier League and La Liga matches now, with stale prices clearly marked
               by the time the price last changed.
             </p>
 
@@ -367,7 +367,7 @@ export function HomeLiveSection({
               Best odds board
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              Showing {statusFilter} Premier League {market.toUpperCase()} comparisons for {date}, sorted
+              Showing {statusFilter} Premier League and La Liga {market.toUpperCase()} comparisons for {date}, sorted
               by {SORT_OPTIONS.find((option) => option.value === sortMode)?.label.toLowerCase()}.
             </p>
           </div>

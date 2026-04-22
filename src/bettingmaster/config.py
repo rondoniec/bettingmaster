@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     scrape_interval_polymarket: int = 300  # Slow — prediction market, updates slowly
     scrape_interval_default: int = 120
     live_feed_poll_seconds: int = 3
-    active_league_ids: str = "en-premier-league"
+    active_league_ids: str = "en-premier-league,es-la-liga"
     active_match_window_hours: int = 24
     active_match_lookback_hours: int = 3
     nike_rate_limit_cooldown_seconds: int = 900
