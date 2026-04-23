@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     scrape_interval_polymarket: int = 120
     on_demand_polymarket_max_age_seconds: int = 60
     scrape_interval_default: int = 120
+    tipsport_proxy_url: str | None = None
+    tipsport_browser_channel: str | None = None
+    tipsport_headless: bool = True
     live_feed_poll_seconds: int = 3
     active_league_ids: str = "en-premier-league,es-la-liga"
     active_match_window_hours: int = 24

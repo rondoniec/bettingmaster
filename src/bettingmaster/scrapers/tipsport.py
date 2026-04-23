@@ -59,6 +59,23 @@ SELECTION_MAP = {
 }
 
 
+class TipsportAccessError(RuntimeError):
+    """Raised when Tipsport blocks API access for the current environment."""
+
+
+def _detect_access_issue(status_code: int, headers: dict[str, str], body: str) -> str | None:
+    header_map = {key.lower(): value for key, value in headers.items()}
+    body_lower = body.lower()
+
+    if header_map.get("cf-mitigated") == "challenge" or "<title>ověření" in body_lower:
+        return "Cloudflare challenge"
+    if status_code == 401 and "session_does_not_exist" in body_lower:
+        return "session bootstrap failed"
+    if status_code == 403 and "<title>chyba" in body_lower:
+        return "request blocked"
+    return None
+
+
 class TipsportScraper(BaseScraper):
     BOOKMAKER = "tipsport"
     BASE_URL = "https://www.tipsport.sk"
@@ -71,6 +88,7 @@ class TipsportScraper(BaseScraper):
         self._context = None
         self._page = None
         self._use_playwright = False
+        self._access_error: str | None = None
         self._init_browser()
 
     def _init_browser(self):
@@ -84,7 +102,13 @@ class TipsportScraper(BaseScraper):
             from playwright.sync_api import sync_playwright
 
             self._playwright = sync_playwright().start()
-            self._browser = self._playwright.chromium.launch(headless=True)
+            launch_kwargs = {"headless": settings.tipsport_headless}
+            if settings.tipsport_browser_channel:
+                launch_kwargs["channel"] = settings.tipsport_browser_channel
+            if settings.tipsport_proxy_url:
+                launch_kwargs["proxy"] = {"server": settings.tipsport_proxy_url}
+
+            self._browser = self._playwright.chromium.launch(**launch_kwargs)
             self._context = self._browser.new_context(
                 user_agent=(
                     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -105,10 +129,60 @@ class TipsportScraper(BaseScraper):
                 f"{[c['name'] for c in cookies]}"
             )
             self._use_playwright = True
+            self._validate_access()
 
         except Exception:
             logger.exception("[tipsport] Playwright init failed, falling back to httpx")
             self._use_playwright = False
+
+    def _validate_access(self):
+        try:
+            self._api_get(
+                "/rest/offer/v6/sports",
+                params={
+                    "fromResults": "false",
+                    "withLive": "true",
+                    "mySelectionWithLiveMatches": "true",
+                },
+            )
+            self._access_error = None
+        except TipsportAccessError as exc:
+            self._access_error = str(exc)
+            logger.warning("[tipsport] %s", self._access_error)
+
+    def _blocked_message(self, reason: str) -> str:
+        parts = [f"Tipsport access blocked: {reason}."]
+        if settings.tipsport_proxy_url:
+            parts.append("Current Tipsport proxy was rejected.")
+        else:
+            parts.append(
+                "Set BM_TIPSPORT_PROXY_URL to a clean residential or local SK/CZ proxy."
+            )
+        if not settings.tipsport_browser_channel:
+            parts.append(
+                "If scraping from a desktop browser, BM_TIPSPORT_BROWSER_CHANNEL=chrome may help."
+            )
+        parts.append("Hetzner and other datacenter IPs are often blocked by Tipsport.")
+        return " ".join(parts)
+
+    def _ensure_access(self) -> bool:
+        if self._access_error:
+            logger.warning("[tipsport] %s", self._access_error)
+            return False
+        return True
+
+    def _http_request(self, method: str, url: str, **kwargs) -> httpx.Response:
+        import time as _time
+
+        self._rate_limit()
+        self._last_request_time = _time.time()
+        response = self._client.request(method, url, **kwargs)
+        body = response.text
+        reason = _detect_access_issue(response.status_code, dict(response.headers), body)
+        if reason:
+            raise TipsportAccessError(self._blocked_message(reason))
+        response.raise_for_status()
+        return response
 
     def _api_get(self, path: str, **kwargs) -> dict:
         url = f"{self.BASE_URL}{path}"
@@ -120,7 +194,7 @@ class TipsportScraper(BaseScraper):
         if self._use_playwright and self._page:
             return self._playwright_fetch(url)
 
-        resp = self._request("GET", url, **kwargs)
+        resp = self._http_request("GET", url, **kwargs)
         return resp.json()
 
     def _api_post(self, path: str, json_data: dict, **kwargs) -> dict:
@@ -129,7 +203,7 @@ class TipsportScraper(BaseScraper):
         if self._use_playwright and self._page:
             return self._playwright_fetch(url, method="POST", body=json_data)
 
-        resp = self._request("POST", url, json=json_data, **kwargs)
+        resp = self._http_request("POST", url, json=json_data, **kwargs)
         return resp.json()
 
     def _playwright_fetch(self, url: str, method: str = "GET", body: dict | None = None) -> dict:
@@ -153,8 +227,11 @@ class TipsportScraper(BaseScraper):
                         }},
                         credentials: "include"
                     }});
-                    if (!resp.ok) throw new Error("HTTP " + resp.status);
-                    return await resp.json();
+                    return {{
+                        status: resp.status,
+                        headers: Object.fromEntries(resp.headers.entries()),
+                        text: await resp.text()
+                    }};
                 }}
             """
         else:
@@ -171,14 +248,31 @@ class TipsportScraper(BaseScraper):
                         credentials: "include",
                         body: JSON.stringify({body_json})
                     }});
-                    if (!resp.ok) throw new Error("HTTP " + resp.status);
-                    return await resp.json();
+                    return {{
+                        status: resp.status,
+                        headers: Object.fromEntries(resp.headers.entries()),
+                        text: await resp.text()
+                    }};
                 }}
             """
 
         result = self._page.evaluate(js)
+        reason = _detect_access_issue(result["status"], result["headers"], result["text"])
+        if reason:
+            raise TipsportAccessError(self._blocked_message(reason))
+        if result["status"] >= 400:
+            raise httpx.HTTPStatusError(
+                f"Tipsport returned HTTP {result['status']}",
+                request=httpx.Request(method, url),
+                response=httpx.Response(
+                    result["status"],
+                    request=httpx.Request(method, url),
+                    content=result["text"].encode("utf-8"),
+                ),
+            )
+
         logger.debug(f"[tipsport] Playwright fetch {method} {url} -> OK")
-        return result
+        return json.loads(result["text"])
 
     def _dump_debug(self, name: str, data):
         """Dump raw JSON response to debug directory."""
@@ -234,11 +328,17 @@ class TipsportScraper(BaseScraper):
 
     def scrape_matches(self, league_external_id: str) -> list[RawMatch]:
         """Scrape matches for a competition/league by its Tipsport ID."""
+        if not self._ensure_access():
+            return []
         try:
             data = self._api_get(
                 f"/rest/offer/v3/sports/COMPETITION/{league_external_id}/matches"
             )
             self._dump_debug(f"matches_{league_external_id}", data)
+        except TipsportAccessError as exc:
+            self._access_error = str(exc)
+            logger.warning("[tipsport] %s", self._access_error)
+            return []
         except Exception as e:
             logger.error(
                 f"[tipsport] Failed to fetch matches for {league_external_id}: {e}"
@@ -356,12 +456,18 @@ class TipsportScraper(BaseScraper):
         Tries the offer endpoint first. If odds are already inline
         with the matches response, the caller should override this.
         """
+        if not self._ensure_access():
+            return []
         # For now, try to get odds from the match detail / community stats
         try:
             data = self._api_get(
                 f"/rest/offer/v3/matches/{match_external_id}/communityStats"
             )
             self._dump_debug(f"odds_{match_external_id}", data)
+        except TipsportAccessError as exc:
+            self._access_error = str(exc)
+            logger.warning("[tipsport] %s", self._access_error)
+            return []
         except Exception:
             logger.debug(
                 f"[tipsport] communityStats failed for {match_external_id}, "
@@ -443,11 +549,17 @@ class TipsportScraper(BaseScraper):
         Returns (matches, {match_ext_id: [RawOdds]}).
         Useful if the matches endpoint already includes odds.
         """
+        if not self._ensure_access():
+            return [], {}
         try:
             data = self._api_get(
                 f"/rest/offer/v3/sports/COMPETITION/{league_external_id}/matches"
             )
             self._dump_debug(f"matches_full_{league_external_id}", data)
+        except TipsportAccessError as exc:
+            self._access_error = str(exc)
+            logger.warning("[tipsport] %s", self._access_error)
+            return [], {}
         except Exception as e:
             logger.error(f"[tipsport] Failed: {e}")
             return [], {}
