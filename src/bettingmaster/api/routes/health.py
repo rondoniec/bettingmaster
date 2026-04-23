@@ -1,40 +1,29 @@
 from fastapi import APIRouter, Depends
-from sqlalchemy import func, text
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from bettingmaster.database import get_db
-from bettingmaster.models.odds import OddsSnapshot
 from bettingmaster.scheduler import BOOKMAKER_INTERVAL_ATTRS
+from bettingmaster.schemas.health import HealthOut
+from bettingmaster.services.scraper_status import empty_scraper_status, get_scraper_status_map
 
 router = APIRouter()
 
 
-@router.get("/health")
+@router.get("/health", response_model=HealthOut)
 def health_check(db: Session = Depends(get_db)):
-    # Check DB connection
+    configured_bookmakers = [bookmaker for bookmaker, _ in BOOKMAKER_INTERVAL_ATTRS]
+    scrapers = {
+        bookmaker: empty_scraper_status()
+        for bookmaker in configured_bookmakers
+    }
+
     try:
         db.execute(text("SELECT 1"))
         db_status = "connected"
+        scrapers = get_scraper_status_map(db, configured_bookmakers)
     except Exception:
         db_status = "error"
-
-    # Last saved odds per bookmaker. Include configured scrapers even before
-    # they save data so health output does not hide failing/empty scrapers.
-    scrapers = {
-        bookmaker: {"last_scraped_at": None}
-        for bookmaker, _ in BOOKMAKER_INTERVAL_ATTRS
-    }
-    rows = (
-        db.query(
-            OddsSnapshot.bookmaker,
-            func.max(func.coalesce(OddsSnapshot.checked_at, OddsSnapshot.scraped_at)),
-        )
-        .group_by(OddsSnapshot.bookmaker)
-        .all()
-    )
-    for bookmaker, last_ts in rows:
-        scrapers.setdefault(bookmaker, {"last_scraped_at": None})
-        scrapers[bookmaker]["last_scraped_at"] = str(last_ts) if last_ts else None
 
     return {
         "status": "ok" if db_status == "connected" else "degraded",
