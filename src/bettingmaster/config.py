@@ -18,6 +18,11 @@ class Settings(BaseSettings):
     scrape_interval_fortuna: int = 120
     scrape_interval_doxxbet: int = 180  # Slower — uses headless browser
     scrape_interval_polymarket: int = 120
+    on_demand_fortuna_max_age_seconds: int = 120
+    on_demand_doxxbet_max_age_seconds: int = 180
+    on_demand_nike_max_age_seconds: int = 600
+    on_demand_tipos_max_age_seconds: int = 300
+    on_demand_tipsport_max_age_seconds: int = 600
     on_demand_polymarket_max_age_seconds: int = 60
     scrape_interval_default: int = 120
     tipsport_proxy_url: str | None = None

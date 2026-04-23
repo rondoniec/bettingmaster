@@ -22,7 +22,7 @@ from bettingmaster.services.odds import (
     resolve_date_filter,
     utc_day_bounds_for_local_date,
 )
-from bettingmaster.services.on_demand import refresh_polymarket_match_if_stale
+from bettingmaster.services.on_demand import refresh_match_odds_if_stale
 from bettingmaster.scope import active_match_window, apply_active_match_scope
 
 router = APIRouter()
@@ -153,9 +153,8 @@ def get_match(
     if not match:
         raise HTTPException(status_code=404, detail="Match not found")
 
-    refresh_polymarket_match_if_stale(db, match)
-
     bookmaker_list = [item.strip() for item in bookmakers.split(",") if item.strip()] if bookmakers else None
+    refresh_match_odds_if_stale(db, match, requested_bookmakers=bookmaker_list)
     odds = latest_odds_for_match(db, match_id, market=market, bookmakers=bookmaker_list)
     return MatchDetailOut(
         id=match.id,
@@ -193,9 +192,8 @@ def get_best_odds(
     if not match:
         raise HTTPException(status_code=404, detail="Match not found")
 
-    refresh_polymarket_match_if_stale(db, match)
-
     bookmaker_list = [item.strip() for item in bookmakers.split(",") if item.strip()] if bookmakers else None
+    refresh_match_odds_if_stale(db, match, requested_bookmakers=bookmaker_list)
     odds = latest_odds_for_match(db, match_id, market=market, bookmakers=bookmaker_list)
     if not odds:
         return []
