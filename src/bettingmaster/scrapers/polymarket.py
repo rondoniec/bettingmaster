@@ -16,7 +16,7 @@ from bettingmaster.config import DATA_DIR, settings
 from bettingmaster.models.match import Match
 from bettingmaster.models.odds import OddsSnapshot
 from bettingmaster.odds_writer import add_odds_snapshot
-from bettingmaster.scrapers.base import BaseScraper, RawOdds
+from bettingmaster.scrapers.base import BaseScraper, RawOdds, ScraperRunSummary
 from bettingmaster.scope import apply_active_match_scope
 
 logger = logging.getLogger(__name__)
@@ -766,19 +766,20 @@ class PolymarketScraper(BaseScraper):
     # Main entry point
     # ------------------------------------------------------------------
 
-    def run(self, league_ids: dict | None = None, normalizer=None):
+    def run(self, league_ids: dict | None = None, normalizer=None) -> ScraperRunSummary:
+        summary = ScraperRunSummary()
         self._prune_mismatched_existing_events()
+        summary.mark_progress()
         events = self._fetch_all_soccer_events()
         self._dump_debug("all_events", events)
 
-        processed = 0
         matched = 0
 
         for event in events:
             if not self._is_match_event(event):
                 continue
 
-            processed += 1
+            summary.matches_found += 1
             slug = event.get("slug", "")
             home, away = self._parse_team_names(event)
             if not home or not away:
@@ -820,16 +821,20 @@ class PolymarketScraper(BaseScraper):
                     )
 
                 self._db.commit()
+                summary.odds_saved += len(all_odds)
+                summary.mark_progress()
                 logger.info(
                     f"[polymarket] Saved {len(all_odds)} odds for "
                     f"'{db_match.home_team} vs {db_match.away_team}'"
                 )
-            except Exception:
+            except Exception as exc:
                 self._db.rollback()
+                summary.record_error(exc)
                 logger.exception(
                     f"[polymarket] Failed to save odds for '{home} vs {away}'"
                 )
 
         logger.info(
-            f"[polymarket] Done. Processed {processed} match events, matched {matched} to DB."
+            f"[polymarket] Done. Processed {summary.matches_found} match events, matched {matched} to DB."
         )
+        return summary

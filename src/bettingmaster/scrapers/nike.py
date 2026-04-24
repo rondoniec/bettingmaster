@@ -11,7 +11,7 @@ from typing import Optional
 from scrapling.fetchers import Fetcher
 
 from bettingmaster.odds_writer import add_odds_snapshot
-from bettingmaster.scrapers.base import BaseScraper, RawMatch, RawOdds
+from bettingmaster.scrapers.base import BaseScraper, RawMatch, RawOdds, ScraperRunSummary
 from bettingmaster.scope import is_match_in_active_scope
 
 logger = logging.getLogger(__name__)
@@ -205,11 +205,12 @@ class NikeScraper(BaseScraper):
             for (market, selection), rate in best.items()
         ]
 
-    def run(self, league_ids: dict[str, str], normalizer=None):
+    def run(self, league_ids: dict[str, str], normalizer=None) -> ScraperRunSummary:
         from bettingmaster.models.match import Match
         from bettingmaster.models.odds import OddsSnapshot
         from bettingmaster.scrapers.base import generate_match_id
 
+        summary = ScraperRunSummary()
         tid_map: dict[str, dict[str, str]] = {}
         tournament_catalog = self._get_tournament_catalog()
         for league_id, tournament_id in league_ids.items():
@@ -229,8 +230,10 @@ class NikeScraper(BaseScraper):
         data = self._nike_get(f"/api-gw/nikeone/v1/matches/special/top-tournaments?{params}")
         if not data:
             logger.error("[nike] Failed to fetch tournaments")
-            return
+            summary.record_error("Failed to fetch tournaments")
+            return summary
 
+        summary.mark_progress()
         now = datetime.now(UTC).replace(tzinfo=None)
 
         for league_id, meta in tid_map.items():
@@ -243,7 +246,7 @@ class NikeScraper(BaseScraper):
 
             for match_data in matches_raw:
                 try:
-                    self._process_match(
+                    odds_count = self._process_match(
                         match_data,
                         league_id,
                         box_id,
@@ -254,10 +257,18 @@ class NikeScraper(BaseScraper):
                         OddsSnapshot,
                         normalizer,
                     )
-                except Exception:
+                    if odds_count is None:
+                        continue
+                    summary.matches_found += 1
+                    summary.odds_saved += odds_count
+                    summary.mark_progress()
+                except Exception as exc:
+                    summary.record_error(exc)
                     home = match_data.get("home", {}).get("sk", "?")
                     away = match_data.get("away", {}).get("sk", "?")
                     logger.exception(f"[nike] Failed: {home} vs {away}")
+
+        return summary
 
     def _get_tournament_catalog(self) -> dict[str, dict[str, str]]:
         if self._tournament_catalog is not None:
@@ -307,11 +318,11 @@ class NikeScraper(BaseScraper):
         Match,
         OddsSnapshot,
         normalizer,
-    ):
+    ) -> int | None:
         home_raw = match_data.get("home", {}).get("sk", "")
         away_raw = match_data.get("away", {}).get("sk", "")
         if not home_raw or not away_raw:
-            return
+            return None
 
         home = (
             normalizer.normalize(home_raw, self.BOOKMAKER) or home_raw
@@ -326,7 +337,7 @@ class NikeScraper(BaseScraper):
 
         start_time = self._parse_start_time(match_data.get("startTime", ""))
         if not is_match_in_active_scope(league_id, start_time):
-            return
+            return None
         match_id = generate_match_id(
             league_id,
             home,
@@ -386,6 +397,7 @@ class NikeScraper(BaseScraper):
 
         self._db.commit()
         logger.debug(f"[nike] {home} vs {away}: {odds_count} odds")
+        return odds_count
 
     def _parse_bet(self, bet: dict) -> list[tuple[str, str, float]]:
         header = bet.get("header", "")

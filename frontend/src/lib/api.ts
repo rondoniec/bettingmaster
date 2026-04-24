@@ -98,6 +98,23 @@ export type NewPolymarketMarket = {
   league_hint?: string | null;
 };
 
+export type ScraperHealthStatus = {
+  last_scraped_at: string | null;
+  last_run_at: string | null;
+  last_success_at: string | null;
+  last_failure_at: string | null;
+  last_status: string | null;
+  matches_found: number;
+  odds_saved: number;
+  last_error: string | null;
+};
+
+export type HealthResponse = {
+  status: string;
+  db: string;
+  scrapers: Record<string, ScraperHealthStatus>;
+};
+
 export type MatchesQueryParams = {
   date?: string;
   sport?: string;
@@ -110,7 +127,17 @@ export type BestOddsMatchesQueryParams = MatchesQueryParams & {
   min_bookmakers?: number;
 };
 
-async function apiFetch<T>(path: string, params?: Record<string, string>): Promise<T> {
+type ApiFetchOptions = RequestInit & {
+  next?: {
+    revalidate?: number;
+  };
+};
+
+async function apiFetch<T>(
+  path: string,
+  params?: Record<string, string>,
+  options?: ApiFetchOptions
+): Promise<T> {
   const url = new URL(`${getApiBase()}${path}`);
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
@@ -122,7 +149,8 @@ async function apiFetch<T>(path: string, params?: Record<string, string>): Promi
 
   const response = await fetch(url.toString(), {
     headers: { "Content-Type": "application/json" },
-    next: { revalidate: 30 },
+    ...(options?.cache === "no-store" ? {} : { next: { revalidate: 30 } }),
+    ...options,
   });
 
   if (!response.ok) {
@@ -220,6 +248,6 @@ export async function searchMatches(q: string): Promise<Match[]> {
   return apiFetch<Match[]>("/api/search", { q });
 }
 
-export async function checkHealth(): Promise<{ status: string }> {
-  return apiFetch<{ status: string }>("/api/health");
+export async function checkHealth(): Promise<HealthResponse> {
+  return apiFetch<HealthResponse>("/api/health", undefined, { cache: "no-store" });
 }

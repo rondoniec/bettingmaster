@@ -5,6 +5,7 @@ from datetime import UTC, datetime, timedelta
 from bettingmaster.config import settings
 from bettingmaster.models.match import Match
 from bettingmaster.models.odds import OddsSnapshot
+from bettingmaster.models.scrape_run import ScrapeRun
 
 
 def test_list_matches_supports_tomorrow_filter(client, seeded_db):
@@ -174,6 +175,92 @@ def test_search_returns_upcoming_matches_only(client, seeded_db):
     assert response.status_code == 200
     payload = response.json()
     assert [match["id"] for match in payload] == ["match-upcoming"]
+
+
+def test_health_returns_enriched_scraper_statuses(client, seeded_db):
+    now = seeded_db.info["seed_now"]
+    fortuna_started_at = now - timedelta(minutes=4)
+    fortuna_finished_at = now - timedelta(minutes=3)
+    nike_started_at = now - timedelta(minutes=2)
+    nike_finished_at = now - timedelta(minutes=1)
+
+    seeded_db.add_all([
+        ScrapeRun(
+            bookmaker="fortuna",
+            trigger="round_robin",
+            started_at=fortuna_started_at,
+            finished_at=fortuna_finished_at,
+            status="success",
+            matches_found=3,
+            odds_saved=12,
+        ),
+        ScrapeRun(
+            bookmaker="nike",
+            trigger="round_robin",
+            started_at=nike_started_at,
+            finished_at=nike_finished_at,
+            status="partial",
+            matches_found=2,
+            odds_saved=4,
+            error_message="rate limited during second match",
+        ),
+    ])
+    seeded_db.commit()
+
+    response = client.get("/api/health")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "ok"
+    assert payload["db"] == "connected"
+    assert payload["scrapers"]["fortuna"] == {
+        "last_scraped_at": (now - timedelta(minutes=2)).isoformat(),
+        "last_run_at": fortuna_started_at.isoformat(),
+        "last_success_at": fortuna_finished_at.isoformat(),
+        "last_failure_at": None,
+        "last_status": "success",
+        "matches_found": 3,
+        "odds_saved": 12,
+        "last_error": None,
+    }
+    assert payload["scrapers"]["nike"] == {
+        "last_scraped_at": (now - timedelta(minutes=1)).isoformat(),
+        "last_run_at": nike_started_at.isoformat(),
+        "last_success_at": nike_finished_at.isoformat(),
+        "last_failure_at": nike_finished_at.isoformat(),
+        "last_status": "partial",
+        "matches_found": 2,
+        "odds_saved": 4,
+        "last_error": "rate limited during second match",
+    }
+    assert payload["scrapers"]["tipsport"] == {
+        "last_scraped_at": None,
+        "last_run_at": None,
+        "last_success_at": None,
+        "last_failure_at": None,
+        "last_status": None,
+        "matches_found": 0,
+        "odds_saved": 0,
+        "last_error": None,
+    }
+
+
+def test_health_includes_configured_bookmakers_without_runs(client):
+    response = client.get("/api/health")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert set(payload["scrapers"]) == {
+        "nike",
+        "fortuna",
+        "doxxbet",
+        "tipsport",
+        "tipos",
+        "polymarket",
+    }
+    assert payload["scrapers"]["polymarket"]["matches_found"] == 0
+    assert payload["scrapers"]["polymarket"]["odds_saved"] == 0
+    assert payload["scrapers"]["polymarket"]["last_run_at"] is None
 
 
 def test_ws_odds_feed_pushes_update_for_match_scope(client, seeded_db):

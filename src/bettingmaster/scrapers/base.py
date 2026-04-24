@@ -44,6 +44,39 @@ class RawOdds:
     url: Optional[str] = None
 
 
+@dataclass
+class ScraperRunSummary:
+    matches_found: int = 0
+    odds_saved: int = 0
+    successful_steps: int = 0
+    errors: int = 0
+    last_error: str | None = None
+
+    def mark_progress(self):
+        self.successful_steps += 1
+
+    def record_error(self, error: Exception | str):
+        self.errors += 1
+        message = str(error).strip()
+        self.last_error = (message or error.__class__.__name__)[:500]
+
+    def merge(self, other: "ScraperRunSummary"):
+        self.matches_found += other.matches_found
+        self.odds_saved += other.odds_saved
+        self.successful_steps += other.successful_steps
+        self.errors += other.errors
+        if other.last_error:
+            self.last_error = other.last_error[:500]
+
+    @property
+    def status(self) -> str:
+        if self.errors and self.successful_steps:
+            return "partial"
+        if self.errors:
+            return "failed"
+        return "success"
+
+
 def generate_match_id(league_id: str, home: str, away: str, start_date: str) -> str:
     """Deterministic match ID from content hash."""
     raw = f"{league_id}:{home}:{away}:{start_date}"
@@ -111,7 +144,7 @@ class BaseScraper(ABC):
         """
         return self.scrape_odds(raw_match.external_id)
 
-    def run(self, league_ids: dict[str, str], normalizer=None):
+    def run(self, league_ids: dict[str, str], normalizer=None) -> ScraperRunSummary:
         """
         Main entry point. Scrape matches and odds for the given leagues.
 
@@ -119,16 +152,21 @@ class BaseScraper(ABC):
             league_ids: dict of {our_league_id: bookmaker_league_external_id}
             normalizer: optional TeamNormalizer instance
         """
+        summary = ScraperRunSummary()
         for league_id, ext_id in league_ids.items():
             try:
-                self._scrape_league(league_id, ext_id, normalizer)
-            except Exception:
+                summary.merge(self._scrape_league(league_id, ext_id, normalizer))
+            except Exception as exc:
+                summary.record_error(exc)
                 logger.exception(
                     f"[{self.BOOKMAKER}] Failed to scrape league {league_id}"
                 )
+        return summary
 
-    def _scrape_league(self, league_id: str, ext_id: str, normalizer):
+    def _scrape_league(self, league_id: str, ext_id: str, normalizer) -> ScraperRunSummary:
+        summary = ScraperRunSummary()
         raw_matches = self.scrape_matches(ext_id)
+        summary.mark_progress()
         logger.info(
             f"[{self.BOOKMAKER}] Found {len(raw_matches)} matches in {league_id}"
         )
@@ -158,7 +196,8 @@ class BaseScraper(ABC):
                     home = existing_match.home_team
                     away = existing_match.away_team
 
-                # Upsert match
+                summary.matches_found += 1
+
                 match = self._db.get(Match, match_id)
                 if match is None:
                     match = Match(
@@ -179,7 +218,6 @@ class BaseScraper(ABC):
 
                 self._db.flush()
 
-                # Scrape and insert odds
                 raw_odds = self.scrape_odds(rm.external_id)
                 now = datetime.utcnow()
                 for ro in raw_odds:
@@ -195,16 +233,21 @@ class BaseScraper(ABC):
                     )
 
                 self._db.commit()
+                summary.odds_saved += len(raw_odds)
+                summary.mark_progress()
                 logger.debug(
                     f"[{self.BOOKMAKER}] Saved {len(raw_odds)} odds for "
                     f"{home} vs {away}"
                 )
 
-            except Exception:
+            except Exception as exc:
                 self._db.rollback()
+                summary.record_error(exc)
                 logger.exception(
                     f"[{self.BOOKMAKER}] Failed match {rm.home_team} vs {rm.away_team}"
                 )
+
+        return summary
 
     def close(self):
         self._client.close()

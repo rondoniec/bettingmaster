@@ -15,6 +15,7 @@ from bettingmaster.database import Base, get_db
 from bettingmaster.models.league import League
 from bettingmaster.models.match import Match
 from bettingmaster.models.odds import OddsSnapshot
+from bettingmaster.models.scrape_run import ScrapeRun  # noqa: F401
 from bettingmaster.models.sport import Sport
 
 

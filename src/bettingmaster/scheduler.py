@@ -13,12 +13,12 @@ from bettingmaster.database import SessionLocal
 from bettingmaster.match_identity import MATCH_SCORE_THRESHOLD, match_similarity, find_similar_match
 from bettingmaster.models.match import Match
 from bettingmaster.odds_writer import add_odds_snapshot
-from bettingmaster.scrapers.base import RawMatch, generate_match_id
+from bettingmaster.scrapers.base import RawMatch, ScraperRunSummary, generate_match_id
 from bettingmaster.scope import is_active_league, is_match_in_active_scope
+from bettingmaster.services.scraper_status import persist_scrape_run
 
 logger = logging.getLogger(__name__)
 
-# Registry of implemented scrapers
 SCRAPER_CLASSES = {}
 
 BOOKMAKER_INTERVAL_ATTRS = [
@@ -45,6 +45,24 @@ class RoundRobinWorkItem:
 
 _last_round_robin_run: dict[str, datetime] = {}
 _bookmaker_cooldowns: dict[str, datetime] = {}
+
+
+def _utcnow_naive() -> datetime:
+    return datetime.now(UTC).replace(tzinfo=None)
+
+
+def _persist_summary(bookmaker: str, trigger: str, started_at: datetime, summary: ScraperRunSummary):
+    persist_scrape_run(
+        bookmaker=bookmaker,
+        trigger=trigger,
+        started_at=started_at,
+        finished_at=_utcnow_naive(),
+        status=summary.status,
+        matches_found=summary.matches_found,
+        odds_saved=summary.odds_saved,
+        last_error=summary.last_error,
+        session_factory=SessionLocal,
+    )
 
 
 def _register_scrapers():
@@ -199,8 +217,8 @@ def _upsert_match_record(db, item: RoundRobinWorkItem) -> Match:
     return match
 
 
-def _persist_odds_snapshots(db, item: RoundRobinWorkItem, odds_rows):
-    now = datetime.now(UTC).replace(tzinfo=None)
+def _persist_odds_snapshots(db, item: RoundRobinWorkItem, odds_rows) -> int:
+    now = _utcnow_naive()
     for raw_odds in odds_rows:
         add_odds_snapshot(
             db,
@@ -212,6 +230,7 @@ def _persist_odds_snapshots(db, item: RoundRobinWorkItem, odds_rows):
             url=raw_odds.url,
             scraped_at=now,
         )
+    return len(odds_rows)
 
 
 def _discover_round_robin_matches(
@@ -220,6 +239,7 @@ def _discover_round_robin_matches(
     scraper,
     league_map: dict[str, str],
     normalizer,
+    summary: ScraperRunSummary | None = None,
 ) -> list[RoundRobinWorkItem]:
     discovered: list[RoundRobinWorkItem] = []
 
@@ -229,9 +249,13 @@ def _discover_round_robin_matches(
         except Exception as exc:
             if _is_rate_limit_error(bookmaker, exc):
                 raise
+            if summary is not None:
+                summary.record_error(exc)
             logger.exception(f"[{bookmaker}] Failed to discover matches in {league_id}")
             continue
 
+        if summary is not None:
+            summary.mark_progress()
         logger.info(f"[{bookmaker}] Discovered {len(raw_matches)} matches in {league_id}")
         for raw_match in raw_matches:
             try:
@@ -268,7 +292,9 @@ def _discover_round_robin_matches(
                         raw_match=raw_match,
                     )
                 )
-            except Exception:
+            except Exception as exc:
+                if summary is not None:
+                    summary.record_error(exc)
                 logger.exception(
                     f"[{bookmaker}] Failed to prepare discovered match "
                     f"{raw_match.home_team} vs {raw_match.away_team}"
@@ -320,7 +346,10 @@ def run_scraper(bookmaker: str):
         logger.error(f"Unknown bookmaker: {bookmaker}")
         return
 
+    started_at = _utcnow_naive()
+    summary = ScraperRunSummary()
     db = SessionLocal()
+    scraper = None
     try:
         scraper = cls(db_session=db)
 
@@ -328,25 +357,34 @@ def run_scraper(bookmaker: str):
             from bettingmaster.normalizer import TeamNormalizer
 
             normalizer = TeamNormalizer(db_session=db)
-            scraper.run(league_ids=None, normalizer=normalizer)
+            summary = scraper.run(league_ids=None, normalizer=normalizer)
             return
 
         league_map = _configured_league_map(db, bookmaker)
         if not league_map:
             logger.debug(f"[{bookmaker}] No leagues configured with external IDs")
+            summary.mark_progress()
             return
 
         from bettingmaster.normalizer import TeamNormalizer
 
         normalizer = TeamNormalizer(db_session=db)
-        scraper.run(league_map, normalizer=normalizer)
+        summary = scraper.run(league_map, normalizer=normalizer)
 
-    except NotImplementedError as e:
-        logger.debug(f"[{bookmaker}] {e}")
-    except Exception:
+    except NotImplementedError as exc:
+        summary.record_error(exc)
+        logger.debug(f"[{bookmaker}] {exc}")
+    except Exception as exc:
+        summary.record_error(exc)
         logger.exception(f"[{bookmaker}] Scraper failed")
     finally:
+        if scraper is not None:
+            try:
+                scraper.close()
+            except Exception:
+                logger.exception("Failed to close scraper cleanly")
         db.close()
+        _persist_summary(bookmaker, "manual", started_at, summary)
 
 
 def run_round_robin_cycle(force_bookmakers: list[str] | None = None):
@@ -367,6 +405,9 @@ def run_round_robin_cycle(force_bookmakers: list[str] | None = None):
         logger.debug("No bookmakers due for round-robin scrape")
         return
 
+    started_at = {bookmaker: _utcnow_naive() for bookmaker in due_bookmakers}
+    summaries = {bookmaker: ScraperRunSummary() for bookmaker in due_bookmakers}
+
     db = SessionLocal()
     scrapers = {}
     try:
@@ -378,6 +419,7 @@ def run_round_robin_cycle(force_bookmakers: list[str] | None = None):
         for bookmaker in due_bookmakers:
             cls = SCRAPER_CLASSES.get(bookmaker)
             if not cls:
+                summaries[bookmaker].record_error(f"Unknown bookmaker: {bookmaker}")
                 logger.error(f"Unknown bookmaker: {bookmaker}")
                 continue
 
@@ -390,14 +432,23 @@ def run_round_robin_cycle(force_bookmakers: list[str] | None = None):
             league_map = _configured_league_map(db, bookmaker)
             if not league_map:
                 logger.debug(f"[{bookmaker}] No leagues configured with external IDs")
+                summaries[bookmaker].mark_progress()
                 _last_round_robin_run[bookmaker] = now
                 continue
 
             try:
-                discovered.extend(
-                    _discover_round_robin_matches(db, bookmaker, scraper, league_map, normalizer)
+                bookmaker_discovered = _discover_round_robin_matches(
+                    db,
+                    bookmaker,
+                    scraper,
+                    league_map,
+                    normalizer,
+                    summaries[bookmaker],
                 )
+                summaries[bookmaker].matches_found += len(bookmaker_discovered)
+                discovered.extend(bookmaker_discovered)
             except Exception as exc:
+                summaries[bookmaker].record_error(exc)
                 if _is_rate_limit_error(bookmaker, exc):
                     _cool_down_bookmaker(bookmaker)
                     continue
@@ -423,17 +474,20 @@ def run_round_robin_cycle(force_bookmakers: list[str] | None = None):
             try:
                 _upsert_match_record(db, item)
                 odds_rows = scraper.scrape_odds_for_raw_match(item.raw_match)
-                _persist_odds_snapshots(db, item, odds_rows)
+                saved_count = _persist_odds_snapshots(db, item, odds_rows)
                 db.commit()
+                summaries[item.bookmaker].odds_saved += saved_count
+                summaries[item.bookmaker].mark_progress()
                 logger.info(
                     "[%s] Round-robin saved %s odds for %s vs %s",
                     item.bookmaker,
-                    len(odds_rows),
+                    saved_count,
                     item.home_team,
                     item.away_team,
                 )
             except Exception as exc:
                 db.rollback()
+                summaries[item.bookmaker].record_error(exc)
                 if _is_rate_limit_error(item.bookmaker, exc):
                     _cool_down_bookmaker(item.bookmaker)
                 logger.exception(
@@ -455,11 +509,16 @@ def run_round_robin_cycle(force_bookmakers: list[str] | None = None):
             if scraper is None:
                 continue
             try:
-                scraper.run(league_ids=None, normalizer=normalizer)
+                summaries[bookmaker].merge(scraper.run(league_ids=None, normalizer=normalizer))
                 _last_round_robin_run[bookmaker] = now
-            except Exception:
+            except Exception as exc:
+                summaries[bookmaker].record_error(exc)
                 logger.exception(f"[{bookmaker}] Round-robin global scrape failed")
 
+    except Exception as exc:
+        for bookmaker in due_bookmakers:
+            summaries[bookmaker].record_error(exc)
+        logger.exception("Round-robin scrape cycle failed unexpectedly")
     finally:
         for scraper in scrapers.values():
             try:
@@ -467,6 +526,8 @@ def run_round_robin_cycle(force_bookmakers: list[str] | None = None):
             except Exception:
                 logger.exception("Failed to close scraper cleanly")
         db.close()
+        for bookmaker in due_bookmakers:
+            _persist_summary(bookmaker, "round_robin", started_at[bookmaker], summaries[bookmaker])
 
 
 def create_scheduler() -> BackgroundScheduler:
