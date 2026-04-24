@@ -9,6 +9,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
+import bettingmaster.models  # noqa: F401
 from bettingmaster.api.app import create_app
 from bettingmaster.config import settings
 from bettingmaster.database import Base, get_db

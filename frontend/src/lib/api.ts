@@ -110,7 +110,34 @@ export type BestOddsMatchesQueryParams = MatchesQueryParams & {
   min_bookmakers?: number;
 };
 
-async function apiFetch<T>(path: string, params?: Record<string, string>): Promise<T> {
+export type ScraperHealth = {
+  last_scraped_at: string | null;
+  last_run_at: string | null;
+  last_success_at: string | null;
+  last_failure_at: string | null;
+  last_status: string | null;
+  matches_found: number;
+  odds_saved: number;
+  last_error: string | null;
+};
+
+export type HealthResponse = {
+  status: string;
+  db: string;
+  scrapers: Record<string, ScraperHealth>;
+};
+
+type ApiFetchOptions = RequestInit & {
+  next?: {
+    revalidate?: number;
+  };
+};
+
+async function apiFetch<T>(
+  path: string,
+  params?: Record<string, string>,
+  options?: ApiFetchOptions
+): Promise<T> {
   const url = new URL(`${getApiBase()}${path}`);
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
@@ -120,10 +147,19 @@ async function apiFetch<T>(path: string, params?: Record<string, string>): Promi
     });
   }
 
-  const response = await fetch(url.toString(), {
+  const fetchOptions: ApiFetchOptions = {
+    ...options,
     headers: { "Content-Type": "application/json" },
-    next: { revalidate: 30 },
-  });
+  };
+
+  if (options?.cache !== "no-store") {
+    fetchOptions.next = {
+      revalidate: 30,
+      ...(options?.next ?? {}),
+    };
+  }
+
+  const response = await fetch(url.toString(), fetchOptions);
 
   if (!response.ok) {
     throw new Error(`API error ${response.status}: ${response.statusText} (${path})`);
@@ -220,6 +256,6 @@ export async function searchMatches(q: string): Promise<Match[]> {
   return apiFetch<Match[]>("/api/search", { q });
 }
 
-export async function checkHealth(): Promise<{ status: string }> {
-  return apiFetch<{ status: string }>("/api/health");
+export async function checkHealth(): Promise<HealthResponse> {
+  return apiFetch<HealthResponse>("/api/health", undefined, { cache: "no-store" });
 }

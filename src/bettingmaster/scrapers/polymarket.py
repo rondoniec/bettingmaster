@@ -18,6 +18,7 @@ from bettingmaster.models.odds import OddsSnapshot
 from bettingmaster.odds_writer import add_odds_snapshot
 from bettingmaster.scrapers.base import BaseScraper, RawOdds
 from bettingmaster.scope import apply_active_match_scope
+from bettingmaster.services.scraper_status import ScrapeRunSummary
 
 logger = logging.getLogger(__name__)
 
@@ -766,7 +767,17 @@ class PolymarketScraper(BaseScraper):
     # Main entry point
     # ------------------------------------------------------------------
 
-    def run(self, league_ids: dict | None = None, normalizer=None):
+    def run(
+        self,
+        league_ids: dict | None = None,
+        normalizer=None,
+        summary: ScrapeRunSummary | None = None,
+    ) -> ScrapeRunSummary:
+        run_summary = summary or ScrapeRunSummary(
+            bookmaker=self.BOOKMAKER,
+            source="manual",
+        )
+
         self._prune_mismatched_existing_events()
         events = self._fetch_all_soccer_events()
         self._dump_debug("all_events", events)
@@ -779,6 +790,7 @@ class PolymarketScraper(BaseScraper):
                 continue
 
             processed += 1
+            run_summary.matches_found += 1
             slug = event.get("slug", "")
             home, away = self._parse_team_names(event)
             if not home or not away:
@@ -820,16 +832,20 @@ class PolymarketScraper(BaseScraper):
                     )
 
                 self._db.commit()
+                run_summary.odds_saved += len(all_odds)
                 logger.info(
                     f"[polymarket] Saved {len(all_odds)} odds for "
                     f"'{db_match.home_team} vs {db_match.away_team}'"
                 )
-            except Exception:
+            except Exception as exc:
                 self._db.rollback()
+                run_summary.mark_failure(exc)
                 logger.exception(
                     f"[polymarket] Failed to save odds for '{home} vs {away}'"
                 )
 
+        run_summary.mark_success()
         logger.info(
             f"[polymarket] Done. Processed {processed} match events, matched {matched} to DB."
         )
+        return run_summary

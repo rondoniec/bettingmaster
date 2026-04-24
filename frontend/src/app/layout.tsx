@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { Header } from "@/components/Header";
+import { ScraperStatusPanel } from "@/components/ScraperStatusPanel";
 import { QueryProvider } from "@/providers/QueryProvider";
 
 import "./globals.css";
@@ -21,6 +22,7 @@ export default function RootLayout({
       <body className="min-h-screen bg-slate-50 antialiased">
         <QueryProvider>
           <Header />
+          <ScraperStatusPanel />
           <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">{children}</main>
           <footer className="mt-12 border-t border-slate-200 bg-white py-6 text-center text-sm text-slate-500">
             <p>BettingMaster &copy; {new Date().getFullYear()} - live bookmaker comparison</p>
