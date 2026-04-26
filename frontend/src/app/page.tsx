@@ -3,9 +3,11 @@ import Link from "next/link";
 
 import { HomeLiveSection } from "@/components/HomeLiveSection";
 import {
+  getHealth,
   getMatchesWithBestOdds,
   getSports,
   getSurebets,
+  type HealthStatus,
   searchMatches,
   type Match,
   type Sport,
@@ -37,23 +39,35 @@ async function loadHomeData({
   market: string;
   q?: string;
 }): Promise<{
+  health: HealthStatus;
   sports: Sport[];
   surebets: Surebet[];
   matches: Awaited<ReturnType<typeof getMatchesWithBestOdds>>;
   searchResults: Match[];
   error: string | null;
 }> {
+  const fallbackHealth: HealthStatus = { status: "degraded", db: "error", scrapers: {} };
+
   try {
-    const [sports, surebets, matches, searchResults] = await Promise.all([
+    const [sports, surebets, matches, searchResults, healthResult] = await Promise.all([
       getSports(),
       getSurebets(),
       getMatchesWithBestOdds({ date, sport, market }),
       q ? searchMatches(q) : Promise.resolve([]),
+      getHealth().catch(() => fallbackHealth),
     ]);
 
-    return { sports, surebets, matches, searchResults, error: null };
+    return {
+      health: healthResult,
+      sports,
+      surebets,
+      matches,
+      searchResults,
+      error: null,
+    };
   } catch (error) {
     return {
+      health: fallbackHealth,
       sports: [],
       surebets: [],
       matches: [],
@@ -72,7 +86,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const status = resolvedParams?.status;
   const sort = resolvedParams?.sort;
 
-  const { sports, surebets, matches, searchResults, error } = await loadHomeData({
+  const { health, sports, surebets, matches, searchResults, error } = await loadHomeData({
     date,
     sport,
     market,
@@ -147,6 +161,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           market={market}
           status={status}
           sort={sort}
+          initialHealth={health}
           sports={sports}
           initialMatches={matches}
           initialSurebets={surebets}

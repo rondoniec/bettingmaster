@@ -2,6 +2,7 @@
 
 import { ExternalLink } from "lucide-react";
 
+import { FreshnessBadge } from "@/components/FreshnessBadge";
 import type { OddsEntry } from "@/lib/api";
 import {
   BOOKMAKER_ORDER,
@@ -9,7 +10,7 @@ import {
   resolveSelectionLabel,
   SELECTION_ORDER,
 } from "@/lib/constants";
-import { cn, formatLastUpdated, formatMargin, formatOdds } from "@/lib/utils";
+import { cn, formatLastUpdated, formatMargin, formatOdds, getBookmakerFreshness } from "@/lib/utils";
 
 type Props = {
   market: string;
@@ -117,14 +118,29 @@ export function OddsTable({ market, odds, combinedMargin, focusedBookmaker, focu
                       isFocusedBookmaker ? "bg-blue-50" : "bg-white"
                     )}
                   >
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
-                        style={{ backgroundColor: bookmakerData.color }}
-                      />
-                      <span style={{ color: bookmakerData.color }}>
-                        {bookmakerData.displayName}
-                      </span>
+                    <div className="flex flex-col items-start gap-2">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+                          style={{ backgroundColor: bookmakerData.color }}
+                        />
+                        <span style={{ color: bookmakerData.color }}>
+                          {bookmakerData.displayName}
+                        </span>
+                      </div>
+                      {(() => {
+                        const timestamps = selectionOrder
+                          .map((selection) => oddsMap[bookmaker]?.[selection]?.checked_at ?? oddsMap[bookmaker]?.[selection]?.scraped_at)
+                          .filter(Boolean)
+                          .sort((left, right) => String(right).localeCompare(String(left)));
+                        const freshness = getBookmakerFreshness(bookmaker, timestamps[0] ?? null);
+                        return (
+                          <FreshnessBadge
+                            freshness={freshness.freshness}
+                            ageSeconds={freshness.ageSeconds}
+                          />
+                        );
+                      })()}
                     </div>
                   </td>
 

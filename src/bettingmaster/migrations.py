@@ -15,7 +15,6 @@ EXPECTED_TABLES = {
     "leagues",
     "matches",
     "odds_snapshots",
-    "scrape_runs",
     "team_aliases",
 }
 

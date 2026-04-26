@@ -36,6 +36,15 @@ export const BOOKMAKERS: Record<
 
 export const BOOKMAKER_ORDER = ["fortuna", "nike", "doxxbet", "tipsport", "tipos", "polymarket"];
 
+export const BOOKMAKER_REFRESH_INTERVALS: Record<string, number> = {
+  nike: 900,
+  fortuna: 120,
+  doxxbet: 180,
+  tipsport: 90,
+  tipos: 120,
+  polymarket: 120,
+};
+
 export const MARKET_LABELS: Record<string, string> = {
   // Moneyline / full-time result
   "1x2": "Match result",

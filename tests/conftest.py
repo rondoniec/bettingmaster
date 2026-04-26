@@ -9,7 +9,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
-import bettingmaster.models  # noqa: F401
 from bettingmaster.api.app import create_app
 from bettingmaster.config import settings
 from bettingmaster.database import Base, get_db
@@ -43,15 +42,21 @@ def _disable_active_scope_for_tests():
     previous_leagues = settings.active_league_ids
     previous_window = settings.active_match_window_hours
     previous_lookback = settings.active_match_lookback_hours
+    previous_auto_upgrade = settings.auto_upgrade_db_on_startup
+    previous_enable_scheduler = settings.enable_scheduler
     settings.active_league_ids = ""
     settings.active_match_window_hours = 24 * 365
     settings.active_match_lookback_hours = 24 * 365
+    settings.auto_upgrade_db_on_startup = False
+    settings.enable_scheduler = False
     try:
         yield
     finally:
         settings.active_league_ids = previous_leagues
         settings.active_match_window_hours = previous_window
         settings.active_match_lookback_hours = previous_lookback
+        settings.auto_upgrade_db_on_startup = previous_auto_upgrade
+        settings.enable_scheduler = previous_enable_scheduler
 
 
 @pytest.fixture()

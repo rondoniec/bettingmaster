@@ -1,14 +1,17 @@
 "use client";
 
-import { Menu, Search, TrendingUp, X } from "lucide-react";
+import { Compass, Menu, Search, TrendingUp, X } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
+
+import { cn } from "@/lib/utils";
 
 export function Header() {
   const [query, setQuery] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
 
   function handleSearch(event: React.FormEvent) {
     event.preventDefault();
@@ -52,21 +55,15 @@ export function Header() {
         </form>
 
         <nav className="hidden items-center gap-5 text-sm font-medium text-slate-600 sm:flex">
-          <Link href="/" className="transition-colors hover:text-blue-600">
+          <NavLink href="/" active={pathname === "/"}>
             Best odds
-          </Link>
-          <Link
-            href="/surebets"
-            className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700 transition-colors hover:bg-emerald-100"
-          >
+          </NavLink>
+          <NavLink href="/surebets" active={pathname === "/surebets"} tone="emerald">
             Surebets
-          </Link>
-          <Link
-            href="/polymarket-new"
-            className="rounded-full bg-blue-50 px-3 py-1 text-blue-700 transition-colors hover:bg-blue-100"
-          >
+          </NavLink>
+          <NavLink href="/polymarket-new" active={pathname === "/polymarket-new"} tone="blue">
             New markets
-          </Link>
+          </NavLink>
         </nav>
 
         <button
@@ -102,21 +99,30 @@ export function Header() {
             <Link
               href="/"
               onClick={() => setMenuOpen(false)}
-              className="rounded px-2 py-1 text-slate-700 hover:bg-slate-100"
+              className={cn(
+                "rounded px-2 py-1 hover:bg-slate-100",
+                pathname === "/" ? "bg-slate-900 text-white hover:bg-slate-800" : "text-slate-700"
+              )}
             >
               Best odds
             </Link>
             <Link
               href="/surebets"
               onClick={() => setMenuOpen(false)}
-              className="rounded px-2 py-1 text-emerald-700 hover:bg-emerald-50"
+              className={cn(
+                "rounded px-2 py-1 hover:bg-emerald-50",
+                pathname === "/surebets" ? "bg-emerald-600 text-white hover:bg-emerald-600" : "text-emerald-700"
+              )}
             >
               Surebets
             </Link>
             <Link
               href="/polymarket-new"
               onClick={() => setMenuOpen(false)}
-              className="rounded px-2 py-1 text-blue-700 hover:bg-blue-50"
+              className={cn(
+                "rounded px-2 py-1 hover:bg-blue-50",
+                pathname === "/polymarket-new" ? "bg-blue-600 text-white hover:bg-blue-600" : "text-blue-700"
+              )}
             >
               New markets
             </Link>
@@ -124,5 +130,43 @@ export function Header() {
         </div>
       ) : null}
     </header>
+  );
+}
+
+function NavLink({
+  href,
+  active,
+  tone = "slate",
+  children,
+}: {
+  href: string;
+  active: boolean;
+  tone?: "slate" | "emerald" | "blue";
+  children: React.ReactNode;
+}) {
+  const tones = {
+    slate: active
+      ? "bg-slate-900 text-white shadow-sm"
+      : "bg-slate-100 text-slate-700 hover:bg-slate-200",
+    emerald: active
+      ? "bg-emerald-600 text-white shadow-sm"
+      : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100",
+    blue: active
+      ? "bg-blue-600 text-white shadow-sm"
+      : "bg-blue-50 text-blue-700 hover:bg-blue-100",
+  } as const;
+
+  return (
+    <Link
+      href={href}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold transition-colors",
+        tones[tone]
+      )}
+    >
+      {active ? <Compass className="h-3.5 w-3.5" /> : null}
+      <span>{children}</span>
+    </Link>
   );
 }

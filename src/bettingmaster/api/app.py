@@ -7,7 +7,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from bettingmaster.config import settings
-from bettingmaster.database import SessionLocal, init_db
+from bettingmaster.database import SessionLocal
+from bettingmaster.migrations import upgrade_database
 
 logger = logging.getLogger(__name__)
 
@@ -16,8 +17,11 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     # Startup
     logging.basicConfig(level=getattr(logging, settings.log_level.upper(), logging.INFO))
-    logger.info("Initializing database...")
-    init_db()
+    if settings.auto_upgrade_db_on_startup:
+        logger.info("Upgrading database to latest revision...")
+        upgrade_database()
+    else:
+        logger.info("Skipping automatic database upgrade on startup")
 
     scheduler = None
     if settings.enable_scheduler:

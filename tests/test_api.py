@@ -5,7 +5,6 @@ from datetime import UTC, datetime, timedelta
 from bettingmaster.config import settings
 from bettingmaster.models.match import Match
 from bettingmaster.models.odds import OddsSnapshot
-from bettingmaster.models.scrape_run import ScrapeRun
 
 
 def test_list_matches_supports_tomorrow_filter(client, seeded_db):
@@ -177,6 +176,26 @@ def test_search_returns_upcoming_matches_only(client, seeded_db):
     assert [match["id"] for match in payload] == ["match-upcoming"]
 
 
+def test_health_reports_bookmaker_freshness(client, seeded_db):
+    response = client.get("/api/health")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "ok"
+    assert payload["db"] == "connected"
+
+    nike = payload["scrapers"]["nike"]
+    assert nike["interval_seconds"] == settings.scrape_interval_nike
+    assert nike["last_scraped_at"] is not None
+    assert nike["age_seconds"] is not None
+    assert nike["freshness"] == "fresh"
+
+    tipsport = payload["scrapers"]["tipsport"]
+    assert tipsport["last_scraped_at"] is None
+    assert tipsport["age_seconds"] is None
+    assert tipsport["freshness"] == "idle"
+
+
 def test_ws_odds_feed_pushes_update_for_match_scope(client, seeded_db):
     previous_interval = settings.live_feed_poll_seconds
     settings.live_feed_poll_seconds = 0.01
@@ -208,80 +227,3 @@ def test_ws_odds_feed_pushes_update_for_match_scope(client, seeded_db):
             assert update["latest_scraped_at"] == update_time.isoformat()
     finally:
         settings.live_feed_poll_seconds = previous_interval
-
-
-def test_health_returns_enriched_scraper_statuses(client, seeded_db):
-    now = seeded_db.info["seed_now"]
-    last_failure = now - timedelta(minutes=25)
-    last_success = now - timedelta(minutes=10)
-    doxxbet_failure = now - timedelta(minutes=4)
-
-    seeded_db.add_all(
-        [
-            ScrapeRun(
-                bookmaker="fortuna",
-                source="round_robin",
-                started_at=last_failure - timedelta(minutes=1),
-                finished_at=last_failure,
-                status="failed",
-                matches_found=0,
-                odds_saved=0,
-                error_message="RuntimeError: temporary outage",
-            ),
-            ScrapeRun(
-                bookmaker="fortuna",
-                source="round_robin",
-                started_at=last_success - timedelta(minutes=2),
-                finished_at=last_success,
-                status="success",
-                matches_found=3,
-                odds_saved=9,
-                error_message=None,
-            ),
-            ScrapeRun(
-                bookmaker="doxxbet",
-                source="round_robin",
-                started_at=doxxbet_failure - timedelta(minutes=1),
-                finished_at=doxxbet_failure,
-                status="failed",
-                matches_found=0,
-                odds_saved=0,
-                error_message="RuntimeError: timeout",
-            ),
-        ]
-    )
-    seeded_db.commit()
-
-    response = client.get("/api/health")
-
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["status"] == "ok"
-    assert payload["db"] == "connected"
-
-    scrapers = payload["scrapers"]
-    assert set(scrapers) >= {"fortuna", "nike", "doxxbet", "tipsport", "tipos", "polymarket"}
-
-    assert scrapers["fortuna"] == {
-        "last_scraped_at": (now - timedelta(minutes=2)).isoformat(),
-        "last_run_at": (last_success - timedelta(minutes=2)).isoformat(),
-        "last_success_at": last_success.isoformat(),
-        "last_failure_at": last_failure.isoformat(),
-        "last_status": "success",
-        "matches_found": 3,
-        "odds_saved": 9,
-        "last_error": None,
-    }
-    assert scrapers["doxxbet"]["last_status"] == "failed"
-    assert scrapers["doxxbet"]["last_failure_at"] == doxxbet_failure.isoformat()
-    assert scrapers["doxxbet"]["last_error"] == "RuntimeError: timeout"
-    assert scrapers["tipsport"] == {
-        "last_scraped_at": None,
-        "last_run_at": None,
-        "last_success_at": None,
-        "last_failure_at": None,
-        "last_status": None,
-        "matches_found": 0,
-        "odds_saved": 0,
-        "last_error": None,
-    }

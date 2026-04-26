@@ -5,6 +5,7 @@ import { Clock3, Layers3 } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
 
+import { FreshnessBadge } from "@/components/FreshnessBadge";
 import { LiveUpdatesBadge } from "@/components/LiveUpdatesBadge";
 import { MarketOddsBoard } from "@/components/MarketOddsBoard";
 import { getBestOdds, getMatchDetail, type BestOdds, type MatchDetail } from "@/lib/api";
@@ -14,7 +15,7 @@ import {
   getMarketLabel,
   resolveSelectionLabel,
 } from "@/lib/constants";
-import { formatFullDate, formatLastUpdated } from "@/lib/utils";
+import { formatFullDate, formatLastUpdated, getBookmakerFreshness } from "@/lib/utils";
 
 type Props = {
   initialMatch: MatchDetail;
@@ -34,6 +35,14 @@ function latestCheckedAt(odds: MatchDetail["odds"]) {
   return [...odds]
     .map((entry) => entry.checked_at ?? entry.scraped_at)
     .sort((left, right) => right.localeCompare(left))[0];
+}
+
+function latestCheckedAtForBookmaker(odds: MatchDetail["odds"], bookmaker: string) {
+  const timestamps = odds
+    .filter((entry) => entry.bookmaker === bookmaker)
+    .map((entry) => entry.checked_at ?? entry.scraped_at)
+    .sort((left, right) => right.localeCompare(left));
+  return timestamps[0] ?? null;
 }
 
 export function MatchLiveSection({ initialMatch, initialBestOdds, focusTarget }: Props) {
@@ -135,13 +144,21 @@ export function MatchLiveSection({ initialMatch, initialBestOdds, focusTarget }:
               return (
                 <span
                   key={bookmaker}
-                  className="rounded-full px-3 py-1.5 text-sm font-semibold"
-                  style={{
-                    backgroundColor: bookmakerData.bgColor,
-                    color: bookmakerData.color,
-                  }}
+                  className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold"
+                  style={{ backgroundColor: bookmakerData.bgColor, color: bookmakerData.color }}
                 >
-                  {bookmakerData.displayName}
+                  <span>{bookmakerData.displayName}</span>
+                  {(() => {
+                    const checkedAt = latestCheckedAtForBookmaker(match.odds, bookmaker);
+                    const freshness = getBookmakerFreshness(bookmaker, checkedAt);
+                    return (
+                      <FreshnessBadge
+                        freshness={freshness.freshness}
+                        ageSeconds={freshness.ageSeconds}
+                        className="bg-white/80 text-slate-700"
+                      />
+                    );
+                  })()}
                 </span>
               );
             })}

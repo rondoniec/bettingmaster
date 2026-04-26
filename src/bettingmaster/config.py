@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     timezone: str = "Europe/Bratislava"
     log_level: str = "INFO"
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
+    auto_upgrade_db_on_startup: bool = True
     enable_scheduler: bool = True
     scrape_interval_tipsport: int = 90
     scrape_interval_tipos: int = 120

@@ -6,9 +6,11 @@ import Link from "next/link";
 
 import { BestOddsMatchCard } from "@/components/BestOddsMatchCard";
 import { LiveUpdatesBadge } from "@/components/LiveUpdatesBadge";
+import { ScrapeHealthPanel } from "@/components/ScrapeHealthPanel";
 import {
   getMatchesWithBestOdds,
   getSurebets,
+  type HealthStatus,
   type MatchBestOdds,
   type Sport,
   type Surebet,
@@ -22,6 +24,7 @@ type Props = {
   market: string;
   status?: string;
   sort?: string;
+  initialHealth: HealthStatus;
   sports: Sport[];
   initialMatches: MatchBestOdds[];
   initialSurebets: Surebet[];
@@ -111,6 +114,7 @@ export function HomeLiveSection({
   market,
   status,
   sort,
+  initialHealth,
   sports,
   initialMatches,
   initialSurebets,
@@ -359,6 +363,8 @@ export function HomeLiveSection({
           </div>
         </div>
       </section>
+
+      <ScrapeHealthPanel initialHealth={initialHealth} />
 
       <section className="space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-3">

@@ -116,3 +116,16 @@ class MatchSearchResult(BaseModel):
     status: str
 
     model_config = {"from_attributes": True}
+
+
+class ScraperHealthOut(BaseModel):
+    last_scraped_at: Optional[datetime] = None
+    interval_seconds: int
+    age_seconds: Optional[int] = None
+    freshness: str
+
+
+class HealthOut(BaseModel):
+    status: str
+    db: str
+    scrapers: dict[str, ScraperHealthOut]

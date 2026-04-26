@@ -1,0 +1,12 @@
+services:
+  cc-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.cc-worker
+    container_name: algs-cc-worker
+    restart: unless-stopped
+    ports:
+      - "8787:8787"
+    environment:
+      CC_WORKER_PORT: "8787"
+      CC_WORKER_TOKEN: "${CC_WORKER_TOKEN}"

@@ -2,6 +2,7 @@
 
 import { ExternalLink } from "lucide-react";
 
+import { FreshnessBadge } from "@/components/FreshnessBadge";
 import type { BestOdds, OddsEntry } from "@/lib/api";
 import {
   BOOKMAKER_ORDER,
@@ -10,7 +11,7 @@ import {
   resolveSelectionLabel,
   SELECTION_ORDER,
 } from "@/lib/constants";
-import { cn, formatLastUpdated, formatMargin, formatOdds } from "@/lib/utils";
+import { cn, formatLastUpdated, formatMargin, formatOdds, getBookmakerFreshness } from "@/lib/utils";
 
 type Props = {
   markets: string[];
@@ -147,6 +148,10 @@ export function MarketOddsBoard({
                     <div className="mt-4 space-y-2">
                       {entries.map((entry) => {
                         const bookmaker = getBookmakerDisplay(entry.bookmaker);
+                        const freshness = getBookmakerFreshness(
+                          entry.bookmaker,
+                          entry.checked_at ?? entry.scraped_at
+                        );
                         const isFocused =
                           focusedBookmaker === entry.bookmaker &&
                           focusedMarket === market &&
@@ -163,14 +168,20 @@ export function MarketOddsBoard({
                               isFocused ? "border-blue-300 ring-2 ring-blue-100" : "border-slate-100"
                             )}
                           >
-                            <span className="flex min-w-0 items-center gap-2">
-                              <span
-                                className="h-2.5 w-2.5 shrink-0 rounded-full"
-                                style={{ backgroundColor: bookmaker.color }}
-                              />
-                              <span className="truncate font-semibold" style={{ color: bookmaker.color }}>
-                                {bookmaker.displayName}
+                            <span className="flex min-w-0 flex-col items-start gap-1">
+                              <span className="flex min-w-0 items-center gap-2">
+                                <span
+                                  className="h-2.5 w-2.5 shrink-0 rounded-full"
+                                  style={{ backgroundColor: bookmaker.color }}
+                                />
+                                <span className="truncate font-semibold" style={{ color: bookmaker.color }}>
+                                  {bookmaker.displayName}
+                                </span>
                               </span>
+                              <FreshnessBadge
+                                freshness={freshness.freshness}
+                                ageSeconds={freshness.ageSeconds}
+                              />
                             </span>
                             <span className="flex shrink-0 items-center gap-2">
                               <span className="font-bold tabular-nums text-slate-950">
@@ -178,18 +189,27 @@ export function MarketOddsBoard({
                               </span>
                               {entry.url ? <ExternalLink className="h-3.5 w-3.5 text-slate-400" /> : null}
                             </span>
-                            <span className="sr-only">
-                              Checked {formatLastUpdated(entry.checked_at ?? entry.scraped_at)}
-                            </span>
                           </a>
                         );
                       })}
                     </div>
 
                     {best ? (
-                      <p className="mt-3 text-xs text-slate-400">
-                        Checked {formatLastUpdated(best.checked_at ?? best.scraped_at)}
-                      </p>
+                      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-400">
+                        {(() => {
+                          const freshness = getBookmakerFreshness(
+                            best.bookmaker,
+                            best.checked_at ?? best.scraped_at
+                          );
+                          return (
+                            <FreshnessBadge
+                              freshness={freshness.freshness}
+                              ageSeconds={freshness.ageSeconds}
+                            />
+                          );
+                        })()}
+                        <span>Checked {formatLastUpdated(best.checked_at ?? best.scraped_at)}</span>
+                      </div>
                     ) : null}
                   </div>
                 );
