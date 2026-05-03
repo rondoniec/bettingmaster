@@ -148,12 +148,30 @@ class FortunaScraper(BaseScraper):
         return matches
 
     def scrape_odds(self, match_external_id: str) -> list[RawOdds]:
-        """Scrape odds for a specific fixture."""
-        path = f"{MARKETS}/fixture/{match_external_id}/markets"
-        data = self._api_get(path)
+        """Scrape odds for a specific fixture, including the public match URL."""
+        markets_path = f"{MARKETS}/fixture/{match_external_id}/markets"
+        data = self._api_get(markets_path)
         if not data or not isinstance(data, list):
             return []
-        return self._parse_markets(data, match_external_id)
+
+        match_url: str | None = None
+        fixture = self._api_get(f"{STRUCTURE}/fixture/{match_external_id}")
+        if isinstance(fixture, dict):
+            seo = fixture.get("seoName", "")
+            cat_seo = fixture.get("categorySeoName", "")
+            tour_seo = fixture.get("tournamentSeoName", "")
+            sport_seo = fixture.get("sportSeoName", "")
+            if seo and sport_seo:
+                match_url = (
+                    f"{self.BASE_URL}/stavkovanie/{sport_seo}/{cat_seo}"
+                    f"/{tour_seo}/{seo}"
+                )
+
+        parsed = self._parse_markets(data, match_external_id)
+        if match_url:
+            for row in parsed:
+                row.url = match_url
+        return parsed
 
     def run(self, league_ids: dict[str, str], normalizer=None):
         """Override base run for efficient per-tournament fetching with inline odds."""
