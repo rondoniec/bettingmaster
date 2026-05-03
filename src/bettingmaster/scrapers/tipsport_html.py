@@ -57,24 +57,36 @@ _EXTRACT_JS = r"""
     const home = text.slice(0, sep).trim();
     const away = text.slice(sep + 3).trim();
 
-    // Walk up to find the row container that holds 3 odds spans for this match.
+    // Walk up to find the row container that holds the odds for this match.
+    // Tipsport renders 1x2 odds as buttons / spans with numeric text.
     let row = nameSpan;
     let oddsValues = [];
     let detailHref = null;
     for (let depth = 0; depth < 10; depth++) {
       row = row?.parentElement;
       if (!row) break;
-      const numericSpans = Array.from(row.querySelectorAll("span")).filter(s => {
-        const t = (s.textContent || "").trim();
-        return /^[0-9]+\.[0-9]{2}$/.test(t);
-      });
-      // Check anchor for match URL while we're here.
+      // Anchor with match URL.
       const anchor = row.querySelector(`a[href*="${id}"]`);
       if (anchor && !detailHref) {
         detailHref = anchor.getAttribute("href");
       }
-      if (numericSpans.length === 3 || numericSpans.length === 2) {
-        oddsValues = numericSpans.map(s => parseFloat(s.textContent.trim()));
+      // Collect numeric labels: spans, divs, buttons.
+      const candidates = Array.from(row.querySelectorAll("span, div, button"))
+        .map(el => (el.textContent || "").trim())
+        .filter(t => /^[0-9]+(\.[0-9]{1,3})?$/.test(t))
+        .map(t => parseFloat(t))
+        .filter(v => v >= 1.01 && v <= 100);
+      // Dedup adjacent identical values caused by nested span+div pairs.
+      const unique = [];
+      for (const v of candidates) {
+        if (unique.length === 0 || unique[unique.length - 1] !== v) unique.push(v);
+      }
+      if (unique.length >= 3) {
+        oddsValues = unique.slice(0, 3);
+        break;
+      }
+      if (unique.length === 2 && depth >= 4) {
+        oddsValues = unique;
         break;
       }
     }
