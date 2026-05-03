@@ -7,7 +7,5 @@ services:
     env_file:
       - .env.laptop
     environment:
-      BM_DATABASE_URL: ${BM_DATABASE_URL}
       BM_ENABLE_SCHEDULER: "false"
-      BM_LOG_LEVEL: ${BM_LOG_LEVEL:-INFO}
     command: ["sh", "/app/docker/worker-entrypoint.sh"]
