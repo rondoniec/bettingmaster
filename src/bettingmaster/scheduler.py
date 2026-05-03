@@ -481,6 +481,18 @@ def _run_status_sync():
         db.close()
 
 
+def _run_cleanup():
+    from bettingmaster.services.cleanup import prune_concluded_snapshots
+    db = SessionLocal()
+    try:
+        prune_concluded_snapshots(db)
+    except Exception:
+        logger.exception("[cleanup] cycle failed")
+        db.rollback()
+    finally:
+        db.close()
+
+
 def create_scheduler() -> BackgroundScheduler:
     _register_scrapers()
     scheduler = BackgroundScheduler()
@@ -502,6 +514,16 @@ def create_scheduler() -> BackgroundScheduler:
         max_instances=1,
         misfire_grace_time=60,
         next_run_time=datetime.now(UTC),
+    )
+
+    scheduler.add_job(
+        _run_cleanup,
+        "interval",
+        hours=1,
+        id="snapshot_cleanup",
+        max_instances=1,
+        misfire_grace_time=600,
+        next_run_time=datetime.now(UTC) + timedelta(minutes=5),
     )
 
     return scheduler
