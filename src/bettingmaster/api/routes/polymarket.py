@@ -15,6 +15,13 @@ router = APIRouter()
 GAMMA_API = "https://gamma-api.polymarket.com"
 
 
+class NewPolymarketSubMarketOut(BaseModel):
+    name: str
+    slug: str
+    url: str
+    market_count: int
+
+
 class NewPolymarketMarketOut(BaseModel):
     title: str
     slug: str
@@ -23,6 +30,7 @@ class NewPolymarketMarketOut(BaseModel):
     created_at: datetime | None = None
     market_count: int
     league_hint: str | None = None
+    markets: list[NewPolymarketSubMarketOut] = []
 
 
 _CACHE: dict[str, tuple[float, list["NewPolymarketMarketOut"]]] = {}
@@ -46,7 +54,9 @@ def list_new_football_markets(
     now = datetime.now(UTC).replace(tzinfo=None)
     created_after = now - timedelta(days=days)
 
-    results: list[NewPolymarketMarketOut] = []
+    # Bucket sub-events by their underlying matchup so 10 markets for the
+    # same Nashville vs DC game collapse into a single card with a dropdown.
+    groups: dict[str, dict] = {}
     for event in events:
         title = str(event.get("title") or event.get("question") or "").strip()
         slug = str(event.get("slug") or "").strip()
@@ -67,17 +77,48 @@ def list_new_football_markets(
         if league_hint is None:
             continue
 
-        results.append(
-            NewPolymarketMarketOut(
-                title=title,
-                slug=slug,
-                url=f"https://polymarket.com/event/{slug}",
-                start_time=start_time,
-                created_at=created_at,
-                market_count=len(event.get("markets", []) or []),
-                league_hint=league_hint,
-            )
+        matchup_title, sub_market_name = _split_event_title(title)
+        bucket_key = (matchup_title, _matchup_slug_root(slug))
+
+        bucket = groups.get(bucket_key)
+        sub = NewPolymarketSubMarketOut(
+            name=sub_market_name or "Hlavný trh",
+            slug=slug,
+            url=f"https://polymarket.com/event/{slug}",
+            market_count=len(event.get("markets", []) or []),
         )
+
+        if bucket is None:
+            groups[bucket_key] = {
+                "title": matchup_title,
+                "slug": slug,
+                "url": f"https://polymarket.com/event/{slug}",
+                "start_time": start_time,
+                "created_at": created_at,
+                "league_hint": league_hint,
+                "markets": [sub],
+            }
+        else:
+            bucket["markets"].append(sub)
+            # Keep the freshest created_at and earliest start_time
+            if created_at and (bucket["created_at"] is None or created_at > bucket["created_at"]):
+                bucket["created_at"] = created_at
+            if start_time and (bucket["start_time"] is None or start_time < bucket["start_time"]):
+                bucket["start_time"] = start_time
+
+    results = [
+        NewPolymarketMarketOut(
+            title=g["title"],
+            slug=g["slug"],
+            url=g["url"],
+            start_time=g["start_time"],
+            created_at=g["created_at"],
+            market_count=sum(m.market_count or 1 for m in g["markets"]),
+            league_hint=g["league_hint"],
+            markets=g["markets"],
+        )
+        for g in groups.values()
+    ]
 
     sorted_results = sorted(
         results,
@@ -89,6 +130,45 @@ def list_new_football_markets(
     )[:limit]
     _CACHE[cache_key] = (now_mono + _CACHE_TTL_SECONDS, sorted_results)
     return sorted_results
+
+
+def _split_event_title(title: str) -> tuple[str, str]:
+    """Pull the matchup prefix off a Polymarket event title.
+
+    'Nashville SC vs. D.C. United SC - Halftime Result'
+       → ('Nashville SC vs. D.C. United SC', 'Halftime Result')
+    'Real Madrid vs Barcelona'
+       → ('Real Madrid vs Barcelona', '')
+    """
+    for sep in (" - ", " — ", ": "):
+        if sep in title:
+            head, _, tail = title.partition(sep)
+            return head.strip(), tail.strip()
+    return title.strip(), ""
+
+
+def _matchup_slug_root(slug: str) -> str:
+    """Take the part of the slug before the market-type suffix.
+
+    Polymarket slugs commonly look like:
+        'mls-nas-dc-2026-05-04-halftime-result'
+        'mls-nas-dc-2026-05-04-exact-score'
+    Trimming trailing '-<word>...' chunks tends to align them.
+    """
+    parts = slug.split("-")
+    # Date stamps come in the middle (YYYY-MM-DD); keep up to and including
+    # the date so per-match suffixes (halftime / exact-score / total-goals)
+    # are dropped while the matchup identity stays.
+    for i in range(len(parts) - 2, -1, -1):
+        if (
+            len(parts[i]) == 4
+            and parts[i].isdigit()
+            and i + 2 < len(parts)
+            and len(parts[i + 1]) == 2
+            and len(parts[i + 2]) == 2
+        ):
+            return "-".join(parts[: i + 3])
+    return slug
 
 
 def _fetch_soccer_events() -> list[dict]:

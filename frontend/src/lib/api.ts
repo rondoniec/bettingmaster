@@ -88,6 +88,13 @@ export type Surebet = {
   profit_percent: number;
 };
 
+export type NewPolymarketSubMarket = {
+  name: string;
+  slug: string;
+  url: string;
+  market_count: number;
+};
+
 export type NewPolymarketMarket = {
   title: string;
   slug: string;
@@ -96,6 +103,7 @@ export type NewPolymarketMarket = {
   created_at?: string | null;
   market_count: number;
   league_hint?: string | null;
+  markets?: NewPolymarketSubMarket[];
 };
 
 export type ScraperHealth = {
