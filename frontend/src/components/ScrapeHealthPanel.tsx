@@ -5,7 +5,7 @@ import { Activity, AlertTriangle, CheckCircle2, Clock3, PauseCircle } from "luci
 
 import { getHealth, type HealthStatus } from "@/lib/api";
 import { getBookmakerDisplay } from "@/lib/constants";
-import { cn, formatLastUpdated, formatSecondsCompact } from "@/lib/utils";
+import { cn, formatSecondsCompact } from "@/lib/utils";
 
 type Props = {
   initialHealth: HealthStatus;
@@ -121,16 +121,11 @@ export function ScrapeHealthPanel({ initialHealth }: Props) {
                 </div>
               </div>
 
-              <div className="mt-4 space-y-2 text-sm text-slate-600">
+              <div className="mt-4 text-sm text-slate-600">
                 <p>
-                  {scraper.last_scraped_at
-                    ? `Last checked ${formatLastUpdated(scraper.last_scraped_at)}`
-                    : "No checked odds saved yet"}
-                </p>
-                <p className="text-slate-500">
                   {scraper.age_seconds !== null && scraper.age_seconds !== undefined
-                    ? `Current age ${formatSecondsCompact(scraper.age_seconds)}`
-                    : "Waiting for first successful save"}
+                    ? `Last checked ${formatSecondsCompact(scraper.age_seconds)} ago`
+                    : "No checked odds saved yet"}
                 </p>
               </div>
             </article>

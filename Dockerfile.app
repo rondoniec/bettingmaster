@@ -10,16 +10,17 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends curl xvfb xauth \
     && rm -rf /var/lib/apt/lists/*
 
-COPY pyproject.toml alembic.ini /app/
+COPY pyproject.toml /app/
+RUN mkdir -p /app/src/bettingmaster && touch /app/src/bettingmaster/__init__.py \
+    && pip install --upgrade pip \
+    && pip install -e . \
+    && python -m playwright install --with-deps chromium \
+    && python -m playwright install --with-deps chrome
+
+COPY alembic.ini /app/
 COPY alembic /app/alembic
 COPY src /app/src
 COPY data /app/data
 COPY docker /app/docker
 
-RUN pip install --upgrade pip \
-    && pip install -e . \
-    && python -m playwright install --with-deps chromium \
-    && python -m playwright install --with-deps chrome
-
 EXPOSE 8000
-

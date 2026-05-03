@@ -66,8 +66,11 @@ def health_check(db: Session = Depends(get_db)):
             if last_ts is not None
             else None
         )
+        last_ts_utc = (
+            last_ts.replace(tzinfo=UTC) if last_ts is not None else None
+        )
         scrapers[bookmaker] = {
-            "last_scraped_at": last_ts,
+            "last_scraped_at": last_ts_utc,
             "interval_seconds": interval_seconds,
             "age_seconds": age_seconds,
             "freshness": _freshness_from_age(age_seconds, interval_seconds),
