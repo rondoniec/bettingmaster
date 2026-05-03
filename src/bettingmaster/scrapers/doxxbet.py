@@ -124,12 +124,16 @@ MARKET_MAP_NORMALIZED.update({
 LEAGUE_MAP = {
     "919":    "sk-fortuna-liga",
     "607245": "ucl",
+    "653":    "en-premier-league",
+    "928":    "es-la-liga",
 }
 LEAGUE_TO_DOXXBET = {v: k for k, v in LEAGUE_MAP.items()}
 
 LISTING_PATHS = {
-    "919": "/sk/sportove-tipovanie-online/kurzy/futbal/slovensko/1-liga",
+    "919":    "/sk/sportove-tipovanie-online/kurzy/futbal/slovensko/1-liga",
     "607245": "/sk/sportove-tipovanie-online/kurzy/futbal/kluby/liga-majstrov-uefa",
+    "653":    "/sk/sportove-tipovanie-online/kurzy/futbal/anglicko/premier-league",
+    "928":    "/sk/sportove-tipovanie-online/kurzy/futbal/spanielsko/laliga",
 }
 
 # ---------------------------------------------------------------------------
