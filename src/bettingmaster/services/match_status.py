@@ -340,13 +340,18 @@ def sync_upcoming_fixtures(db: Session, days_ahead: int = 14) -> dict[str, int]:
             home = _clean_team_name(home_raw)
             away = _clean_team_name(away_raw)
 
-            # Try name-only match first (handles placeholder start_times)
-            name_key = _match_name_key(home, away)
+            # Find existing match by fuzzy name (handles short vs long variants,
+            # e.g. "Nottingham" ≈ "Nottingham Forest", ignoring date/time).
+            from bettingmaster.match_identity import match_similarity, MATCH_SCORE_THRESHOLD
             existing: Match | None = None
+            best_score = 0.0
             for candidate in db.query(Match).filter(Match.league_id == league_id).all():
-                if _match_name_key(candidate.home_team, candidate.away_team) == name_key:
+                score, swapped = match_similarity(
+                    home, away, candidate.home_team, candidate.away_team
+                )
+                if not swapped and score >= MATCH_SCORE_THRESHOLD and score > best_score:
+                    best_score = score
                     existing = candidate
-                    break
 
             if existing is not None:
                 if existing.start_time != start_utc:
