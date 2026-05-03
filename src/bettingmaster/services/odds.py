@@ -254,9 +254,16 @@ def list_best_odds_matches(
 
     rows = query.order_by(Match.start_time, Match.id, OddsSnapshot.selection, OddsSnapshot.bookmaker).all()
 
+    now_naive = datetime.now(UTC).replace(tzinfo=None)
+    prematch_cutoff = now_naive - timedelta(minutes=BEST_ODDS_ROW_MAX_AGE_MINUTES)
+
     grouped_rows: dict[str, tuple[Match, list[OddsSnapshot]]] = {}
     for odds_row, match in rows:
         if not is_valid_bookmaker_odds(match, odds_row):
+            continue
+        # Exclude rows too old to be trustworthy for display
+        last_seen = odds_row.checked_at or odds_row.scraped_at
+        if match.status != "live" and last_seen and last_seen < prematch_cutoff:
             continue
         if match.id not in grouped_rows:
             grouped_rows[match.id] = (match, [])
@@ -265,9 +272,7 @@ def list_best_odds_matches(
     result: list[MatchBestOddsOut] = []
     for match, odds_rows in grouped_rows.values():
         if match.status == "live":
-            live_cutoff = datetime.now(UTC).replace(tzinfo=None) - timedelta(
-                minutes=LIVE_ODDS_MAX_AGE_MINUTES
-            )
+            live_cutoff = now_naive - timedelta(minutes=LIVE_ODDS_MAX_AGE_MINUTES)
             odds_rows = [odds_row for odds_row in odds_rows if odds_row.scraped_at >= live_cutoff]
             if not odds_rows:
                 continue
@@ -350,6 +355,7 @@ def live_feed_snapshot(
 
 SUREBET_MAX_AGE_HOURS = 2
 SUREBET_ROW_MAX_AGE_MINUTES = 30
+BEST_ODDS_ROW_MAX_AGE_MINUTES = 30
 
 
 def query_upcoming_latest_odds(
