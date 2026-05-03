@@ -18,7 +18,8 @@ COPY docker /app/docker
 
 RUN pip install --upgrade pip \
     && pip install -e . \
-    && python -m playwright install --with-deps chromium
+    && python -m playwright install --with-deps chromium \
+    && python -m playwright install --with-deps chrome
 
 EXPOSE 8000
 
