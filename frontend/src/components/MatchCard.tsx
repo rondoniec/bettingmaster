@@ -41,7 +41,7 @@ export function MatchCard({ match, bestOdds }: Props) {
             <p className="truncate text-sm font-semibold text-slate-900">{match.home_team}</p>
             {isLive ? (
               <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-red-600">
-                Live
+                Naživo
               </span>
             ) : null}
           </div>
@@ -83,7 +83,7 @@ function OddsChip({
   return (
     <div
       className="flex h-9 w-14 flex-col items-center justify-center rounded border border-emerald-200 bg-emerald-50 text-center"
-      title={bookmaker ? `Best price: ${bookmaker}` : undefined}
+      title={bookmaker ? `Najlepší kurz: ${bookmaker}` : undefined}
     >
       <span className="text-[10px] font-medium text-emerald-700">{label}</span>
       <span className="text-sm font-bold text-emerald-800">{formatOdds(odds)}</span>

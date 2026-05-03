@@ -151,14 +151,19 @@ export function getStatusVariant(
 export function getStatusLabel(status: string): string {
   switch (status?.toLowerCase()) {
     case "prematch":
-      return "Pre-match";
+      return "Pred zápasom";
     case "live":
-      return "Live";
+      return "Naživo";
     case "finished":
-      return "Finished";
+    case "concluded":
+    case "ended":
+      return "Skončené";
     case "upcoming":
-      return "Upcoming";
+      return "Nadchádzajúce";
+    case "cancelled":
+    case "canceled":
+      return "Zrušené";
     default:
-      return status ?? "Unknown";
+      return status ?? "Neznámy";
   }
 }

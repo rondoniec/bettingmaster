@@ -27,7 +27,7 @@ export function BestOddsMatchCard({ match }: Props) {
               </Link>
               {isLive ? (
                 <span className="animate-pulse rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-red-600">
-                  Live
+                  Naživo
                 </span>
               ) : null}
             </div>
@@ -39,7 +39,7 @@ export function BestOddsMatchCard({ match }: Props) {
             <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-500">
               <span>{formatMatchTime(match.start_time)}</span>
               <Countdown startTime={match.start_time} status={match.status} />
-              <span>• {match.bookmakers.length} bookmakers compared</span>
+              <span>• {match.bookmakers.length} stávkových kancelárií</span>
             </div>
           </div>
 
@@ -54,13 +54,13 @@ export function BestOddsMatchCard({ match }: Props) {
                   : "bg-slate-100 text-slate-600"
               )}
             >
-              Margin {formatMargin(match.combined_margin)}
+              Marža {formatMargin(match.combined_margin)}
             </div>
             <Link
               href={`/match/${match.id}`}
               className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
             >
-              Open match
+              Otvoriť zápas
             </Link>
           </div>
         </div>
@@ -97,7 +97,7 @@ export function BestOddsMatchCard({ match }: Props) {
               <div className="mt-4 flex items-center justify-between text-sm text-slate-500">
                 <div className="flex items-center gap-2">
                   <ShieldCheck className="h-4 w-4 text-emerald-500" />
-                  <span>Best for this outcome</span>
+                  <span>Najlepší kurz</span>
                 </div>
                 {selection.url ? (
                   <a
@@ -106,7 +106,7 @@ export function BestOddsMatchCard({ match }: Props) {
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 font-medium text-slate-700 transition hover:text-slate-950"
                   >
-                    Visit
+                    Otvoriť
                     <ExternalLink className="h-3.5 w-3.5" />
                   </a>
                 ) : null}

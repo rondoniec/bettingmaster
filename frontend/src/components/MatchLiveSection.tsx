@@ -98,7 +98,7 @@ export function MatchLiveSection({ initialMatch, initialBestOdds, focusTarget }:
     <div className="space-y-6">
       <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.18),_transparent_30%),linear-gradient(180deg,_#ffffff,_#f8fbff)] px-6 py-8 shadow-[0_24px_70px_-44px_rgba(15,23,42,0.45)] sm:px-8">
         <Link href="/" className="text-sm font-medium text-blue-600 hover:text-blue-700">
-          Back to homepage
+          Späť na hlavnú stránku
         </Link>
         <div className="mt-4 flex items-center gap-2">
           <Link
@@ -109,7 +109,7 @@ export function MatchLiveSection({ initialMatch, initialBestOdds, focusTarget }:
           </Link>
           {isLive ? (
             <span className="animate-pulse rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-red-600">
-              Live
+              Naživo
             </span>
           ) : null}
         </div>
@@ -132,7 +132,7 @@ export function MatchLiveSection({ initialMatch, initialBestOdds, focusTarget }:
           {lastChecked ? (
             <div className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1.5 text-sm text-slate-600 shadow-sm">
               <Clock3 className="h-4 w-4 text-blue-600" />
-              Checked {formatLastUpdated(lastChecked)}
+              Skontrolované {formatLastUpdated(lastChecked)}
             </div>
           ) : null}
           <div className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1.5 text-sm text-slate-600 shadow-sm">

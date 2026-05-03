@@ -104,7 +104,7 @@ export function MarketOddsBoard({
                       : "bg-slate-100 text-slate-600"
                   )}
                 >
-                  Margin {formatMargin(marginByMarket.get(market) ?? 0)}
+                  Marža {formatMargin(marginByMarket.get(market) ?? 0)}
                 </span>
               ) : null}
             </div>
@@ -208,7 +208,7 @@ export function MarketOddsBoard({
                             />
                           );
                         })()}
-                        <span>Checked {formatLastUpdated(best.checked_at ?? best.scraped_at)}</span>
+                        <span>Skontrolované {formatLastUpdated(best.checked_at ?? best.scraped_at)}</span>
                       </div>
                     ) : null}
                   </div>

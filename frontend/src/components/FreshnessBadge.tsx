@@ -12,22 +12,22 @@ type Props = {
 
 const STYLES = {
   fresh: {
-    label: "Fresh",
+    label: "Aktuálne",
     className: "bg-emerald-100 text-emerald-700",
     Icon: CheckCircle2,
   },
   aging: {
-    label: "Aging",
+    label: "Starnúce",
     className: "bg-amber-100 text-amber-700",
     Icon: Clock3,
   },
   stale: {
-    label: "Stale",
+    label: "Zastaralé",
     className: "bg-rose-100 text-rose-700",
     Icon: AlertTriangle,
   },
   idle: {
-    label: "Idle",
+    label: "Nečinné",
     className: "bg-slate-100 text-slate-600",
     Icon: PauseCircle,
   },

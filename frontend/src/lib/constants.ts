@@ -46,35 +46,42 @@ export const BOOKMAKER_REFRESH_INTERVALS: Record<string, number> = {
 };
 
 export const MARKET_LABELS: Record<string, string> = {
-  // Moneyline / full-time result
-  "1x2": "Match result",
-  // Handicap / spreads
-  handicap_1_5: "Handicap ±1.5",
-  handicap_2_5: "Handicap ±2.5",
-  // Totals
-  over_under_1_5: "Over/Under 1.5",
-  over_under_2_5: "Over/Under 2.5",
-  over_under_3_5: "Over/Under 3.5",
-  over_under_4_5: "Over/Under 4.5",
+  // Full-time result (1 - X - 2)
+  "1x2": "Výsledok zápasu",
+  // Halftime / second half results
+  "1x2_ht": "1. polčas - výsledok",
+  "1x2_2h": "2. polčas - výsledok",
+  // 6-way result (split by half scoring)
+  result_6way: "Výsledok (6-cestný)",
+  result_6way_ht: "1. polčas - výsledok (6-cestný)",
+  result_6way_2h: "2. polčas - výsledok (6-cestný)",
   // Both teams to score
-  btts: "Both teams to score",
-  // Halftime result
-  "1x2_ht": "Half-time result",
-  // Legacy (kept so old DB rows still display)
-  double_chance: "Double chance",
-  draw_no_bet: "Draw no bet",
-  to_qualify: "To qualify",
-  handicap: "Handicap",
-  over_under_2: "Over/Under 2.0",
-  over_under_3: "Over/Under 3.0",
+  btts: "Oba tímy dajú gól",
+  btts_ht: "1. polčas - oba tímy dajú gól",
+  btts_2h: "2. polčas - oba tímy dajú gól",
+  // Totals (over/under)
+  over_under_1_5: "Počet gólov nad/pod 1,5",
+  over_under_2_5: "Počet gólov nad/pod 2,5",
+  over_under_3_5: "Počet gólov nad/pod 3,5",
+  over_under_4_5: "Počet gólov nad/pod 4,5",
+  over_under_2: "Počet gólov nad/pod 2",
+  over_under_3: "Počet gólov nad/pod 3",
+  // Handicap
+  handicap: "Hendikep",
+  handicap_1_5: "Hendikep ±1,5",
+  handicap_2_5: "Hendikep ±2,5",
+  // Other
+  double_chance: "Dvojitá šanca",
+  draw_no_bet: "Bez remízy",
+  to_qualify: "Postup",
 };
 
 export const MARKET_TABS = [
-  { key: "1x2", label: "Moneyline" },
-  { key: "handicap_1_5", label: "Spreads" },
-  { key: "over_under_2_5", label: "Totals" },
-  { key: "btts", label: "BTTS" },
-  { key: "1x2_ht", label: "Halftime" },
+  { key: "1x2", label: "Výsledok" },
+  { key: "handicap_1_5", label: "Hendikep" },
+  { key: "over_under_2_5", label: "Góly" },
+  { key: "btts", label: "Oba tímy" },
+  { key: "1x2_ht", label: "Polčas" },
 ];
 
 export const SELECTION_LABELS: Record<string, string> = {
@@ -84,10 +91,10 @@ export const SELECTION_LABELS: Record<string, string> = {
   home_draw: "1X",
   home_away: "12",
   draw_away: "X2",
-  yes: "Yes",
-  no: "No",
-  over: "Over",
-  under: "Under",
+  yes: "Áno",
+  no: "Nie",
+  over: "Nad",
+  under: "Pod",
 };
 
 export const SELECTION_ORDER: Record<string, string[]> = {
@@ -123,9 +130,9 @@ export function getMarketLabel(market: string): string {
   if (MARKET_LABELS[market]) return MARKET_LABELS[market];
   // Dynamic patterns
   const ouMatch = market.match(/^over_under_(\d+)_(\d+)$/);
-  if (ouMatch) return `Over/Under ${ouMatch[1]}.${ouMatch[2]}`;
+  if (ouMatch) return `Počet gólov nad/pod ${ouMatch[1]},${ouMatch[2]}`;
   const hcMatch = market.match(/^handicap_(\d+)_(\d+)$/);
-  if (hcMatch) return `Handicap ±${hcMatch[1]}.${hcMatch[2]}`;
+  if (hcMatch) return `Hendikep ±${hcMatch[1]},${hcMatch[2]}`;
   return market;
 }
 
@@ -156,13 +163,13 @@ export function resolveSelectionLabel(
     case "away":
       return awayTeam ?? "2";
     case "draw":
-      return "Draw";
+      return "Remíza";
     case "home_draw":
-      return homeTeam ? `${homeTeam} or Draw` : "1X";
+      return homeTeam ? `${homeTeam} alebo remíza` : "1X";
     case "draw_away":
-      return awayTeam ? `Draw or ${awayTeam}` : "X2";
+      return awayTeam ? `Remíza alebo ${awayTeam}` : "X2";
     case "home_away":
-      return homeTeam && awayTeam ? `${homeTeam} or ${awayTeam}` : "12";
+      return homeTeam && awayTeam ? `${homeTeam} alebo ${awayTeam}` : "12";
     default:
       return SELECTION_LABELS[selection] ?? selection;
   }
