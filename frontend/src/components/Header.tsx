@@ -11,6 +11,7 @@ const NAV_ITEMS: { href: string; label: string }[] = [
   { href: "/", label: "Najlepšie kurzy" },
   { href: "/surebets", label: "Sigurebety" },
   { href: "/polymarket-new", label: "Nové trhy" },
+  { href: "/others", label: "Iné" },
 ];
 
 export function Header() {

@@ -237,6 +237,10 @@ export async function getSurebets(): Promise<Surebet[]> {
   return apiFetch<Surebet[]>("/api/surebets");
 }
 
+export async function getNonSportsPolymarketMarkets(): Promise<NewPolymarketMarket[]> {
+  return apiFetch<NewPolymarketMarket[]>("/api/polymarket/non-sports");
+}
+
 export async function getNewPolymarketMarkets(): Promise<NewPolymarketMarket[]> {
   return apiFetch<NewPolymarketMarket[]>("/api/polymarket/new-football-markets");
 }
