@@ -86,8 +86,14 @@ def _team_pair_score(
 
 
 def _prob_to_decimal(prob: float) -> Optional[float]:
-    """Convert a 0..1 probability into decimal odds."""
-    if prob <= 0 or prob > 1:
+    """Convert a 0..1 probability into decimal odds.
+
+    Polymarket order books often have sparse asks at the long-tail end of a
+    market (a single 1¢ resting offer turns into 100.00 decimal odds and
+    nukes any margin comparison). Reject anything below 4¢ (= 25.0 odds)
+    so we don't poison the comparison with non-executable noise.
+    """
+    if prob is None or prob <= 0.04 or prob > 1:
         return None
     return round(1.0 / prob, 3)
 
