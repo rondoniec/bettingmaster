@@ -8,6 +8,9 @@ build/
 data/debug/
 data/preview-logs/
 .env
+.env.hetzner
+.env.laptop
+.env.local
 
 # Frontend build artifacts
 frontend/.next/
