@@ -1,9 +1,18 @@
 """Pydantic response schemas for the API."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
+
+
+def _ensure_utc(dt: Optional[datetime]) -> Optional[datetime]:
+    """Naive datetimes from the DB are UTC; tag them so JSON gets a 'Z' suffix."""
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=UTC)
+    return dt
 
 
 class SportOut(BaseModel):
@@ -33,6 +42,10 @@ class OddsOut(BaseModel):
 
     model_config = {"from_attributes": True}
 
+    @field_serializer("scraped_at", "checked_at")
+    def _utc_ts(self, v):
+        return _ensure_utc(v)
+
 
 class MatchOut(BaseModel):
     id: str
@@ -43,6 +56,10 @@ class MatchOut(BaseModel):
     status: str
 
     model_config = {"from_attributes": True}
+
+    @field_serializer("start_time")
+    def _utc_ts(self, v):
+        return _ensure_utc(v)
 
 
 class MatchDetailOut(MatchOut):
@@ -56,6 +73,10 @@ class BestOddsSelection(BaseModel):
     url: Optional[str] = None
     scraped_at: datetime
     checked_at: Optional[datetime] = None
+
+    @field_serializer("scraped_at", "checked_at")
+    def _utc_ts(self, v):
+        return _ensure_utc(v)
 
 
 class BestOddsOut(BaseModel):
@@ -80,6 +101,10 @@ class SurebetSelection(BaseModel):
     scraped_at: datetime
     checked_at: Optional[datetime] = None
 
+    @field_serializer("scraped_at", "checked_at")
+    def _utc_ts(self, v):
+        return _ensure_utc(v)
+
 
 class SurebetOut(BaseModel):
     match_id: str
@@ -92,6 +117,10 @@ class SurebetOut(BaseModel):
     margin: float  # negative = guaranteed profit, e.g. -2.3 means 2.3% profit
     profit_percent: float  # abs(margin) when margin < 0
 
+    @field_serializer("start_time")
+    def _utc_ts(self, v):
+        return _ensure_utc(v)
+
 
 class OddsHistoryPoint(BaseModel):
     bookmaker: str
@@ -99,6 +128,10 @@ class OddsHistoryPoint(BaseModel):
     scraped_at: datetime
 
     model_config = {"from_attributes": True}
+
+    @field_serializer("scraped_at")
+    def _utc_ts(self, v):
+        return _ensure_utc(v)
 
 
 class OddsHistoryOut(BaseModel):
@@ -117,12 +150,20 @@ class MatchSearchResult(BaseModel):
 
     model_config = {"from_attributes": True}
 
+    @field_serializer("start_time")
+    def _utc_ts(self, v):
+        return _ensure_utc(v)
+
 
 class ScraperHealthOut(BaseModel):
     last_scraped_at: Optional[datetime] = None
     interval_seconds: int
     age_seconds: Optional[int] = None
     freshness: str
+
+    @field_serializer("last_scraped_at")
+    def _utc_ts(self, v):
+        return _ensure_utc(v)
 
 
 class HealthOut(BaseModel):
