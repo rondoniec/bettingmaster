@@ -203,17 +203,27 @@ class PolymarketScraper(BaseScraper):
                     continue
         return prices
 
-    def _fetch_clob_buy_prices(self, token_ids: list[str]) -> dict[str, float]:
+    def _fetch_clob_ask_prices(self, token_ids: list[str]) -> dict[str, float]:
+        """Best ask (price a user pays to BUY the outcome token).
+
+        Polymarket CLOB semantics:
+          side=BUY  -> the BUY side of the book (= bids = orders to buy)
+          side=SELL -> the SELL side (= asks = orders to sell)
+
+        A user who wants to BUY a YES contract has to MATCH a sell order,
+        so they pay the ASK price. That maps to `side: SELL` here, even
+        though it reads counter-intuitively.
+        """
         if not token_ids:
             return {}
 
         try:
             response = self._post_clob(
                 "/prices",
-                [{"token_id": token_id, "side": "BUY"} for token_id in token_ids],
+                [{"token_id": token_id, "side": "SELL"} for token_id in token_ids],
             )
         except Exception as exc:
-            logger.warning(f"[polymarket] Failed to fetch CLOB BUY prices: {exc}")
+            logger.warning(f"[polymarket] Failed to fetch CLOB ask prices: {exc}")
             return {}
 
         prices: dict[str, float] = {}
@@ -221,7 +231,7 @@ class PolymarketScraper(BaseScraper):
             for token_id, row in response.items():
                 try:
                     if isinstance(row, dict):
-                        raw_price = row.get("BUY")
+                        raw_price = row.get("SELL") or row.get("BUY")
                     else:
                         raw_price = row
                     if raw_price is not None:
@@ -258,10 +268,10 @@ class PolymarketScraper(BaseScraper):
         return prices
 
     def _fetch_clob_prices(self, token_ids: list[str]) -> dict[str, float]:
-        # For betting comparison we need executable odds. BUY is the best ask:
-        # the price a user pays to buy the outcome token. Midpoint/display
-        # prices are only fallbacks when the executable quote is unavailable.
-        prices = self._fetch_clob_buy_prices(token_ids)
+        # For betting comparison we need executable odds. The user's price to
+        # ENTER a position is the best ask (lowest sell-side offer). Fall
+        # back to midpoint, then last-trade, only when the live ask is gone.
+        prices = self._fetch_clob_ask_prices(token_ids)
         missing = [token_id for token_id in token_ids if token_id not in prices]
         if missing:
             prices.update(self._fetch_clob_midpoints(missing))
