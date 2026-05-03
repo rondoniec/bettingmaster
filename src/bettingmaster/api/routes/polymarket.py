@@ -182,7 +182,12 @@ def list_non_sports_markets(
             events.append((ev, label))
 
     now = datetime.now(UTC).replace(tzinfo=None)
-    created_after = now - timedelta(days=days)
+    # Politics + geopolitical events live for months — don't apply the
+    # newly-opened filter here, just ensure the event hasn't already ended.
+
+    # Cap per-bucket to keep variety (e.g. crypto floods otherwise).
+    per_bucket_cap = max(8, limit // max(1, len({lbl for _, lbl in events})))
+    counts: dict[str, int] = {}
 
     out: list[NewPolymarketMarketOut] = []
     for event, label in events:
@@ -194,8 +199,9 @@ def list_non_sports_markets(
         created_at = _parse_dt(event.get("createdAt") or event.get("created_at"))
         if start_time and start_time < now - timedelta(hours=2):
             continue
-        if created_at and created_at < created_after:
+        if counts.get(label, 0) >= per_bucket_cap:
             continue
+        counts[label] = counts.get(label, 0) + 1
         out.append(
             NewPolymarketMarketOut(
                 title=title,
