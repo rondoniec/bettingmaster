@@ -55,6 +55,10 @@ class BaseScraper(ABC):
     BASE_URL: str = ""
     REQUEST_DELAY: float = 1.0
     MAX_RETRIES: int = 3
+    # Set False for scrapers that cannot provide reliable kickoff times.
+    # Round-robin will only attach odds to existing match records; it will
+    # NOT create new match rows for this bookmaker.
+    CREATES_MATCHES: bool = True
 
     def __init__(self, db_session, http_client: httpx.Client | None = None):
         self._db = db_session

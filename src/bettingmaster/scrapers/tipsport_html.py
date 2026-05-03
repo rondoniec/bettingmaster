@@ -170,6 +170,7 @@ def _scrape_competition(
 
 class TipsportScraper(BaseScraper):
     BOOKMAKER = "tipsport"
+    CREATES_MATCHES = False  # no reliable kickoff times; only attach to existing records
     BASE_URL = "https://www.tipsport.sk"
 
     def __init__(self, db_session, http_client=None):

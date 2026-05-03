@@ -270,6 +270,15 @@ def _discover_round_robin_matches(
                     match_id = existing_match.id
                     home = existing_match.home_team
                     away = existing_match.away_team
+                elif not scraper.CREATES_MATCHES:
+                    # Scraper can't provide reliable kickoff times — skip if
+                    # no existing record found. Odds will attach once another
+                    # bookmaker (Fortuna, Doxxbet) creates the match first.
+                    logger.debug(
+                        "[%s] skipping %s vs %s — no existing match and CREATES_MATCHES=False",
+                        bookmaker, raw_match.home_team, raw_match.away_team,
+                    )
+                    continue
                 discovered.append(
                     RoundRobinWorkItem(
                         bookmaker=bookmaker,
@@ -495,6 +504,18 @@ def _run_status_sync():
         db.close()
 
 
+def _run_fixture_sync():
+    from bettingmaster.services.match_status import sync_upcoming_fixtures
+    db = SessionLocal()
+    try:
+        sync_upcoming_fixtures(db)
+    except Exception:
+        logger.exception("[fixture_sync] cycle failed")
+        db.rollback()
+    finally:
+        db.close()
+
+
 def _run_cleanup():
     from bettingmaster.services.cleanup import prune_concluded_snapshots
     db = SessionLocal()
@@ -527,6 +548,16 @@ def create_scheduler() -> BackgroundScheduler:
         id="match_status_sync",
         max_instances=1,
         misfire_grace_time=60,
+        next_run_time=datetime.now(UTC),
+    )
+
+    scheduler.add_job(
+        _run_fixture_sync,
+        "interval",
+        hours=1,
+        id="fixture_sync",
+        max_instances=1,
+        misfire_grace_time=120,
         next_run_time=datetime.now(UTC),
     )
 

@@ -274,3 +274,100 @@ def sync_match_statuses(db: Session) -> dict[str, int]:
         start_time_fixed,
     )
     return {"updated": updated, "heuristic": fallback}
+
+
+def _clean_team_name(name: str) -> str:
+    """Strip common suffixes so football-data.org names become canonical."""
+    import re
+    s = name.strip()
+    s = re.sub(r"\s+(FC|CF|SC|AFC|CD|UD|SD|AC|Club|Deportivo)\s*$", "", s, flags=re.IGNORECASE)
+    return s.strip()
+
+
+def sync_upcoming_fixtures(db: Session, days_ahead: int = 14) -> dict[str, int]:
+    """Fetch upcoming fixtures from football-data.org and create/correct match records.
+
+    Runs once per hour. Creates match rows with authoritative start_times so that
+    scrapers without reliable timestamps (e.g. Tipsport) can attach odds to them.
+    """
+    from bettingmaster.scrapers.base import generate_match_id
+    from bettingmaster.scope import active_league_ids
+
+    if not settings.football_data_token:
+        return {"created": 0, "corrected": 0}
+
+    provider = FootballDataProvider(settings.football_data_token)
+    league_ids = list(active_league_ids())
+
+    created = 0
+    corrected = 0
+
+    for league_id in league_ids:
+        code = PROVIDER_LEAGUE_CODES["football_data"].get(league_id)
+        if not code:
+            continue
+        date_from = datetime.now(UTC).strftime("%Y-%m-%d")
+        date_to = (datetime.now(UTC) + timedelta(days=days_ahead)).strftime("%Y-%m-%d")
+        url = f"{provider.BASE}/competitions/{code}/matches"
+        try:
+            resp = httpx.get(
+                url,
+                headers={"X-Auth-Token": settings.football_data_token},
+                params={"dateFrom": date_from, "dateTo": date_to},
+                timeout=15.0,
+            )
+            if resp.status_code == 429:
+                logger.warning("[fixture_sync] football_data quota exhausted")
+                break
+            resp.raise_for_status()
+            data = resp.json()
+        except Exception:
+            logger.exception("[fixture_sync] failed to fetch %s", league_id)
+            continue
+
+        for m in data.get("matches", []):
+            home_raw = (m.get("homeTeam") or {}).get("name") or ""
+            away_raw = (m.get("awayTeam") or {}).get("name") or ""
+            utc_str = m.get("utcDate")
+            if not home_raw or not away_raw or not utc_str:
+                continue
+            try:
+                start = datetime.fromisoformat(utc_str.replace("Z", "+00:00"))
+                start_utc = start.astimezone(UTC).replace(tzinfo=None)
+            except ValueError:
+                continue
+
+            home = _clean_team_name(home_raw)
+            away = _clean_team_name(away_raw)
+
+            # Try name-only match first (handles placeholder start_times)
+            name_key = _match_name_key(home, away)
+            existing: Match | None = None
+            for candidate in db.query(Match).filter(Match.league_id == league_id).all():
+                if _match_name_key(candidate.home_team, candidate.away_team) == name_key:
+                    existing = candidate
+                    break
+
+            if existing is not None:
+                if existing.start_time != start_utc:
+                    existing.start_time = start_utc
+                    corrected += 1
+            else:
+                match_id = generate_match_id(league_id, home, away, start_utc.strftime("%Y-%m-%d"))
+                if db.get(Match, match_id) is None:
+                    db.add(Match(
+                        id=match_id,
+                        league_id=league_id,
+                        home_team=home,
+                        away_team=away,
+                        start_time=start_utc,
+                        status="prematch",
+                        external_ids={},
+                    ))
+                    created += 1
+
+    if created or corrected:
+        db.commit()
+
+    logger.info("[fixture_sync] created=%s corrected=%s", created, corrected)
+    return {"created": created, "corrected": corrected}
