@@ -110,12 +110,14 @@ class TipsportScraper(BaseScraper):
             import tempfile
             import threading
 
+            import traceback
             try:
                 running = asyncio.get_running_loop()
                 logger.warning(
-                    "[tipsport] thread=%s has running loop %r; cannot use sync API",
+                    "[tipsport] thread=%s has running loop %r; stack:\n%s",
                     threading.current_thread().name,
                     running,
+                    "".join(traceback.format_stack()),
                 )
             except RuntimeError:
                 logger.info(
