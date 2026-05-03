@@ -151,11 +151,7 @@ export function HomeLiveSection({
   const liveCount = matches.filter((match) => isLiveMatch(match)).length;
   const upcomingCount = matches.length - liveCount;
   const statusFilter =
-    status === "live" || status === "upcoming"
-      ? status
-      : liveCount > 0
-        ? "live"
-        : "upcoming";
+    status === "live" || status === "upcoming" ? status : "upcoming";
   const sortMode = SORT_OPTIONS.some((option) => option.value === sort) ? sort ?? "kickoff" : "kickoff";
   const visibleMatches = sortMatches(filterMatchesByStatus(matches, statusFilter), sortMode);
 

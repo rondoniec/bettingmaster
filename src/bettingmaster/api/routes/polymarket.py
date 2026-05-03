@@ -25,14 +25,25 @@ class NewPolymarketMarketOut(BaseModel):
     league_hint: str | None = None
 
 
+_CACHE: dict[str, tuple[float, list["NewPolymarketMarketOut"]]] = {}
+_CACHE_TTL_SECONDS = 600  # 10 min
+
+
 @router.get("/polymarket/new-football-markets", response_model=list[NewPolymarketMarketOut])
 def list_new_football_markets(
     days: int = Query(14, ge=1, le=60, description="How many recently created days to show"),
     limit: int = Query(60, ge=1, le=200, description="Maximum number of markets"),
 ):
+    import time as _time
+
+    cache_key = f"{days}:{limit}"
+    now_mono = _time.monotonic()
+    cached = _CACHE.get(cache_key)
+    if cached and cached[0] > now_mono:
+        return cached[1]
+
     events = _fetch_soccer_events()
     now = datetime.now(UTC).replace(tzinfo=None)
-    starts_after = now + timedelta(hours=settings.active_match_window_hours)
     created_after = now - timedelta(days=days)
 
     results: list[NewPolymarketMarketOut] = []
@@ -44,7 +55,10 @@ def list_new_football_markets(
 
         start_time = _parse_dt(event.get("startDate") or event.get("endDate"))
         created_at = _parse_dt(event.get("createdAt") or event.get("created_at"))
-        if start_time and start_time <= starts_after:
+        # Skip already-finished events but allow anything starting in the future
+        # (don't apply the same 48h "near-term" cutoff as the main board — these
+        # are explicitly intended to surface newly opened far + near markets).
+        if start_time and start_time < now - timedelta(hours=2):
             continue
         if created_at and created_at < created_after:
             continue
@@ -65,7 +79,7 @@ def list_new_football_markets(
             )
         )
 
-    return sorted(
+    sorted_results = sorted(
         results,
         key=lambda item: (
             item.created_at or datetime.min,
@@ -73,46 +87,67 @@ def list_new_football_markets(
         ),
         reverse=True,
     )[:limit]
+    _CACHE[cache_key] = (now_mono + _CACHE_TTL_SECONDS, sorted_results)
+    return sorted_results
 
 
 def _fetch_soccer_events() -> list[dict]:
     events: list[dict] = []
     offset = 0
-    limit = 100
-    with httpx.Client(timeout=20.0, follow_redirects=True) as client:
-        for _ in range(10):
-            response = client.get(
-                f"{GAMMA_API}/events/pagination",
-                params={
-                    "tag_slug": "soccer",
-                    "active": "true",
-                    "closed": "false",
-                    "limit": limit,
-                    "order": "createdAt",
-                    "ascending": "false",
-                    "offset": offset,
-                },
-            )
-            response.raise_for_status()
+    page_size = 100
+    # Cap at 3 pages (300 events) — we order by createdAt desc, so the freshest
+    # ones are first. Going deeper just adds latency without surfacing newer
+    # markets.
+    with httpx.Client(timeout=8.0, follow_redirects=True) as client:
+        for _ in range(3):
+            try:
+                response = client.get(
+                    f"{GAMMA_API}/events/pagination",
+                    params={
+                        "tag_slug": "soccer",
+                        "active": "true",
+                        "closed": "false",
+                        "limit": page_size,
+                        "order": "createdAt",
+                        "ascending": "false",
+                        "offset": offset,
+                    },
+                )
+                response.raise_for_status()
+            except httpx.HTTPError:
+                break
             payload = response.json()
             batch = payload.get("data", []) if isinstance(payload, dict) else []
             if not batch:
                 break
             events.extend(batch)
-            if len(batch) < limit:
+            if len(batch) < page_size:
                 break
-            offset += limit
+            offset += page_size
     return events
+
+
+_LEAGUE_PATTERNS = [
+    ("Premier League", ("premier-league", "premier league", "epl-")),
+    ("La Liga",        ("la-liga", "la liga", "laliga", "lal-")),
+    ("Champions League", ("champions-league", "champions league", "ucl-", "uefa-champions")),
+    ("Bundesliga",     ("bundesliga", "bun-")),
+    ("Serie A",        ("serie-a", "serie a", "ser-")),
+    ("Ligue 1",        ("ligue-1", "ligue 1", "lig-")),
+    ("Europa League",  ("europa-league", "europa league", "uel-")),
+    ("MLS",            ("mls", "major-league-soccer")),
+    ("Liga MX",        ("liga-mx", "liga mx")),
+    ("World Cup",      ("world-cup", "world cup", "fifa-world-cup")),
+    ("Euro",           ("euro-202", "euros-202", "uefa-euro")),
+    ("Copa America",   ("copa-america", "copa america")),
+]
 
 
 def _league_hint(value: str) -> str | None:
     normalized = value.lower()
-    if "premier-league" in normalized or "premier league" in normalized:
-        return "Premier League"
-    if "la-liga" in normalized or "la liga" in normalized:
-        return "La Liga"
-    if "champions-league" in normalized or "champions league" in normalized:
-        return "Champions League"
+    for label, patterns in _LEAGUE_PATTERNS:
+        if any(p in normalized for p in patterns):
+            return label
     return None
 
 
