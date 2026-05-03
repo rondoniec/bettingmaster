@@ -1,7 +1,6 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Clock3, Layers3 } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
 
@@ -10,6 +9,7 @@ import { Countdown } from "@/components/Countdown";
 import { FreshnessBadge } from "@/components/FreshnessBadge";
 import { LiveUpdatesBadge } from "@/components/LiveUpdatesBadge";
 import { MarketOddsBoard } from "@/components/MarketOddsBoard";
+import { BookmakerChip, Kicker, LiveBadge } from "@/components/Primitives";
 import { useBookmakerFilter } from "@/hooks/useBookmakerFilter";
 import { getBestOdds, getMatchDetail, type BestOdds, type MatchDetail } from "@/lib/api";
 import {
@@ -116,84 +116,71 @@ export function MatchLiveSection({ initialMatch, initialBestOdds, focusTarget }:
 
   return (
     <div className="space-y-6">
-      <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.18),_transparent_30%),linear-gradient(180deg,_#ffffff,_#f8fbff)] px-6 py-8 shadow-[0_24px_70px_-44px_rgba(15,23,42,0.45)] sm:px-8">
-        <Link href="/" className="text-sm font-medium text-blue-600 hover:text-blue-700">
-          Späť na hlavnú stránku
-        </Link>
-        <div className="mt-4 flex items-center gap-2">
+      <Link
+        href="/"
+        className="inline-flex items-center font-mono text-[12px] text-slate-600 hover:text-slate-900"
+      >
+        ← Späť na hlavnú stránku
+      </Link>
+
+      <section className="border border-slate-200 bg-white px-6 py-5">
+        <div className="flex flex-wrap items-center gap-3">
           <Link
             href={`/league/${match.league_id}`}
-            className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400 transition hover:text-blue-600"
+            className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 hover:text-slate-900"
           >
-            {match.league_id}
+            {match.league_id.replace(/-/g, " ").toUpperCase()}
           </Link>
           {isLive ? (
-            <span className="animate-pulse rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-red-600">
-              Naživo
-            </span>
-          ) : null}
+            <LiveBadge />
+          ) : (
+            <Countdown startTime={match.start_time} status={match.status} />
+          )}
+          <span className="font-mono text-[11px] tabular-nums text-slate-500">
+            {formatFullDate(match.start_time)}
+          </span>
         </div>
-        <h1 className="mt-2 text-4xl font-semibold tracking-tight text-slate-950">
-          {match.home_team} vs {match.away_team}
+
+        <h1 className="mt-3 text-[28px] font-semibold tracking-[-0.02em] text-slate-900">
+          {match.home_team}
+          <span className="mx-3 text-slate-300">vs</span>
+          {match.away_team}
         </h1>
-        <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-slate-500">
-          <span>{formatFullDate(match.start_time)}</span>
-          <Countdown startTime={match.start_time} status={match.status} />
-        </div>
 
-        <div className="mt-5 flex flex-wrap gap-3">
-          <LiveUpdatesBadge
-            matchId={match.id}
-            onUpdate={() => {
-              queryClient.invalidateQueries({ queryKey: matchDetailQueryKey });
-              queryClient.invalidateQueries({ queryKey: bestOddsQueryKey });
-            }}
-          />
-          {lastChecked ? (
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1.5 text-sm text-slate-600 shadow-sm">
-              <Clock3 className="h-4 w-4 text-blue-600" />
-              Skontrolované {formatLastUpdated(lastChecked)}
-            </div>
-          ) : null}
-          <div className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1.5 text-sm text-slate-600 shadow-sm">
-            <Layers3 className="h-4 w-4 text-emerald-600" />
-            {bookmakerCount} bookmaker{bookmakerCount === 1 ? "" : "s"} tracked
-          </div>
-        </div>
-
-        {activeBookmakers.length > 0 ? (
-          <div className="mt-5 flex flex-wrap gap-2">
+        <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-slate-100 pt-3">
+          <Kicker>Stávkové kancelárie</Kicker>
+          <div className="flex flex-wrap items-center gap-1.5">
             {activeBookmakers.map((bookmaker) => {
-              const bookmakerData = getBookmakerDisplay(bookmaker);
+              const checkedAt = latestCheckedAtForBookmaker(match.odds, bookmaker);
+              const freshness = getBookmakerFreshness(bookmaker, checkedAt);
               return (
-                <span
-                  key={bookmaker}
-                  className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold"
-                  style={{ backgroundColor: bookmakerData.bgColor, color: bookmakerData.color }}
-                >
-                  <span>{bookmakerData.displayName}</span>
-                  {(() => {
-                    const checkedAt = latestCheckedAtForBookmaker(match.odds, bookmaker);
-                    const freshness = getBookmakerFreshness(bookmaker, checkedAt);
-                    return (
-                      <FreshnessBadge
-                        freshness={freshness.freshness}
-                        ageSeconds={freshness.ageSeconds}
-                        className="bg-white/80 text-slate-700"
-                      />
-                    );
-                  })()}
+                <span key={bookmaker} className="inline-flex items-center gap-1">
+                  <BookmakerChip bookmaker={bookmaker} />
+                  <FreshnessBadge
+                    freshness={freshness.freshness}
+                    ageSeconds={freshness.ageSeconds}
+                  />
                 </span>
               );
             })}
           </div>
-        ) : null}
+          <div className="ml-auto flex items-center gap-3 font-mono text-[11px] tabular-nums text-slate-500">
+            {lastChecked ? <span>aktualizované {formatLastUpdated(lastChecked)}</span> : null}
+            <LiveUpdatesBadge
+              matchId={match.id}
+              onUpdate={() => {
+                queryClient.invalidateQueries({ queryKey: matchDetailQueryKey });
+                queryClient.invalidateQueries({ queryKey: bestOddsQueryKey });
+              }}
+            />
+          </div>
+        </div>
       </section>
 
       {focusTarget?.market && focusTarget?.selection && focusTarget?.bookmaker ? (
-        <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
-          Focused outcome: {getBookmakerDisplay(focusTarget.bookmaker).displayName} &bull;{" "}
-          {getMarketLabel(focusTarget.market)} &bull;{" "}
+        <div className="border border-emerald-200 border-l-[3px] border-l-emerald-700 bg-emerald-50 px-4 py-3 font-mono text-[12px] text-slate-900">
+          Označený výsledok: {getBookmakerDisplay(focusTarget.bookmaker).displayName} ·{" "}
+          {getMarketLabel(focusTarget.market)} ·{" "}
           {resolveSelectionLabel(focusTarget.selection, match.home_team, match.away_team)}
         </div>
       ) : null}

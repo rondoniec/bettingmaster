@@ -1,8 +1,9 @@
-import { ExternalLink } from "lucide-react";
+import { ArrowRight, ExternalLink } from "lucide-react";
 import Link from "next/link";
 
+import { BookmakerChip, Kicker } from "@/components/Primitives";
 import { getSurebets, type Surebet } from "@/lib/api";
-import { getBookmakerDisplay, resolveSelectionLabel } from "@/lib/constants";
+import { resolveSelectionLabel } from "@/lib/constants";
 import { formatFullDate, formatLastUpdated, formatProfitPercent } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -19,97 +20,93 @@ export default async function SurebetsPage() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-[2rem] border border-emerald-200 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.18),_transparent_28%),linear-gradient(180deg,_#ffffff,_#f4fff8)] px-6 py-8 shadow-[0_24px_70px_-44px_rgba(5,150,105,0.45)] sm:px-8">
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-600">
-          Opportunity board
-        </p>
-        <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-950">
-          Surebets from the latest snapshots
+      <section className="border border-slate-200 bg-white p-6">
+        <Kicker>Príležitosti</Kicker>
+        <h1 className="mt-2 text-[26px] font-semibold tracking-[-0.02em] text-slate-900">
+          Sigurebety z aktuálnych snapshotov
         </h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-          These rows surface only negative-margin combinations, so each card reflects a current
-          guaranteed-profit setup if the prices are still available.
+        <p className="mt-2 max-w-2xl text-[13px] leading-6 text-slate-600">
+          Zobrazujeme len kombinácie so zápornou maržou — každá karta je aktuálna garantovaná
+          výhra ak kurzy ostanú dostupné.
         </p>
       </section>
 
-      {error ? (
-        <EmptyState title="API unavailable" body={error} />
-      ) : null}
+      {error ? <EmptyState title="API nedostupné" body={error} /> : null}
 
       {!error && surebets.length === 0 ? (
         <EmptyState
-          title="No surebets right now"
-          body="The scraper has not produced a negative-margin setup yet, or the current snapshots no longer overlap."
+          title="Žiadne sigurebety"
+          body="Scraper zatiaľ nenašiel kombináciu so zápornou maržou."
         />
       ) : null}
 
       {!error && surebets.length > 0 ? (
-        <div className="grid gap-5">
+        <div className="flex flex-col gap-4">
           {surebets.map((surebet) => (
             <article
               key={`${surebet.match_id}-${surebet.market}`}
-              className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_18px_45px_-32px_rgba(15,23,42,0.45)] sm:p-6"
+              className="border border-slate-200 border-l-[3px] border-l-emerald-700 bg-white"
             >
-              <div className="flex flex-wrap items-start justify-between gap-4">
+              <header className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 px-5 py-4">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
-                    {surebet.league_id}
-                  </p>
-                  <h2 className="mt-2 text-2xl font-semibold text-slate-950">
-                    {surebet.home_team} vs {surebet.away_team}
+                  <Kicker>{surebet.league_id.replace(/-/g, " ").toUpperCase()}</Kicker>
+                  <h2 className="mt-2 text-lg font-semibold tracking-tight text-slate-900">
+                    {surebet.home_team}
+                    <span className="mx-2 text-slate-400">vs</span>
+                    {surebet.away_team}
                   </h2>
-                  <p className="mt-2 text-sm text-slate-500">
-                    {formatFullDate(surebet.start_time)} • {surebet.market.toUpperCase()}
+                  <p className="mt-1 font-mono text-[11px] tabular-nums text-slate-500">
+                    {formatFullDate(surebet.start_time)} · {surebet.market.toUpperCase()}
                   </p>
                 </div>
-
-                <div className="rounded-full bg-emerald-100 px-4 py-2 text-sm font-semibold text-emerald-700">
+                <span className="border border-emerald-200 bg-emerald-50 px-2.5 py-1 font-mono text-[12px] font-semibold tabular-nums text-emerald-700">
                   Profit {formatProfitPercent(surebet.profit_percent)}
-                </div>
-              </div>
+                </span>
+              </header>
 
-              <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              <div className="m-4 grid gap-px border border-slate-200 bg-slate-200 p-px sm:grid-cols-3">
                 {surebet.selections.map((selection) => {
-                  const bookmaker = getBookmakerDisplay(selection.bookmaker);
                   const focusHref = `/match/${surebet.match_id}?market=${encodeURIComponent(
-                    surebet.market
+                    surebet.market,
                   )}&selection=${encodeURIComponent(selection.selection)}&bookmaker=${encodeURIComponent(
-                    selection.bookmaker
+                    selection.bookmaker,
                   )}`;
                   return (
-                    <div
-                      key={selection.selection}
-                      className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
-                    >
-                      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
-                        {resolveSelectionLabel(selection.selection, surebet.home_team, surebet.away_team)}
-                      </p>
-                      <p className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
+                    <div key={selection.selection} className="bg-white p-4">
+                      <Kicker>
+                        {resolveSelectionLabel(
+                          selection.selection,
+                          surebet.home_team,
+                          surebet.away_team,
+                        )}
+                      </Kicker>
+                      <p className="mt-2 font-mono text-[28px] font-semibold tabular-nums tracking-[-0.02em] text-emerald-700">
                         {selection.odds.toFixed(2)}
                       </p>
-                      <p className="mt-2 text-sm font-medium" style={{ color: bookmaker.color }}>
-                        {bookmaker.displayName}
+                      <BookmakerChip bookmaker={selection.bookmaker} className="mt-2" />
+                      <p className="mt-2 font-mono text-[10px] text-slate-400">
+                        skontrolované {formatLastUpdated(selection.checked_at ?? selection.scraped_at)}
                       </p>
-                      <p className="mt-2 text-xs text-slate-400">
-                        Checked {formatLastUpdated(selection.checked_at ?? selection.scraped_at)}
-                      </p>
-                      <Link
-                        href={focusHref}
-                        className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-blue-600 transition hover:text-blue-700"
-                      >
-                        Open exact outcome
-                      </Link>
-                      {selection.url ? (
-                        <a
-                          href={selection.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-slate-600 transition hover:text-slate-950"
+                      <div className="mt-3 flex flex-wrap items-center gap-3 font-mono text-[10px] font-semibold uppercase tracking-wider">
+                        <Link
+                          href={focusHref}
+                          className="inline-flex items-center gap-1 text-slate-700 hover:text-slate-900"
                         >
-                          Visit bookmaker
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </a>
-                      ) : null}
+                          Otvoriť výsledok
+                          <ArrowRight className="h-3 w-3" />
+                        </Link>
+                        {selection.url ? (
+                          <a
+                            href={selection.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-emerald-700 hover:text-emerald-800"
+                          >
+                            Stávkovka
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
+                        ) : null}
+                      </div>
                     </div>
                   );
                 })}
@@ -124,9 +121,9 @@ export default async function SurebetsPage() {
 
 function EmptyState({ title, body }: { title: string; body: string }) {
   return (
-    <div className="rounded-[1.75rem] border border-dashed border-slate-300 bg-white px-6 py-12 text-center">
-      <h2 className="text-xl font-semibold text-slate-950">{title}</h2>
-      <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-500">{body}</p>
+    <div className="border border-dashed border-slate-300 bg-white p-12 text-center">
+      <h2 className="text-base font-semibold text-slate-900">{title}</h2>
+      <p className="mx-auto mt-2 max-w-2xl text-[13px] leading-6 text-slate-500">{body}</p>
     </div>
   );
 }

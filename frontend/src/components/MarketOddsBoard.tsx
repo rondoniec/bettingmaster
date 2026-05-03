@@ -2,11 +2,11 @@
 
 import { ExternalLink } from "lucide-react";
 
+import { BookmakerName, Kicker } from "@/components/Primitives";
 import { FreshnessBadge } from "@/components/FreshnessBadge";
 import type { BestOdds, OddsEntry } from "@/lib/api";
 import {
   BOOKMAKER_ORDER,
-  getBookmakerDisplay,
   getMarketLabel,
   resolveSelectionLabel,
   SELECTION_ORDER,
@@ -24,18 +24,39 @@ type Props = {
   awayTeam: string;
 };
 
-function bookmakerRank(bookmaker: string) {
-  const index = BOOKMAKER_ORDER.indexOf(bookmaker);
-  return index === -1 ? BOOKMAKER_ORDER.length : index;
+const SELECTION_CODE: Record<string, string> = {
+  home: "1",
+  draw: "X",
+  away: "2",
+  yes: "Áno",
+  no: "Nie",
+  over: "Nad",
+  under: "Pod",
+};
+
+function bookmakerRank(bm: string) {
+  const i = BOOKMAKER_ORDER.indexOf(bm);
+  return i === -1 ? BOOKMAKER_ORDER.length : i;
 }
 
 function orderSelections(market: string, entries: OddsEntry[]) {
   const preferred = SELECTION_ORDER[market] ?? [];
-  const present = Array.from(new Set(entries.map((entry) => entry.selection)));
+  const present = Array.from(new Set(entries.map((e) => e.selection)));
   return [
-    ...preferred.filter((selection) => present.includes(selection)),
-    ...present.filter((selection) => !preferred.includes(selection)).sort(),
+    ...preferred.filter((s) => present.includes(s)),
+    ...present.filter((s) => !preferred.includes(s)).sort(),
   ];
+}
+
+function impliedPercent(odds: number) {
+  if (!odds || odds <= 0) return 0;
+  return Math.round((1 / odds) * 1000) / 10;
+}
+
+function calcMarginFor(rowOdds: Record<string, number | undefined>) {
+  const vals = Object.values(rowOdds).filter((v): v is number => Boolean(v) && (v as number) > 0);
+  if (vals.length < 2) return null;
+  return (vals.reduce((acc, v) => acc + 1 / v, 0) - 1) * 100;
 }
 
 export function MarketOddsBoard({
@@ -48,191 +69,279 @@ export function MarketOddsBoard({
   homeTeam,
   awayTeam,
 }: Props) {
-  const marginByMarket = new Map(bestOdds.map((market) => [market.market, market.combined_margin]));
+  const marginByMarket = new Map(bestOdds.map((m) => [m.market, m.combined_margin]));
+
   const displayMarkets = markets
     .map((market) => {
-      const marketOdds = odds.filter((entry) => entry.market === market);
+      const marketOdds = odds.filter((e) => e.market === market);
       const selections = orderSelections(market, marketOdds).filter(
-        (selection) => marketOdds.filter((entry) => entry.selection === selection).length >= 2
+        (sel) => marketOdds.filter((e) => e.selection === sel).length >= 2,
       );
       return { market, marketOdds, selections };
     })
-    .filter((item) => item.selections.length > 0);
+    .filter((m) => m.selections.length > 0);
 
   if (displayMarkets.length === 0) {
     return (
-      <div className="rounded-[1.75rem] border border-dashed border-slate-300 bg-white px-6 py-12 text-center">
-        <h2 className="text-xl font-semibold text-slate-950">No comparable odds on this match yet</h2>
-        <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-500">
-          We only show outcomes when at least two bookmakers have returned a price for the same market.
+      <div className="border border-dashed border-slate-300 bg-white p-12 text-center">
+        <h2 className="text-base font-semibold text-slate-900">Žiadne porovnateľné kurzy</h2>
+        <p className="mx-auto mt-2 max-w-2xl text-[13px] leading-6 text-slate-500">
+          Výsledky zobrazujeme len keď aspoň dve stávkovky majú kurz na rovnaký výsledok.
         </p>
       </div>
     );
   }
 
   return (
-    <section className="space-y-5">
+    <section className="space-y-4">
       {displayMarkets.map(({ market, marketOdds, selections }) => {
-        const gridClass =
-          selections.length >= 3
-            ? "lg:grid-cols-3"
+        // bookmaker -> selection -> entry
+        const bmRows = new Map<string, Map<string, OddsEntry>>();
+        for (const e of marketOdds) {
+          if (!bmRows.has(e.bookmaker)) bmRows.set(e.bookmaker, new Map());
+          bmRows.get(e.bookmaker)!.set(e.selection, e);
+        }
+        const bookmakers = Array.from(bmRows.keys()).sort(
+          (a, b) => bookmakerRank(a) - bookmakerRank(b),
+        );
+
+        // Best odds per selection in this market
+        const best: Record<string, number> = {};
+        for (const sel of selections) {
+          let max = 0;
+          for (const bm of bookmakers) {
+            const v = bmRows.get(bm)?.get(sel)?.odds ?? 0;
+            if (v > max) max = v;
+          }
+          best[sel] = max;
+        }
+
+        // Per-bookmaker margin
+        const rowMargins = new Map<string, number | null>();
+        for (const bm of bookmakers) {
+          const obj: Record<string, number | undefined> = {};
+          for (const sel of selections) obj[sel] = bmRows.get(bm)?.get(sel)?.odds;
+          rowMargins.set(bm, calcMarginFor(obj));
+        }
+
+        // Market average per selection
+        const avgOdds: Record<string, number> = {};
+        for (const sel of selections) {
+          const vals = bookmakers
+            .map((bm) => bmRows.get(bm)?.get(sel)?.odds)
+            .filter((v): v is number => !!v && v > 0);
+          avgOdds[sel] =
+            vals.length > 0 ? vals.reduce((acc, v) => acc + v, 0) / vals.length : 0;
+        }
+        const avgMargin = calcMarginFor(avgOdds);
+
+        // Latest checked
+        const latestChecked = marketOdds
+          .map((e) => e.checked_at ?? e.scraped_at)
+          .filter(Boolean)
+          .sort()
+          .at(-1);
+
+        const isFocusedMarket = focusedMarket === market;
+
+        const gridTemplate =
+          selections.length === 3
+            ? "grid-cols-[140px_repeat(3,minmax(0,1fr))_80px]"
             : selections.length === 2
-              ? "sm:grid-cols-2"
-              : "sm:grid-cols-1";
+              ? "grid-cols-[140px_repeat(2,minmax(0,1fr))_80px]"
+              : "grid-cols-[140px_repeat(1,minmax(0,1fr))_80px]";
 
         return (
           <article
             key={market}
-            id={`market-${market}`}
-            className="scroll-mt-24 overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-[0_18px_45px_-34px_rgba(15,23,42,0.45)]"
+            className={cn(
+              "border bg-white p-5",
+              isFocusedMarket ? "border-emerald-300" : "border-slate-200",
+            )}
           >
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-[linear-gradient(135deg,_#f8fbff,_#ffffff_52%,_#f6fff8)] px-5 py-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
-                  Market
-                </p>
-                <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-950">
+            {/* Header */}
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div className="max-w-[540px]">
+                <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-slate-900">
                   {getMarketLabel(market)}
                 </h2>
+                <p className="mt-1 text-[12px] leading-5 text-slate-500">
+                  Vyšší kurz = vyššia výhra. Tag <b className="text-emerald-700">NAJ</b> označuje
+                  stávkovku s najvyšším kurzom pre danú možnosť. Pruh ukazuje implikovanú
+                  pravdepodobnosť.
+                </p>
               </div>
-              {marginByMarket.has(market) ? (
-                <span
-                  className={cn(
-                    "rounded-full px-3 py-1 text-xs font-semibold",
-                    (marginByMarket.get(market) ?? 0) < 0
-                      ? "bg-emerald-100 text-emerald-700"
-                      : "bg-slate-100 text-slate-600"
-                  )}
-                >
-                  Marža {formatMargin(marginByMarket.get(market) ?? 0)}
-                </span>
-              ) : null}
+              <div className="text-right font-mono text-[11px] text-slate-500">
+                {bookmakers.length} stávkoviek
+                {marginByMarket.has(market)
+                  ? ` · spoločná marža ${formatMargin(marginByMarket.get(market) ?? 0)}`
+                  : ""}
+                {latestChecked ? (
+                  <div className="text-slate-400">
+                    aktualizované {formatLastUpdated(latestChecked)}
+                  </div>
+                ) : null}
+              </div>
             </div>
 
-            <div className={cn("grid gap-4 p-4 sm:p-5", gridClass)}>
-              {selections.map((selection) => {
-                const entries = marketOdds
-                  .filter((entry) => entry.selection === selection)
-                  .sort((left, right) => {
-                    if (right.odds !== left.odds) {
-                      return right.odds - left.odds;
-                    }
-                    return bookmakerRank(left.bookmaker) - bookmakerRank(right.bookmaker);
-                  });
-                const best = entries[0];
+            {/* Column headers */}
+            <div
+              className={cn(
+                "mt-4 grid items-end gap-3 border-b border-slate-200 pb-2",
+                gridTemplate,
+              )}
+            >
+              <Kicker>Stávkovka</Kicker>
+              {selections.map((sel) => (
+                <div key={sel}>
+                  <Kicker>{SELECTION_CODE[sel] ?? sel}</Kicker>
+                  <div className="mt-0.5 truncate text-[12px] font-semibold text-slate-900">
+                    {resolveSelectionLabel(sel, homeTeam, awayTeam)}
+                  </div>
+                </div>
+              ))}
+              <div className="text-right">
+                <Kicker>Marža</Kicker>
+              </div>
+            </div>
 
-                return (
-                  <div
-                    key={`${market}-${selection}`}
-                    className={cn(
-                      "rounded-2xl border bg-slate-50/80 p-3 transition sm:p-4",
-                      focusedMarket === market && focusedSelection === selection
-                        ? "border-blue-300 ring-2 ring-blue-100"
-                        : "border-slate-200"
-                    )}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                          {resolveSelectionLabel(selection, homeTeam, awayTeam)}
-                        </p>
-                        <p className="mt-2 text-4xl font-semibold tracking-tight text-slate-950">
-                          {best ? formatOdds(best.odds) : "-"}
-                        </p>
-                      </div>
-                      {best ? (
-                        <BookmakerPill bookmaker={best.bookmaker} />
-                      ) : null}
-                    </div>
-
-                    <div className="mt-4 space-y-2">
-                      {entries.map((entry) => {
-                        const bookmaker = getBookmakerDisplay(entry.bookmaker);
-                        const freshness = getBookmakerFreshness(
-                          entry.bookmaker,
-                          entry.checked_at ?? entry.scraped_at
-                        );
-                        const isFocused =
-                          focusedBookmaker === entry.bookmaker &&
-                          focusedMarket === market &&
-                          focusedSelection === selection;
-                        return (
+            {/* Per-bookmaker rows */}
+            {bookmakers.map((bm) => {
+              const margin = rowMargins.get(bm);
+              return (
+                <div
+                  key={bm}
+                  className={cn(
+                    "grid items-center gap-3 border-b border-slate-100 py-3.5 last:border-b-0",
+                    gridTemplate,
+                  )}
+                >
+                  <BookmakerName bookmaker={bm} />
+                  {selections.map((sel) => {
+                    const entry = bmRows.get(bm)?.get(sel);
+                    const odds = entry?.odds ?? 0;
+                    const isBest = !!odds && odds === best[sel];
+                    const prob = impliedPercent(odds);
+                    const isFocused =
+                      focusedMarket === market &&
+                      focusedSelection === sel &&
+                      focusedBookmaker === bm;
+                    const freshness = getBookmakerFreshness(
+                      bm,
+                      entry?.checked_at ?? entry?.scraped_at,
+                    );
+                    return (
+                      <div
+                        key={sel}
+                        className={cn(
+                          "relative",
+                          isFocused ? "rounded-sm bg-slate-50 px-1.5 py-1" : null,
+                        )}
+                      >
+                        <div className="flex items-baseline gap-2">
+                          <span
+                            className={cn(
+                              "font-mono text-[18px] font-semibold tabular-nums leading-none tracking-[-0.01em]",
+                              isBest ? "text-emerald-700" : "text-slate-900",
+                            )}
+                          >
+                            {odds ? formatOdds(odds) : "—"}
+                          </span>
+                          {odds ? (
+                            <span className="font-mono text-[10px] text-slate-400">
+                              {prob}%
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="relative mt-1.5 h-[5px] bg-slate-100">
+                          <div
+                            className={cn(
+                              "absolute inset-y-0 left-0",
+                              isBest ? "bg-emerald-700" : "bg-slate-300",
+                            )}
+                            style={{ width: `${Math.min(100, prob)}%` }}
+                          />
+                        </div>
+                        {isBest && entry ? (
                           <a
-                            key={`${entry.bookmaker}-${entry.market}-${entry.selection}`}
                             href={entry.url ?? "#"}
                             target={entry.url ? "_blank" : undefined}
                             rel={entry.url ? "noopener noreferrer" : undefined}
-                            className={cn(
-                              "flex items-center justify-between gap-3 rounded-xl border bg-white px-3 py-2 text-sm transition",
-                              entry.url ? "hover:border-slate-300 hover:shadow-sm" : "pointer-events-none",
-                              isFocused ? "border-blue-300 ring-2 ring-blue-100" : "border-slate-100"
-                            )}
+                            className="absolute -top-1 right-0 inline-flex items-center gap-0.5 bg-emerald-700 px-1 py-0.5 font-mono text-[8px] font-bold uppercase tracking-[0.08em] text-white hover:bg-emerald-800"
                           >
-                            <span className="flex min-w-0 flex-col items-start gap-1">
-                              <span className="flex min-w-0 items-center gap-2">
-                                <span
-                                  className="h-2.5 w-2.5 shrink-0 rounded-full"
-                                  style={{ backgroundColor: bookmaker.color }}
-                                />
-                                <span className="truncate font-semibold" style={{ color: bookmaker.color }}>
-                                  {bookmaker.displayName}
-                                </span>
-                              </span>
-                              <FreshnessBadge
-                                freshness={freshness.freshness}
-                                ageSeconds={freshness.ageSeconds}
-                              />
-                            </span>
-                            <span className="flex shrink-0 items-center gap-2">
-                              <span className="font-bold tabular-nums text-slate-950">
-                                {formatOdds(entry.odds)}
-                              </span>
-                              {entry.url ? <ExternalLink className="h-3.5 w-3.5 text-slate-400" /> : null}
-                            </span>
+                            NAJ
+                            {entry.url ? <ExternalLink className="h-2.5 w-2.5" /> : null}
                           </a>
-                        );
-                      })}
-                    </div>
-
-                    {best ? (
-                      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-400">
-                        {(() => {
-                          const freshness = getBookmakerFreshness(
-                            best.bookmaker,
-                            best.checked_at ?? best.scraped_at
-                          );
-                          return (
+                        ) : null}
+                        {entry && !isBest ? (
+                          <div className="mt-1">
                             <FreshnessBadge
                               freshness={freshness.freshness}
                               ageSeconds={freshness.ageSeconds}
                             />
-                          );
-                        })()}
-                        <span>Skontrolované {formatLastUpdated(best.checked_at ?? best.scraped_at)}</span>
+                          </div>
+                        ) : null}
                       </div>
-                    ) : null}
+                    );
+                  })}
+                  <div className="text-right font-mono text-[12px] tabular-nums text-slate-500">
+                    {margin != null ? `+${margin.toFixed(2)}%` : "—"}
                   </div>
-                );
-              })}
+                </div>
+              );
+            })}
+
+            {/* Market average */}
+            <div className="mt-3 border border-slate-200 bg-slate-50 px-3 py-3.5">
+              <div className={cn("grid items-center gap-3", gridTemplate)}>
+                <span className="inline-flex items-center gap-2 text-[13px] font-medium text-slate-600">
+                  <span className="inline-block h-2 w-2 rounded-[2px] bg-slate-400" />
+                  Priemer trhu
+                </span>
+                {selections.map((sel) => {
+                  const a = avgOdds[sel];
+                  const p = impliedPercent(a);
+                  return (
+                    <div key={sel}>
+                      <div className="flex items-baseline gap-2">
+                        <span className="font-mono text-[16px] font-medium tabular-nums text-slate-600">
+                          {a ? a.toFixed(2) : "—"}
+                        </span>
+                        <span className="font-mono text-[10px] text-slate-400">{p}%</span>
+                      </div>
+                      <div className="relative mt-1.5 h-[5px] bg-slate-200">
+                        <div
+                          className="absolute inset-y-0 left-0 bg-slate-400"
+                          style={{ width: `${Math.min(100, p)}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+                <div className="text-right font-mono text-[12px] tabular-nums text-slate-500">
+                  {avgMargin !== null ? `+${avgMargin.toFixed(2)}%` : "—"}
+                </div>
+              </div>
+            </div>
+
+            {/* Legend */}
+            <div className="mt-3 flex flex-wrap items-center gap-4 border-t border-dashed border-slate-200 pt-3 text-[11px] text-slate-500">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="inline-block h-[5px] w-3.5 bg-emerald-700" />
+                <b className="font-semibold text-slate-900">Najlepší</b> — najvyšší kurz v stĺpci
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="inline-block h-[5px] w-3.5 bg-slate-300" />
+                Ostatné stávkovky
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="inline-block h-[5px] w-3.5 bg-slate-400" />
+                Priemer trhu
+              </span>
             </div>
           </article>
         );
       })}
     </section>
-  );
-}
-
-function BookmakerPill({ bookmaker }: { bookmaker: string }) {
-  const bookmakerData = getBookmakerDisplay(bookmaker);
-  return (
-    <span
-      className="rounded-full px-2.5 py-1 text-xs font-semibold"
-      style={{
-        backgroundColor: bookmakerData.bgColor,
-        color: bookmakerData.color,
-      }}
-    >
-      {bookmakerData.displayName}
-    </span>
   );
 }
