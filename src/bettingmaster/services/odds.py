@@ -349,6 +349,7 @@ def live_feed_snapshot(
 
 
 SUREBET_MAX_AGE_HOURS = 2
+SUREBET_ROW_MAX_AGE_MINUTES = 30
 
 
 def query_upcoming_latest_odds(
@@ -390,6 +391,9 @@ def build_surebets(
     bookmakers: list[str] | None = None,
 ) -> list[SurebetOut]:
     """Return surebet opportunities from latest odds rows."""
+    now = datetime.now(UTC).replace(tzinfo=None)
+    surebet_cutoff = now - timedelta(minutes=SUREBET_ROW_MAX_AGE_MINUTES)
+
     match_lookup: dict[str, Match] = {}
     groups: dict[tuple[str, str], dict[str, OddsSnapshot]] = {}
 
@@ -399,6 +403,10 @@ def build_surebets(
         if market_filter and odds_row.market != market_filter:
             continue
         if bookmakers and odds_row.bookmaker not in bookmakers:
+            continue
+        # Exclude stale rows from surebet calculations to prevent false arbitrage
+        last_seen = odds_row.checked_at or odds_row.scraped_at
+        if last_seen and last_seen < surebet_cutoff:
             continue
         match_lookup[match.id] = match
         key = (odds_row.match_id, odds_row.market)

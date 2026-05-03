@@ -73,9 +73,9 @@ export function BestOddsMatchCard({ match }: Props) {
         {match.selections.map((selection) => {
           const isTop = selection.selection === topSelection;
           return (
-            <div key={selection.selection} className="bg-white p-4">
+            <div key={selection.selection} className="min-w-0 bg-white p-4">
               <div className="flex items-start justify-between gap-2">
-                <Kicker>
+                <Kicker className="truncate">
                   {resolveSelectionLabel(selection.selection, match.home_team, match.away_team)}
                 </Kicker>
                 {isTop ? (
