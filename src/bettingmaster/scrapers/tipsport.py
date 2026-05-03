@@ -99,7 +99,10 @@ class TipsportScraper(BaseScraper):
         page.evaluate(fetch(...)).
         """
         try:
-            from playwright.sync_api import sync_playwright
+            try:
+                from patchright.sync_api import sync_playwright
+            except ImportError:
+                from playwright.sync_api import sync_playwright
 
             self._playwright = sync_playwright().start()
             launch_kwargs = {"headless": settings.tipsport_headless}
