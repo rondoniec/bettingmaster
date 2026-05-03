@@ -22,8 +22,9 @@ export default async function NewPolymarketMarketsPage() {
           Novo otvorené futbalové trhy na Polymarkete
         </h1>
         <p className="mt-2 max-w-2xl text-[13px] leading-6 text-slate-600">
-          Vzdialené futbalové trhy môžu otvoriť s mäkkými kurzami. Sledujeme nové eventy okolo
-          Premier League, La Ligy a Champions League.
+          Trhy otvorené v posledných 24h, ktoré sa dajú stávkovať aj v slovenských kanceláriách.
+          Pri každom porovnávame Polymarket vs. najlepší kurz na trhu — ak Polymarket platí viac,
+          oplatí sa staviť tam.
         </p>
       </section>
 
@@ -32,7 +33,7 @@ export default async function NewPolymarketMarketsPage() {
       {!error && markets.length === 0 ? (
         <EmptyState
           title="Žiadne nové trhy"
-          body="Aktuálne nie sú novootvorené trhy v sledovaných ligách."
+          body="V posledných 24h Polymarket neotvoril nový trh, ktorý by sme našli aj u našich kancelárií."
         />
       ) : null}
 

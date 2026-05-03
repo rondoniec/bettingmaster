@@ -37,8 +37,8 @@ export default async function OthersPage() {
 
       {!error && markets.length === 0 ? (
         <EmptyState
-          title="Žiadne aktívne trhy"
-          body="V sledovaných témach momentálne nič aktívne."
+          title="Čaká sa na scraper Niké/Fortuna pre nešportové trhy"
+          body="Polymarket má aktívne trhy na voľby, geopolitiku a podobne, ale zobrazujeme ich len keď sú dostupné aj na slovenských stávkovkách. Ten scraper ešte nie je hotový."
         />
       ) : null}
 

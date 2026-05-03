@@ -95,6 +95,23 @@ export type NewPolymarketSubMarket = {
   market_count: number;
 };
 
+export type CrossRefSelection = {
+  selection: string;
+  polymarket_odds: number | null;
+  sportsbook_odds: number | null;
+  sportsbook_name: string | null;
+  edge_percent: number | null;
+};
+
+export type CrossRef = {
+  match_id: string;
+  match_home: string;
+  match_away: string;
+  match_start_time?: string | null;
+  selections: CrossRefSelection[];
+  polymarket_better_count: number;
+};
+
 export type NewPolymarketMarket = {
   title: string;
   slug: string;
@@ -104,6 +121,7 @@ export type NewPolymarketMarket = {
   market_count: number;
   league_hint?: string | null;
   markets?: NewPolymarketSubMarket[];
+  crossref?: CrossRef | null;
 };
 
 export type ScraperHealth = {

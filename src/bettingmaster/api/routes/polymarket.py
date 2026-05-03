@@ -2,13 +2,20 @@
 
 from __future__ import annotations
 
+import re
 from datetime import UTC, datetime, timedelta
+from typing import Optional
 
 import httpx
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
 from bettingmaster.config import settings
+from bettingmaster.database import get_db
+from bettingmaster.match_identity import find_similar_match
+from bettingmaster.models.match import Match
+from bettingmaster.services.odds import latest_odds_for_match
 
 router = APIRouter()
 
@@ -22,6 +29,23 @@ class NewPolymarketSubMarketOut(BaseModel):
     market_count: int
 
 
+class CrossRefSelectionOut(BaseModel):
+    selection: str
+    polymarket_odds: float | None = None
+    sportsbook_odds: float | None = None
+    sportsbook_name: str | None = None
+    edge_percent: float | None = None  # +ve = polymarket pays better than the best sportsbook
+
+
+class CrossRefOut(BaseModel):
+    match_id: str
+    match_home: str
+    match_away: str
+    match_start_time: datetime | None = None
+    selections: list[CrossRefSelectionOut] = []
+    polymarket_better_count: int = 0  # how many outcomes polymarket beats sportsbooks on
+
+
 class NewPolymarketMarketOut(BaseModel):
     title: str
     slug: str
@@ -31,6 +55,13 @@ class NewPolymarketMarketOut(BaseModel):
     market_count: int
     league_hint: str | None = None
     markets: list[NewPolymarketSubMarketOut] = []
+    crossref: CrossRefOut | None = None
+
+
+_LEAGUE_HINT_TO_DB_ID: dict[str, str] = {
+    "Premier League": "en-premier-league",
+    "La Liga": "es-la-liga",
+}
 
 
 _CACHE: dict[str, tuple[float, list["NewPolymarketMarketOut"]]] = {}
@@ -39,16 +70,23 @@ _CACHE_TTL_SECONDS = 600  # 10 min
 
 @router.get("/polymarket/new-football-markets", response_model=list[NewPolymarketMarketOut])
 def list_new_football_markets(
-    days: int = Query(14, ge=1, le=60, description="How many recently created days to show"),
+    days: int = Query(1, ge=1, le=60, description="How many recently created days to show"),
     limit: int = Query(60, ge=1, le=200, description="Maximum number of markets"),
+    only_with_sportsbook: bool = Query(
+        True,
+        description="Only return events that match a Slovak sportsbook match in our DB",
+    ),
+    db: Session = Depends(get_db),
 ):
     import time as _time
 
-    cache_key = f"{days}:{limit}"
+    # Cross-ref data depends on DB state; bypass cache when joining sportsbook.
+    cache_key = f"{days}:{limit}:{int(only_with_sportsbook)}"
     now_mono = _time.monotonic()
-    cached = _CACHE.get(cache_key)
-    if cached and cached[0] > now_mono:
-        return cached[1]
+    if not only_with_sportsbook:
+        cached = _CACHE.get(cache_key)
+        if cached and cached[0] > now_mono:
+            return cached[1]
 
     events = _fetch_soccer_events()
     now = datetime.now(UTC).replace(tzinfo=None)
@@ -106,30 +144,116 @@ def list_new_football_markets(
             if start_time and (bucket["start_time"] is None or start_time < bucket["start_time"]):
                 bucket["start_time"] = start_time
 
-    results = [
-        NewPolymarketMarketOut(
-            title=g["title"],
-            slug=g["slug"],
-            url=g["url"],
-            start_time=g["start_time"],
-            created_at=g["created_at"],
-            market_count=sum(m.market_count or 1 for m in g["markets"]),
-            league_hint=g["league_hint"],
-            markets=g["markets"],
+    results: list[NewPolymarketMarketOut] = []
+    for g in groups.values():
+        crossref = _build_crossref(db, g["title"], g["league_hint"], g["start_time"])
+        if only_with_sportsbook and crossref is None:
+            continue
+        results.append(
+            NewPolymarketMarketOut(
+                title=g["title"],
+                slug=g["slug"],
+                url=g["url"],
+                start_time=g["start_time"],
+                created_at=g["created_at"],
+                market_count=sum(m.market_count or 1 for m in g["markets"]),
+                league_hint=g["league_hint"],
+                markets=g["markets"],
+                crossref=crossref,
+            )
         )
-        for g in groups.values()
-    ]
 
     sorted_results = sorted(
         results,
         key=lambda item: (
+            item.crossref.polymarket_better_count if item.crossref else 0,
             item.created_at or datetime.min,
             item.start_time or datetime.max,
         ),
         reverse=True,
     )[:limit]
-    _CACHE[cache_key] = (now_mono + _CACHE_TTL_SECONDS, sorted_results)
+    if not only_with_sportsbook:
+        _CACHE[cache_key] = (now_mono + _CACHE_TTL_SECONDS, sorted_results)
     return sorted_results
+
+
+_VS_SPLIT = re.compile(r"\s+vs\.?\s+|\s+v\s+", re.IGNORECASE)
+
+
+def _split_teams(matchup_title: str) -> tuple[str, str] | None:
+    parts = _VS_SPLIT.split(matchup_title, maxsplit=1)
+    if len(parts) != 2:
+        return None
+    home = parts[0].strip().rstrip(".")
+    away = parts[1].strip().rstrip(".")
+    if not home or not away:
+        return None
+    return home, away
+
+
+def _build_crossref(
+    db: Session,
+    matchup_title: str,
+    league_hint: str | None,
+    start_time: datetime | None,
+) -> CrossRefOut | None:
+    """Look up our DB match and compute Polymarket-vs-sportsbook edge per outcome."""
+    if not start_time or not league_hint:
+        return None
+    league_id = _LEAGUE_HINT_TO_DB_ID.get(league_hint)
+    if not league_id:
+        return None
+    teams = _split_teams(matchup_title)
+    if not teams:
+        return None
+    home, away = teams
+    naive_start = (
+        start_time.astimezone(UTC).replace(tzinfo=None) if start_time.tzinfo else start_time
+    )
+    match: Optional[Match] = find_similar_match(db, league_id, home, away, naive_start)
+    if match is None:
+        return None
+
+    odds_rows = latest_odds_for_match(db, match.id, market="1x2")
+    by_selection_book: dict[tuple[str, str], float] = {}
+    for row in odds_rows:
+        by_selection_book[(row.selection, row.bookmaker)] = float(row.odds)
+
+    selections_out: list[CrossRefSelectionOut] = []
+    polymarket_better = 0
+    for sel in ("home", "draw", "away"):
+        poly = by_selection_book.get((sel, "polymarket"))
+        sportsbook_pairs = [
+            (book, odds)
+            for (s, book), odds in by_selection_book.items()
+            if s == sel and book != "polymarket"
+        ]
+        sportsbook_pairs.sort(key=lambda p: p[1], reverse=True)
+        best_book, best_odds = (sportsbook_pairs[0] if sportsbook_pairs else (None, None))
+        edge = None
+        if poly is not None and best_odds:
+            # Edge = how much more (in %) polymarket pays vs the best sportsbook.
+            edge = round((poly / best_odds - 1) * 100, 2)
+            if edge > 0:
+                polymarket_better += 1
+        selections_out.append(
+            CrossRefSelectionOut(
+                selection=sel,
+                polymarket_odds=poly,
+                sportsbook_odds=best_odds,
+                sportsbook_name=best_book,
+                edge_percent=edge,
+            )
+        )
+
+    return CrossRefOut(
+        match_id=match.id,
+        match_home=match.home_team,
+        match_away=match.away_team,
+        match_start_time=match.start_time,
+        selections=selections_out,
+        polymarket_better_count=polymarket_better,
+    )
 
 
 def _split_event_title(title: str) -> tuple[str, str]:
@@ -151,8 +275,20 @@ def _split_event_title(title: str) -> tuple[str, str]:
 def list_non_sports_markets(
     days: int = Query(30, ge=1, le=180, description="How many recently created days to show"),
     limit: int = Query(80, ge=1, le=200, description="Maximum number of events"),
+    require_sportsbook: bool = Query(
+        True,
+        description="Only return events also bettable on a Slovak sportsbook (currently none — empties the page)",
+    ),
 ):
-    """Surface Polymarket politics/world/election markets, grouped per event."""
+    """Surface Polymarket politics/world/election markets, grouped per event.
+
+    By default returns [] because we don't yet scrape Niké/Fortuna for
+    non-sports markets. Pass require_sportsbook=false to see all
+    Polymarket-only events.
+    """
+    if require_sportsbook:
+        # No Slovak non-sports scraper yet — there's nothing to cross-ref against.
+        return []
     import time as _time
 
     cache_key = f"nonsports:{days}:{limit}"
