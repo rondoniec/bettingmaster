@@ -88,7 +88,23 @@ def list_new_football_markets(
         if cached and cached[0] > now_mono:
             return cached[1]
 
-    events = _fetch_soccer_events()
+    # Pull both the broad soccer firehose AND targeted league tags so we
+    # don't lose PL/LaLiga events behind the MLS/Segunda flood at the top
+    # of /events/pagination?tag_slug=soccer.
+    events: list[dict] = []
+    seen_slugs: set[str] = set()
+    for fetcher_args in [
+        {"tag_slug": "soccer", "pages": 3},
+        {"tag_slug": "epl", "pages": 2},
+        {"tag_slug": "premier-league", "pages": 2},
+        {"tag_slug": "la-liga", "pages": 2},
+    ]:
+        for ev in _fetch_events_for_tag(fetcher_args["tag_slug"], pages=fetcher_args["pages"]):
+            slug = str(ev.get("slug") or "")
+            if not slug or slug in seen_slugs:
+                continue
+            seen_slugs.add(slug)
+            events.append(ev)
     now = datetime.now(UTC).replace(tzinfo=None)
     created_after = now - timedelta(days=days)
 
