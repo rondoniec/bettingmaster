@@ -117,12 +117,12 @@ def list_new_football_markets(
         if not title or not slug:
             continue
 
-        start_time = _parse_dt(event.get("startDate") or event.get("endDate"))
+        # For prediction markets, endDate (resolution) is the meaningful
+        # future timestamp. startDate is when the market opened.
+        start_time = _parse_dt(event.get("endDate") or event.get("startDate"))
+        end_time = _parse_dt(event.get("endDate"))
         created_at = _parse_dt(event.get("createdAt") or event.get("created_at"))
-        # Skip already-finished events but allow anything starting in the future
-        # (don't apply the same 48h "near-term" cutoff as the main board — these
-        # are explicitly intended to surface newly opened far + near markets).
-        if start_time and start_time < now - timedelta(hours=2):
+        if end_time and end_time < now - timedelta(hours=2):
             continue
         if created_at and created_at < created_after:
             continue
