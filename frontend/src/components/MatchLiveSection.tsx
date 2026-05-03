@@ -5,10 +5,12 @@ import { Clock3, Layers3 } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
 
+import { BookmakerToggleBar } from "@/components/BookmakerToggleBar";
 import { Countdown } from "@/components/Countdown";
 import { FreshnessBadge } from "@/components/FreshnessBadge";
 import { LiveUpdatesBadge } from "@/components/LiveUpdatesBadge";
 import { MarketOddsBoard } from "@/components/MarketOddsBoard";
+import { useBookmakerFilter } from "@/hooks/useBookmakerFilter";
 import { getBestOdds, getMatchDetail, type BestOdds, type MatchDetail } from "@/lib/api";
 import {
   BOOKMAKER_ORDER,
@@ -50,18 +52,36 @@ export function MatchLiveSection({ initialMatch, initialBestOdds, focusTarget }:
   const queryClient = useQueryClient();
   const matchDetailQueryKey = ["match-detail", initialMatch.id];
   const bestOddsQueryKey = ["best-odds", initialMatch.id];
+  const { isEnabled, hydrated: filterHydrated } = useBookmakerFilter();
 
-  const { data: match = initialMatch } = useQuery({
+  const { data: rawMatch = initialMatch } = useQuery({
     queryKey: matchDetailQueryKey,
     queryFn: () => getMatchDetail(initialMatch.id),
     initialData: initialMatch,
   });
 
-  const { data: bestOdds = initialBestOdds } = useQuery({
+  const { data: rawBestOdds = initialBestOdds } = useQuery({
     queryKey: bestOddsQueryKey,
     queryFn: () => getBestOdds(initialMatch.id),
     initialData: initialBestOdds,
   });
+
+  const match = filterHydrated
+    ? { ...rawMatch, odds: rawMatch.odds.filter((entry) => isEnabled(entry.bookmaker)) }
+    : rawMatch;
+
+  // Drop entire markets where best is now from a disabled bookmaker; recompute best
+  // from remaining entries inside MarketOddsBoard. We pass the market list through
+  // bestOdds so the margin chip stays meaningful — but recompute its selections
+  // server-style here to preserve the filter.
+  const bestOdds = filterHydrated
+    ? rawBestOdds
+        .map((bo) => ({
+          ...bo,
+          selections: bo.selections.filter((s) => isEnabled(s.bookmaker)),
+        }))
+        .filter((bo) => bo.selections.length > 0)
+    : rawBestOdds;
 
   const marketSet = new Set(match.odds.map((entry) => entry.market));
   for (const market of bestOdds) {
@@ -177,6 +197,8 @@ export function MatchLiveSection({ initialMatch, initialBestOdds, focusTarget }:
           {resolveSelectionLabel(focusTarget.selection, match.home_team, match.away_team)}
         </div>
       ) : null}
+
+      <BookmakerToggleBar />
 
       <MarketOddsBoard
         markets={markets}

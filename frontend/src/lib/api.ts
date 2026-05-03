@@ -121,6 +121,7 @@ export type BestOddsMatchesQueryParams = MatchesQueryParams & {
   league_id?: string;
   market?: string;
   min_bookmakers?: number;
+  bookmakers?: string[];
 };
 
 async function apiFetch<T>(path: string, params?: Record<string, string>): Promise<T> {
@@ -208,6 +209,9 @@ export async function getMatchesWithBestOdds(
   }
   if (params?.min_bookmakers !== undefined) {
     query.min_bookmakers = String(params.min_bookmakers);
+  }
+  if (params?.bookmakers && params.bookmakers.length > 0) {
+    query.bookmakers = params.bookmakers.join(",");
   }
   return apiFetch<MatchBestOdds[]>("/api/matches/best-odds", query);
 }

@@ -5,9 +5,11 @@ import { CalendarDays, Sparkles, Trophy } from "lucide-react";
 import Link from "next/link";
 
 import { BestOddsMatchCard } from "@/components/BestOddsMatchCard";
+import { BookmakerToggleBar } from "@/components/BookmakerToggleBar";
 import { Countdown } from "@/components/Countdown";
 import { LiveUpdatesBadge } from "@/components/LiveUpdatesBadge";
 import { ScrapeHealthPanel } from "@/components/ScrapeHealthPanel";
+import { useBookmakerFilter } from "@/hooks/useBookmakerFilter";
 import {
   getMatchesWithBestOdds,
   getSurebets,
@@ -121,12 +123,21 @@ export function HomeLiveSection({
   initialSurebets,
 }: Props) {
   const queryClient = useQueryClient();
-  const matchesQueryKey = ["matches-best-odds", date, sport ?? "", market];
+  const { enabledList, hydrated: filterHydrated } = useBookmakerFilter();
+  // Stable cache key based on enabled bookmakers so toggles invalidate.
+  const bookmakerKey = enabledList.join(",");
+  const matchesQueryKey = ["matches-best-odds", date, sport ?? "", market, bookmakerKey];
   const surebetsQueryKey = ["surebets"];
 
   const { data: matches = [] } = useQuery({
     queryKey: matchesQueryKey,
-    queryFn: () => getMatchesWithBestOdds({ date, sport, market }),
+    queryFn: () =>
+      getMatchesWithBestOdds({
+        date,
+        sport,
+        market,
+        bookmakers: filterHydrated && enabledList.length > 0 ? enabledList : undefined,
+      }),
     initialData: initialMatches,
   });
 
@@ -370,6 +381,8 @@ export function HomeLiveSection({
       </section>
 
       <ScrapeHealthPanel initialHealth={initialHealth} />
+
+      <BookmakerToggleBar />
 
       <section className="space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
