@@ -195,9 +195,13 @@ def list_non_sports_markets(
         slug = str(event.get("slug") or "").strip()
         if not title:
             continue
-        start_time = _parse_dt(event.get("startDate") or event.get("endDate"))
+        # For prediction markets the meaningful timestamp is `endDate`
+        # (resolution); `startDate` is when Polymarket listed the question
+        # and is usually in the past for politics. Display endDate.
+        start_time = _parse_dt(event.get("endDate") or event.get("startDate"))
         created_at = _parse_dt(event.get("createdAt") or event.get("created_at"))
-        if start_time and start_time < now - timedelta(hours=2):
+        end_time = _parse_dt(event.get("endDate"))
+        if end_time and end_time < now - timedelta(hours=2):
             continue
         if counts.get(label, 0) >= per_bucket_cap:
             continue
