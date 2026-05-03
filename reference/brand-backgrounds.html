@@ -1,0 +1,78 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Surface recipes</title><link rel="stylesheet" href="_shared.css">
+<style>
+  .srf { position: relative; border: 1px solid #cbd5e1; background: #ffffff; padding: 14px 16px; }
+  .srf-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.18em; color: #64748b; font-family: ui-monospace,"SF Mono",Menlo,monospace; }
+  .srf-title { font-size: 16px; font-weight: 600; color: #0f172a; margin-top: 4px; letter-spacing: -0.01em; }
+  .srf-meta  { font-size: 11px; color: #64748b; font-family: ui-monospace,"SF Mono",Menlo,monospace; font-variant-numeric: tabular-nums; margin-top: 6px; }
+  .srf-rule  { height: 1px; background: #e2e8f0; margin: 10px 0; }
+  .srf-tag   { display:inline-block; padding: 2px 6px; border:1px solid #e2e8f0; font-size:10px; font-family: ui-monospace,"SF Mono",Menlo,monospace; color:#334155; letter-spacing: .04em; }
+  .srf-dot-grid { background-image: radial-gradient(#e2e8f0 1px, transparent 1px); background-size: 8px 8px; }
+  .srf-lines { background-image: linear-gradient(#f1f5f9 1px, transparent 1px); background-size: 100% 6px; }
+  .srf-accent-bar { position:absolute; left:0; top:0; bottom:0; width:3px; background:#020617; }
+  .srf-accent-emerald { background:#047857 !important; }
+</style>
+</head>
+<body class="card"><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%">
+
+  <!-- Default: plain paper -->
+  <div class="srf">
+    <div class="srf-label">SURFACE · DEFAULT</div>
+    <div class="srf-title">Best-odds board</div>
+    <div class="srf-rule"></div>
+    <div class="srf-meta">bg #ffffff · border #cbd5e1 · radius 0</div>
+  </div>
+
+  <!-- Emerald: opportunity / surebet -->
+  <div class="srf" style="border-color:#047857;background:#f6fbf8">
+    <div class="srf-accent-bar srf-accent-emerald"></div>
+    <div style="padding-left:8px">
+      <div class="srf-label" style="color:#047857">SURFACE · OPPORTUNITY</div>
+      <div class="srf-title">Surebets · 2 live</div>
+      <div class="srf-rule" style="background:#a7f3d0"></div>
+      <div class="srf-meta" style="color:#047857">bg #f6fbf8 · accent #047857 · bar 3px</div>
+    </div>
+  </div>
+
+  <!-- Muted: data row wrapper -->
+  <div class="srf" style="background:#f8fafc">
+    <div class="srf-label">SURFACE · MUTED</div>
+    <div class="srf-title">Odds table wrapper</div>
+    <div class="srf-rule"></div>
+    <div class="srf-meta">bg #f8fafc · border #cbd5e1 · use as row backdrop</div>
+  </div>
+
+  <!-- Dot grid: optional analytic texture -->
+  <div class="srf srf-dot-grid">
+    <div class="srf-label">SURFACE · GRID</div>
+    <div class="srf-title">Analytics / charts</div>
+    <div class="srf-rule"></div>
+    <div class="srf-meta">radial-gradient #e2e8f0 1px · 8×8 · charts only</div>
+  </div>
+
+  <!-- Inverted header: live / terminal -->
+  <div class="srf" style="background:#020617;border-color:#020617;color:#e2e8f0;grid-column:span 2">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px">
+      <div>
+        <div class="srf-label" style="color:#94a3b8">SURFACE · INVERTED</div>
+        <div class="srf-title" style="color:#ffffff">Live updates · LA LIGA</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <span class="srf-tag" style="border-color:#334155;color:#94a3b8;background:transparent">LIVE</span>
+        <span class="srf-tag" style="border-color:#334155;color:#94a3b8;background:transparent">FEED OK</span>
+        <span class="srf-tag" style="border-color:#334155;color:#94a3b8;background:transparent">22:14:03 UTC</span>
+      </div>
+    </div>
+    <div class="srf-rule" style="background:#1e293b"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:0;font-family:ui-monospace,Menlo,monospace;font-size:12px;font-variant-numeric:tabular-nums">
+      <div style="border-right:1px solid #1e293b;padding-right:12px"><div style="font-size:10px;color:#94a3b8">MERGED</div><div style="font-size:18px;color:#ffffff;margin-top:2px">184</div></div>
+      <div style="border-right:1px solid #1e293b;padding:0 12px"><div style="font-size:10px;color:#94a3b8">SUREBETS</div><div style="font-size:18px;color:#34d399;margin-top:2px">+2</div></div>
+      <div style="border-right:1px solid #1e293b;padding:0 12px"><div style="font-size:10px;color:#94a3b8">BEST MARGIN</div><div style="font-size:18px;color:#ffffff;margin-top:2px">1.42%</div></div>
+      <div style="padding-left:12px"><div style="font-size:10px;color:#94a3b8">BOOKS</div><div style="font-size:18px;color:#ffffff;margin-top:2px">6</div></div>
+    </div>
+  </div>
+
+</div>
+<div style="font-size:11px;color:#64748b;margin-top:10px;font-family:ui-monospace,Menlo,monospace">
+  No gradients. No drop shadows. Flat fills, 1px borders, 0–2px radii. Accent via a 3px left bar or an inverted slate-950 surface for live/terminal states.
+</div>
+</body></html>

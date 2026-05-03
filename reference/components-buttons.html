@@ -1,0 +1,106 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Buttons & Pills</title><link rel="stylesheet" href="_shared.css">
+<style>
+  .c-wrap { padding: 20px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; font-family: inherit; width: 100%; }
+  .c-title { font-size: 15px; font-weight: 600; color: #0f172a; letter-spacing: -0.01em; }
+  .c-sub   { font-size: 12px; color: #64748b; margin-top: 4px; line-height: 1.5; }
+  .c-group-head { font-size: 11px; font-weight: 600; color: #64748b; letter-spacing: 0.06em; text-transform: uppercase; margin-top: 18px; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0; }
+  .c-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; padding: 14px 0; border-bottom: 1px solid #f1f5f9; }
+  .c-row:last-child { border-bottom: 0; }
+  .c-row .c-token { font-size: 11px; color: #64748b; font-family: ui-monospace,"SF Mono",Menlo,monospace; margin-left: auto; white-space: nowrap; }
+  .c-row .c-note  { font-size: 12px; color: #64748b; }
+  .btn { font-family: inherit; cursor: pointer; }
+
+  /* --- ACTIONS: slate only --- */
+  .btn-primary    { background: #0f172a; color: #fff;       padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 600; border: 1px solid #0f172a; }
+  .btn-primary-sm { background: #0f172a; color: #fff;       padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 500; border: 1px solid #0f172a; }
+  .btn-secondary  { background: #ffffff; color: #334155;    padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 500; border: 1px solid #cbd5e1; }
+  .btn-ghost      { background: transparent; color: #475569; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 500; border: 1px solid transparent; }
+
+  /* --- FILTERS: underline-on-active, no coloured capsule --- */
+  .filter-row { display: flex; gap: 0; border-bottom: 1px solid #e2e8f0; }
+  .filter-tab {
+    background: transparent; border: none; cursor: pointer; font-family: inherit;
+    padding: 8px 14px; font-size: 13px; color: #64748b; font-weight: 500;
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+  }
+  .filter-tab.active { color: #0f172a; border-bottom-color: #0f172a; font-weight: 600; }
+
+  /* --- CHIPS: tiny, monochrome, single accent dot for semantic tone --- */
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 500;
+    background: #f8fafc; color: #334155; border: 1px solid #e2e8f0;
+    font-variant-numeric: tabular-nums;
+  }
+  .chip .dot { width: 6px; height: 6px; border-radius: 50%; background: #64748b; }
+  .chip.live .dot  { background: #0f172a; }
+  .chip.live       { color: #0f172a; font-weight: 600; }
+  .chip.good       { color: #0f172a; }
+  .chip.good .dot  { background: #047857; }
+  .chip.mid        { color: #475569; }
+  .chip.mid .dot   { background: #94a3b8; }
+  .chip.bad        { color: #64748b; }
+  .chip.bad .dot   { background: #cbd5e1; }
+
+  .c-legend { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 18px; font-size: 12px; color: #475569; margin-top: 14px; padding-top: 14px; border-top: 1px dashed #e2e8f0; }
+  .c-legend b { color: #0f172a; font-weight: 600; }
+</style>
+</head>
+<body class="card"><div class="c-wrap">
+
+<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px">
+  <div>
+    <div class="c-title">Buttons, filters and status chips</div>
+    <div class="c-sub">Monochrome by default. One accent dot carries semantic meaning (live, good, mid, wide). No coloured fills — the data is the colour.</div>
+  </div>
+  <div style="font-size:11px;color:#64748b;text-align:right;white-space:nowrap">slate palette only</div>
+</div>
+
+<div class="c-group-head">Actions</div>
+<div class="c-row">
+  <button class="btn btn-primary">Open match</button>
+  <button class="btn btn-primary-sm">Today</button>
+  <button class="btn btn-secondary">Kickoff</button>
+  <button class="btn btn-ghost">Clear</button>
+  <span class="c-token">#0f172a · #fff · #cbd5e1</span>
+</div>
+
+<div class="c-group-head">Filters — tabs, not pills</div>
+<div class="c-row" style="flex-direction:column;align-items:stretch;gap:0">
+  <div class="filter-row">
+    <button class="filter-tab active">All sports</button>
+    <button class="filter-tab">Football</button>
+    <button class="filter-tab">Tennis</button>
+    <button class="filter-tab">Hockey</button>
+    <button class="filter-tab">Basketball</button>
+  </div>
+  <div style="font-size:12px;color:#64748b;margin-top:8px">Active tab = slate-950 text + 2px slate-950 underline. No capsule fills.</div>
+</div>
+
+<div class="c-group-head">Status chips</div>
+<div class="c-row">
+  <span class="chip live"><span class="dot"></span>LIVE</span>
+  <span class="c-note">match in progress</span>
+  <span class="c-token">dot #0f172a</span>
+</div>
+<div class="c-row">
+  <span class="chip good"><span class="dot"></span>Margin 1.42%</span>
+  <span class="c-note">tight market · good value for the bettor</span>
+  <span class="c-token">dot #047857</span>
+</div>
+<div class="c-row">
+  <span class="chip mid"><span class="dot"></span>Margin 4.12%</span>
+  <span class="c-note">typical bookmaker overround</span>
+  <span class="c-token">dot #94a3b8</span>
+</div>
+<div class="c-row">
+  <span class="chip bad"><span class="dot"></span>Margin 6.80%</span>
+  <span class="c-note">wide · skip or shop around</span>
+  <span class="c-token">dot #cbd5e1</span>
+</div>
+
+<div class="c-legend">
+  <span><b>Margin</b> — the bookmaker's built-in edge. <b>Lower = better for the bettor.</b></span>
+  <span>Only three greys + one muted green dot carry semantic weight. Everything else is text.</span>
+</div>
+</div></body></html>

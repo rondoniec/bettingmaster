@@ -1,46 +1,21 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Activity, AlertTriangle, CheckCircle2, Clock3, PauseCircle } from "lucide-react";
 
+import { BookmakerName, Kicker } from "@/components/Primitives";
 import { getHealth, type HealthStatus } from "@/lib/api";
-import { getBookmakerDisplay } from "@/lib/constants";
 import { cn, formatSecondsCompact } from "@/lib/utils";
 
 type Props = {
   initialHealth: HealthStatus;
 };
 
-const FRESHNESS_STYLES = {
-  fresh: {
-    label: "Fresh",
-    badgeClass: "bg-emerald-100 text-emerald-700",
-    cardClass: "border-emerald-200 bg-emerald-50/70",
-    Icon: CheckCircle2,
-  },
-  aging: {
-    label: "Aging",
-    badgeClass: "bg-amber-100 text-amber-700",
-    cardClass: "border-amber-200 bg-amber-50/70",
-    Icon: Clock3,
-  },
-  stale: {
-    label: "Stale",
-    badgeClass: "bg-rose-100 text-rose-700",
-    cardClass: "border-rose-200 bg-rose-50/70",
-    Icon: AlertTriangle,
-  },
-  idle: {
-    label: "Idle",
-    badgeClass: "bg-slate-100 text-slate-600",
-    cardClass: "border-slate-200 bg-slate-50/80",
-    Icon: PauseCircle,
-  },
-} as const;
-
-function getFreshnessStyle(freshness: string) {
-  return FRESHNESS_STYLES[freshness as keyof typeof FRESHNESS_STYLES] ?? FRESHNESS_STYLES.idle;
-}
+const FRESHNESS_LABEL: Record<string, { label: string; cls: string }> = {
+  fresh: { label: "Aktuálne", cls: "border-emerald-200 text-emerald-700" },
+  aging: { label: "Starnúce", cls: "border-amber-200 text-amber-700" },
+  stale: { label: "Zastaralé", cls: "border-red-200 text-red-600" },
+  idle:  { label: "Nečinné",   cls: "border-slate-200 text-slate-500" },
+};
 
 export function ScrapeHealthPanel({ initialHealth }: Props) {
   const { data = initialHealth, error } = useQuery({
@@ -51,81 +26,58 @@ export function ScrapeHealthPanel({ initialHealth }: Props) {
   });
 
   const scraperEntries = Object.entries(data.scrapers);
-  const freshCount = scraperEntries.filter(([, scraper]) => scraper.freshness === "fresh").length;
-  const staleCount = scraperEntries.filter(([, scraper]) => scraper.freshness === "stale").length;
+  const freshCount = scraperEntries.filter(([, s]) => s.freshness === "fresh").length;
+  const staleCount = scraperEntries.filter(([, s]) => s.freshness === "stale").length;
 
   return (
-    <section className="rounded-[1.9rem] border border-slate-200 bg-white px-6 py-6 shadow-[0_18px_45px_-32px_rgba(15,23,42,0.45)] sm:px-7">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+    <section className="border border-slate-200 bg-white">
+      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 px-5 py-4">
         <div>
-          <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-            <Activity className="h-3.5 w-3.5" />
-            Scrape health
-          </div>
-          <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
-            Bookmaker freshness
-          </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-            This shows when each scraper last produced checked data, compared with its own scrape cadence.
-          </p>
+          <Kicker>Scrape health</Kicker>
+          <h2 className="mt-1 text-base font-semibold text-slate-900">Stav stávkových kancelárií</h2>
         </div>
-
-        <div className="flex flex-wrap gap-3">
-          <StatPill label="API" value={data.status} tone={data.status === "ok" ? "good" : "warn"} />
-          <StatPill label="DB" value={data.db} tone={data.db === "connected" ? "good" : "warn"} />
-          <StatPill label="Fresh" value={String(freshCount)} tone="good" />
-          <StatPill label="Stale" value={String(staleCount)} tone={staleCount > 0 ? "warn" : "neutral"} />
+        <div className="flex flex-wrap gap-2 font-mono text-[11px] uppercase tracking-wider tabular-nums">
+          <Stat label="API" value={data.status === "ok" ? "ok" : "warn"} tone={data.status === "ok" ? "good" : "warn"} />
+          <Stat label="DB" value={data.db === "connected" ? "ok" : "err"} tone={data.db === "connected" ? "good" : "warn"} />
+          <Stat label="Aktuálne" value={String(freshCount)} tone="good" />
+          <Stat label="Zastaralé" value={String(staleCount)} tone={staleCount > 0 ? "warn" : "neutral"} />
         </div>
-      </div>
+      </header>
 
       {error ? (
-        <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <div className="border-b border-amber-200 bg-amber-50 px-5 py-3 font-mono text-[11px] text-amber-800">
           Health auto-refresh failed. Showing the last successful snapshot.
         </div>
       ) : null}
 
-      <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-px bg-slate-100 sm:grid-cols-2 lg:grid-cols-3">
         {scraperEntries.map(([bookmaker, scraper]) => {
-          const bookmakerData = getBookmakerDisplay(bookmaker);
-          const style = getFreshnessStyle(scraper.freshness);
-          const Icon = style.Icon;
-
+          const fresh = FRESHNESS_LABEL[scraper.freshness] ?? FRESHNESS_LABEL.idle;
           return (
-            <article
-              key={bookmaker}
-              className={cn(
-                "rounded-2xl border px-4 py-4 transition-colors",
-                style.cardClass
-              )}
-            >
+            <article key={bookmaker} className="bg-white p-4">
               <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div
-                    className="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold"
-                    style={{
-                      backgroundColor: bookmakerData.bgColor,
-                      color: bookmakerData.color,
-                    }}
-                  >
-                    {bookmakerData.displayName}
-                  </div>
-                  <p className="mt-3 text-sm font-medium text-slate-500">Configured cadence</p>
-                  <p className="mt-1 text-lg font-semibold text-slate-950">
-                    every {formatSecondsCompact(scraper.interval_seconds)}
-                  </p>
-                </div>
-
-                <div className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold", style.badgeClass)}>
-                  <Icon className="h-3.5 w-3.5" />
-                  {style.label}
-                </div>
+                <BookmakerName bookmaker={bookmaker} />
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 border bg-white px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase tracking-wider",
+                    fresh.cls,
+                  )}
+                >
+                  {fresh.label}
+                </span>
               </div>
-
-              <div className="mt-4 text-sm text-slate-600">
-                <p>
-                  {scraper.age_seconds !== null && scraper.age_seconds !== undefined
-                    ? `Last checked ${formatSecondsCompact(scraper.age_seconds)} ago`
-                    : "No checked odds saved yet"}
+              <div className="mt-3 space-y-1 font-mono text-[11px] tabular-nums">
+                <p className="text-slate-500">
+                  <span className="text-slate-400">Cadence</span>{" "}
+                  <span className="text-slate-700">každé {formatSecondsCompact(scraper.interval_seconds)}</span>
+                </p>
+                <p className="text-slate-500">
+                  <span className="text-slate-400">Last checked</span>{" "}
+                  <span className="text-slate-700">
+                    {scraper.age_seconds !== null && scraper.age_seconds !== undefined
+                      ? `pred ${formatSecondsCompact(scraper.age_seconds)}`
+                      : "—"}
+                  </span>
                 </p>
               </div>
             </article>
@@ -136,7 +88,7 @@ export function ScrapeHealthPanel({ initialHealth }: Props) {
   );
 }
 
-function StatPill({
+function Stat({
   label,
   value,
   tone,
@@ -145,16 +97,16 @@ function StatPill({
   value: string;
   tone: "good" | "warn" | "neutral";
 }) {
-  const tones = {
-    good: "bg-emerald-50 text-emerald-700",
-    warn: "bg-amber-50 text-amber-700",
-    neutral: "bg-slate-100 text-slate-700",
-  } as const;
-
+  const cls =
+    tone === "good"
+      ? "border-emerald-200 text-emerald-700"
+      : tone === "warn"
+        ? "border-amber-200 text-amber-700"
+        : "border-slate-200 text-slate-600";
   return (
-    <div className={cn("rounded-full px-3 py-1.5 text-sm font-semibold", tones[tone])}>
-      <span className="mr-2 text-xs uppercase tracking-[0.18em] opacity-70">{label}</span>
-      {value}
-    </div>
+    <span className={cn("inline-flex items-center gap-1.5 border px-2 py-0.5", cls)}>
+      <span className="text-slate-400">{label}</span>
+      <span>{value}</span>
+    </span>
   );
 }

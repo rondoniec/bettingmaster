@@ -1,10 +1,11 @@
-import { ExternalLink, ShieldCheck } from "lucide-react";
+import { ChevronRight, ExternalLink } from "lucide-react";
 import Link from "next/link";
 
 import { Countdown } from "@/components/Countdown";
+import { BookmakerChip, Kicker, LiveBadge, MarginChip } from "@/components/Primitives";
 import type { MatchBestOdds } from "@/lib/api";
-import { getBookmakerDisplay, resolveSelectionLabel } from "@/lib/constants";
-import { cn, formatLastUpdated, formatMargin, formatMatchTime, formatOdds } from "@/lib/utils";
+import { resolveSelectionLabel } from "@/lib/constants";
+import { cn, formatMatchTime, formatOdds } from "@/lib/utils";
 
 type Props = {
   match: MatchBestOdds;
@@ -12,108 +13,100 @@ type Props = {
 
 export function BestOddsMatchCard({ match }: Props) {
   const isLive = match.status === "live";
+  const isSurebet = match.combined_margin < 0;
+
+  // Determine the single highest odds across the three selections — that's
+  // the "TOP PICK" (best bet on this card). Only that one cell goes emerald.
+  let topSelection: string | null = null;
+  let topValue = 0;
+  for (const sel of match.selections) {
+    if (sel.odds > topValue) {
+      topValue = sel.odds;
+      topSelection = sel.selection;
+    }
+  }
 
   return (
-    <article className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_18px_45px_-32px_rgba(15,23,42,0.45)]">
-      <div className="border-b border-slate-100 bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.16),_transparent_38%),radial-gradient(circle_at_top_right,_rgba(16,185,129,0.14),_transparent_32%),linear-gradient(180deg,_#ffffff,_#f8fbff)] px-5 py-5 sm:px-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <Link
-                href={`/league/${match.league_id}`}
-                className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400 transition hover:text-blue-600"
-              >
-                {match.league_id}
-              </Link>
-              {isLive ? (
-                <span className="animate-pulse rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-red-600">
-                  Naživo
-                </span>
-              ) : null}
-            </div>
-            <h2 className="mt-2 text-xl font-semibold tracking-tight text-slate-950">
-              {match.home_team}
-              <span className="mx-2 text-slate-300">vs</span>
-              {match.away_team}
-            </h2>
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-500">
-              <span>{formatMatchTime(match.start_time)}</span>
-              <Countdown startTime={match.start_time} status={match.status} />
-              <span>• {match.bookmakers.length} stávkových kancelárií</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div
-              className={cn(
-                "rounded-full px-3 py-1 text-sm font-semibold",
-                match.combined_margin < 0
-                  ? "bg-emerald-100 text-emerald-700"
-                  : match.combined_margin < 5
-                  ? "bg-amber-100 text-amber-700"
-                  : "bg-slate-100 text-slate-600"
-              )}
-            >
-              Marža {formatMargin(match.combined_margin)}
-            </div>
+    <article
+      className={cn(
+        "border bg-white",
+        isSurebet ? "border-slate-200 border-l-[3px] border-l-emerald-700" : "border-slate-200",
+      )}
+    >
+      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 px-5 py-4">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-3">
             <Link
-              href={`/match/${match.id}`}
-              className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
+              href={`/league/${match.league_id}`}
+              className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 hover:text-slate-900"
             >
-              Otvoriť zápas
+              {match.league_id.replace(/-/g, " ").toUpperCase()}
             </Link>
+            {isLive ? <LiveBadge /> : null}
+            <span className="font-mono text-[11px] tabular-nums text-slate-500">
+              {formatMatchTime(match.start_time)}
+            </span>
+            <Countdown startTime={match.start_time} status={match.status} />
           </div>
+          <h2 className="mt-2 text-lg font-semibold tracking-tight text-slate-900">
+            {match.home_team}
+            <span className="mx-2 text-slate-400">vs</span>
+            {match.away_team}
+          </h2>
+          <p className="mt-1 font-mono text-[11px] tabular-nums text-slate-500">
+            {match.bookmakers.length} stávkových kancelárií porovnaných
+          </p>
         </div>
-      </div>
 
-      <div className="grid gap-3 p-5 sm:grid-cols-3 sm:p-6">
+        <div className="flex shrink-0 items-center gap-3">
+          <MarginChip margin={match.combined_margin} />
+          <Link
+            href={`/match/${match.id}`}
+            className="inline-flex items-center gap-1 bg-slate-900 px-3.5 py-1.5 text-[12px] font-semibold text-white transition hover:bg-slate-700"
+          >
+            Otvoriť
+            <ChevronRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+      </header>
+
+      <div className="m-4 grid grid-cols-3 gap-px border border-slate-200 bg-slate-200 p-px">
         {match.selections.map((selection) => {
-          const bookmaker = getBookmakerDisplay(selection.bookmaker);
+          const isTop = selection.selection === topSelection;
           return (
-            <div
-              key={selection.selection}
-              className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
-                    {resolveSelectionLabel(selection.selection, match.home_team, match.away_team)}
-                  </p>
-                  <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">
-                    {formatOdds(selection.odds)}
-                  </p>
-                </div>
-                <div
-                  className="rounded-full px-2.5 py-1 text-xs font-semibold"
-                  style={{
-                    backgroundColor: bookmaker.bgColor,
-                    color: bookmaker.color,
-                  }}
-                >
-                  {bookmaker.displayName}
-                </div>
+            <div key={selection.selection} className="bg-white p-4">
+              <div className="flex items-start justify-between gap-2">
+                <Kicker>
+                  {resolveSelectionLabel(selection.selection, match.home_team, match.away_team)}
+                </Kicker>
+                {isTop ? (
+                  <span className="bg-emerald-700 px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-white">
+                    Top kurz
+                  </span>
+                ) : null}
               </div>
-
-              <div className="mt-4 flex items-center justify-between text-sm text-slate-500">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="h-4 w-4 text-emerald-500" />
-                  <span>Najlepší kurz</span>
-                </div>
+              <p
+                className={cn(
+                  "mt-2 font-mono text-[28px] font-semibold tracking-[-0.02em] tabular-nums",
+                  isTop ? "text-emerald-700" : "text-slate-900",
+                )}
+              >
+                {formatOdds(selection.odds)}
+              </p>
+              <div className="mt-3 flex items-center justify-between gap-2">
+                <BookmakerChip bookmaker={selection.bookmaker} />
                 {selection.url ? (
                   <a
                     href={selection.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 font-medium text-slate-700 transition hover:text-slate-950"
+                    className="inline-flex items-center gap-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-slate-500 hover:text-slate-900"
                   >
                     Otvoriť
-                    <ExternalLink className="h-3.5 w-3.5" />
+                    <ExternalLink className="h-3 w-3" />
                   </a>
                 ) : null}
               </div>
-              <p className="mt-3 text-xs text-slate-400">
-                Checked {formatLastUpdated(selection.checked_at ?? selection.scraped_at)}
-              </p>
             </div>
           );
         })}

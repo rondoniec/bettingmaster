@@ -10,11 +10,11 @@ interface CountdownProps {
 }
 
 const URGENCY_STYLES: Record<CountdownUrgency, string> = {
-  live: "bg-red-50 text-red-700 ring-1 ring-red-200",
-  imminent: "bg-amber-50 text-amber-800 ring-1 ring-amber-200",
-  soon: "bg-blue-50 text-blue-700 ring-1 ring-blue-200",
-  later: "bg-slate-50 text-slate-600 ring-1 ring-slate-200",
-  done: "bg-slate-100 text-slate-500 ring-1 ring-slate-200",
+  live: "border-red-200 text-red-600",
+  imminent: "border-amber-200 text-amber-700",
+  soon: "border-slate-200 text-slate-700",
+  later: "border-slate-200 text-slate-500",
+  done: "border-slate-200 text-slate-400",
 };
 
 export function Countdown({ startTime, status, className }: CountdownProps) {
@@ -24,13 +24,13 @@ export function Countdown({ startTime, status, className }: CountdownProps) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium tabular-nums",
+        "inline-flex items-center gap-1 border bg-white px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase tracking-wider tabular-nums",
         URGENCY_STYLES[urgency],
-        className
+        className,
       )}
     >
       {urgency === "live" ? (
-        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" />
+        <span className="bm-pulse inline-block h-1.5 w-1.5 rounded-full bg-red-600" />
       ) : null}
       {label}
     </span>

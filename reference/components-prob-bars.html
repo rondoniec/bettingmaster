@@ -1,0 +1,161 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Probability Bars</title><link rel="stylesheet" href="_shared.css">
+<style>
+  .pb-wrap { padding: 20px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; font-family: inherit; }
+  .pb-title { font-size: 15px; font-weight: 600; color: #0f172a; letter-spacing: -0.01em; }
+  .pb-sub   { font-size: 12px; color: #64748b; margin-top: 4px; line-height: 1.5; }
+
+  .pb-cols-head {
+    display:grid; grid-template-columns: 130px repeat(3, 1fr) 80px;
+    gap: 12px; margin-top: 18px; padding-bottom: 10px; border-bottom: 1px solid #e2e8f0;
+  }
+  .pb-col { font-size: 11px; font-weight: 600; color: #64748b; letter-spacing: 0.06em; text-transform: uppercase; }
+  .pb-col .team { display: block; font-size: 13px; font-weight: 600; color: #0f172a; text-transform: none; letter-spacing: 0; margin-top: 2px; }
+  .pb-col.right { text-align: right; }
+
+  .pb-row {
+    display:grid; grid-template-columns: 130px repeat(3, 1fr) 80px;
+    gap: 12px; align-items: center; padding: 14px 0;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  .pb-label { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; color: #0f172a; }
+  .pb-label .dot { width: 8px; height: 8px; background: #0f172a; border-radius: 2px; }
+
+  /* Each cell: odds on top (the thing the bettor cares about),
+     implied probability bar underneath as secondary context. */
+  .pb-cell { display: flex; flex-direction: column; gap: 6px; position: relative; }
+  .pb-cell .odd  { font-size: 20px; font-weight: 600; color: #0f172a; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; line-height: 1; }
+  .pb-cell .pct  { font-size: 11px; color: #94a3b8; font-variant-numeric: tabular-nums; margin-top: 2px; }
+  .pb-cell .bar  { height: 6px; background: #f1f5f9; border-radius: 999px; overflow: hidden; position: relative; margin-top: 2px; }
+  .pb-cell .bar .fill { position: absolute; inset: 0 auto 0 0; background: #cbd5e1; border-radius: 999px; }
+
+  /* BEST VALUE = highest odds in column. Not related to probability. */
+  .pb-cell.best .odd  { color: #047857; }
+  .pb-cell.best::before {
+    content: 'BEST'; position: absolute; top: -2px; right: 0;
+    background: #047857; color: #fff; font-size: 9px; font-weight: 700;
+    letter-spacing: 0.08em; padding: 2px 6px; border-radius: 3px;
+  }
+
+  .pb-margin { font-size: 13px; color: #64748b; text-align: right; font-variant-numeric: tabular-nums; }
+
+  .pb-avg { background: #f8fafc; margin-top: 10px; padding: 14px 12px; border-radius: 8px; border: 1px solid #e2e8f0; }
+  .pb-avg .pb-label { color: #334155; }
+  .pb-avg .pb-cell .odd { color: #334155; font-weight: 500; }
+  .pb-avg .pb-cell .bar .fill { background: #94a3b8; }
+
+  .pb-legend { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 18px; font-size: 12px; color: #475569; margin-top: 14px; padding-top: 14px; border-top: 1px dashed #e2e8f0; }
+  .pb-legend .sw { display:inline-block; width: 14px; height: 6px; vertical-align: middle; margin-right: 6px; border-radius: 999px; }
+  .pb-legend b { color: #0f172a; font-weight: 600; }
+</style>
+</head>
+<body class="card"><div class="pb-wrap">
+
+<div style="display:flex; justify-content:space-between; align-items:flex-end; gap: 16px;">
+  <div>
+    <div class="pb-title">Odds for each result</div>
+    <div class="pb-sub">Higher odds = bigger payout for you. The <b style="color:#047857">BEST</b> tag marks the bookmaker paying the most per outcome. The bar below shows how likely each result is, based on the price.</div>
+  </div>
+  <div style="font-size: 11px; color: #64748b; text-align: right; white-space: nowrap;">3 bookmakers<br/>Updated 22:14</div>
+</div>
+
+<div class="pb-cols-head">
+  <div class="pb-col">Bookmaker</div>
+  <div class="pb-col">1 <span class="team">Real Madrid</span></div>
+  <div class="pb-col">X <span class="team">Draw</span></div>
+  <div class="pb-col">2 <span class="team">Bayern</span></div>
+  <div class="pb-col right">Margin</div>
+</div>
+
+<!-- Fortuna: odds 1.78 / 3.80 / 5.50 -->
+<div class="pb-row">
+  <div class="pb-label"><span class="dot"></span>Fortuna</div>
+  <div class="pb-cell">
+    <div class="odd">1.78</div>
+    <div class="pct">implied 56%</div>
+    <div class="bar"><div class="fill" style="width:56%"></div></div>
+  </div>
+  <div class="pb-cell best">
+    <div class="odd">3.80</div>
+    <div class="pct">implied 26%</div>
+    <div class="bar"><div class="fill" style="width:26%;background:#047857"></div></div>
+  </div>
+  <div class="pb-cell best">
+    <div class="odd">5.50</div>
+    <div class="pct">implied 18%</div>
+    <div class="bar"><div class="fill" style="width:18%;background:#047857"></div></div>
+  </div>
+  <div class="pb-margin">+4.8%</div>
+</div>
+
+<!-- Niké: odds 1.80 / 3.70 / 5.45 -->
+<div class="pb-row">
+  <div class="pb-label"><span class="dot"></span>Niké</div>
+  <div class="pb-cell best">
+    <div class="odd">1.80</div>
+    <div class="pct">implied 55%</div>
+    <div class="bar"><div class="fill" style="width:55%;background:#047857"></div></div>
+  </div>
+  <div class="pb-cell">
+    <div class="odd">3.70</div>
+    <div class="pct">implied 27%</div>
+    <div class="bar"><div class="fill" style="width:27%"></div></div>
+  </div>
+  <div class="pb-cell">
+    <div class="odd">5.45</div>
+    <div class="pct">implied 18%</div>
+    <div class="bar"><div class="fill" style="width:18%"></div></div>
+  </div>
+  <div class="pb-margin">+5.2%</div>
+</div>
+
+<!-- Tipsport: odds 1.82 / 3.65 / 5.50 — no "best" here -->
+<div class="pb-row" style="border-bottom: 0;">
+  <div class="pb-label"><span class="dot"></span>Tipsport</div>
+  <div class="pb-cell">
+    <div class="odd">1.82</div>
+    <div class="pct">implied 54%</div>
+    <div class="bar"><div class="fill" style="width:54%"></div></div>
+  </div>
+  <div class="pb-cell">
+    <div class="odd">3.65</div>
+    <div class="pct">implied 28%</div>
+    <div class="bar"><div class="fill" style="width:28%"></div></div>
+  </div>
+  <div class="pb-cell">
+    <div class="odd">5.50</div>
+    <div class="pct">implied 18%</div>
+    <div class="bar"><div class="fill" style="width:18%"></div></div>
+  </div>
+  <div class="pb-margin">+6.1%</div>
+</div>
+
+<div class="pb-avg">
+  <div class="pb-row" style="border:0; padding:0;">
+    <div class="pb-label"><span class="dot" style="background:#94a3b8"></span>Market average</div>
+    <div class="pb-cell">
+      <div class="odd">1.80</div>
+      <div class="pct">implied 55%</div>
+      <div class="bar" style="background:#e2e8f0"><div class="fill" style="width:55%"></div></div>
+    </div>
+    <div class="pb-cell">
+      <div class="odd">3.72</div>
+      <div class="pct">implied 27%</div>
+      <div class="bar" style="background:#e2e8f0"><div class="fill" style="width:27%"></div></div>
+    </div>
+    <div class="pb-cell">
+      <div class="odd">5.48</div>
+      <div class="pct">implied 18%</div>
+      <div class="bar" style="background:#e2e8f0"><div class="fill" style="width:18%"></div></div>
+    </div>
+    <div class="pb-margin">+5.4%</div>
+  </div>
+</div>
+
+<div class="pb-legend">
+  <span><b>Odds</b> — what a bookmaker pays you if the outcome happens. <b>Higher = better for you.</b></span>
+  <span><b>Implied probability</b> — how likely the bookmaker thinks the result is. Derived from the odds.</span>
+  <span><span class="sw" style="background:#047857"></span><b>Best</b>: highest odds in this column</span>
+  <span><span class="sw" style="background:#94a3b8"></span>Market average across all books</span>
+</div>
+
+</div></body></html>

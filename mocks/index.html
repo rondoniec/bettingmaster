@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>BettingMaster — Web UI Kit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --sans: 'Geist', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  }
+  *,*::before,*::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; font-family: var(--sans); background: #f8fafc; color: #0f172a; -webkit-font-smoothing: antialiased; font-feature-settings: 'ss01','cv11'; }
+  button, input { font-family: inherit; }
+  @keyframes bmPulse { 0%,100%{opacity:1} 50%{opacity:.45} }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="Primitives.jsx"></script>
+<script type="text/babel" src="Header.jsx"></script>
+<script type="text/babel" src="HeroBoard.jsx"></script>
+<script type="text/babel" src="BestOddsMatchCard.jsx"></script>
+<script type="text/babel" src="OddsTable.jsx"></script>
+<script type="text/babel" src="OutcomeBars.jsx"></script>
+<script type="text/babel">
+const { useState, useMemo } = React;
+
+const MATCHES = [
+  { id:'m1', league:'LA LIGA', home:'Real Madrid', away:'Barcelona', time:'Today 20:45', status:'live', combined_margin:1.42,
+    bookmakers:['fortuna','nike','doxxbet','tipsport','tipos'],
+    selections:[
+      { label:'Real Madrid', odds:2.05, bookmaker:'fortuna' },
+      { label:'Draw',        odds:3.85, bookmaker:'tipsport' },
+      { label:'Barcelona',   odds:3.45, bookmaker:'doxxbet' },
+    ],
+    rows:[
+      { bookmaker:'fortuna',    odds:{home:2.05,draw:3.70,away:3.35} },
+      { bookmaker:'nike',       odds:{home:2.00,draw:3.80,away:3.40} },
+      { bookmaker:'doxxbet',    odds:{home:1.98,draw:3.75,away:3.45} },
+      { bookmaker:'tipsport',   odds:{home:2.02,draw:3.85,away:3.30} },
+      { bookmaker:'tipos',      odds:{home:1.95,draw:3.65,away:3.42} },
+    ]},
+  { id:'m2', league:'PREMIER LEAGUE', home:'Arsenal', away:'Chelsea', time:'Today 22:00', status:'upcoming', combined_margin:-0.42,
+    bookmakers:['fortuna','nike','tipsport','polymarket'],
+    selections:[
+      { label:'Arsenal',  odds:1.78, bookmaker:'fortuna' },
+      { label:'Draw',     odds:4.20, bookmaker:'nike' },
+      { label:'Chelsea',  odds:4.65, bookmaker:'tipsport' },
+    ],
+    rows:[
+      { bookmaker:'fortuna',    odds:{home:1.78,draw:4.00,away:4.50} },
+      { bookmaker:'nike',       odds:{home:1.75,draw:4.20,away:4.40} },
+      { bookmaker:'tipsport',   odds:{home:1.76,draw:4.10,away:4.65} },
+      { bookmaker:'polymarket', odds:{home:1.72,draw:4.05,away:4.55} },
+    ]},
+  { id:'m3', league:'CHAMPIONS LEAGUE', home:'Bayern Munich', away:'PSG', time:'Tomorrow 21:00', status:'upcoming', combined_margin:4.85,
+    bookmakers:['fortuna','nike','doxxbet','tipsport'],
+    selections:[
+      { label:'Bayern Munich', odds:2.20, bookmaker:'doxxbet' },
+      { label:'Draw',          odds:3.60, bookmaker:'tipsport' },
+      { label:'PSG',           odds:3.10, bookmaker:'nike' },
+    ],
+    rows:[
+      { bookmaker:'fortuna',  odds:{home:2.15,draw:3.50,away:3.05} },
+      { bookmaker:'nike',     odds:{home:2.18,draw:3.55,away:3.10} },
+      { bookmaker:'doxxbet',  odds:{home:2.20,draw:3.45,away:3.00} },
+      { bookmaker:'tipsport', odds:{home:2.12,draw:3.60,away:3.08} },
+    ]},
+];
+const SUREBETS = [{ profit:2.14 },{ profit:1.05 }];
+
+function App() {
+  const [view, setView] = useState('home');
+  const [matchId, setMatchId] = useState(null);
+  const [date, setDate] = useState('today');
+  const [sport, setSport] = useState(null);
+  const [sortMode, setSortMode] = useState('kickoff');
+  const [statusFilter, setStatusFilter] = useState('live');
+
+  const filtered = useMemo(() => {
+    let ms = MATCHES.filter(m => statusFilter === 'live' ? m.status === 'live' : m.status !== 'live');
+    if (sortMode === 'edge') ms = [...ms].sort((a,b) => a.combined_margin - b.combined_margin);
+    if (sortMode === 'coverage') ms = [...ms].sort((a,b) => b.bookmakers.length - a.bookmakers.length);
+    return ms;
+  }, [statusFilter, sortMode]);
+
+  const liveCount = MATCHES.filter(m => m.status === 'live').length;
+  const upcomingCount = MATCHES.length - liveCount;
+  const bestMargin = Math.min(...MATCHES.map(m => m.combined_margin));
+  const activeBookmakers = ['fortuna','nike','doxxbet','tipsport','tipos','polymarket'];
+  const match = MATCHES.find(m => m.id === matchId);
+
+  return (
+    <>
+      <Header onSearch={() => {}} />
+      <main style={{ maxWidth: 1280, margin: '0 auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+        {view === 'home' && (
+          <>
+            <HeroBoard {...{date,setDate,sport,setSport,sortMode,setSortMode,statusFilter,setStatusFilter,liveCount,upcomingCount,matches:MATCHES,surebets:SUREBETS,bestMargin,activeBookmakers}} />
+            <SurebetBanner count={SUREBETS.length} bestProfit={2.14} onOpen={() => {}} />
+            <section style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 12, paddingBottom: 8, borderBottom: '1px solid #e2e8f0' }}>
+                <div>
+                  <h2 style={{ fontSize: 18, fontWeight: 600, letterSpacing: '-0.015em', color: '#0f172a', margin: 0 }}>Best odds board</h2>
+                  <p style={{ marginTop: 4, fontSize: 12, color: '#64748b', fontFamily: 'var(--mono)' }}>{filtered.length} {statusFilter} matches · {date}</p>
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {filtered.map(m => (
+                  <BestOddsMatchCard key={m.id} match={m} onOpen={() => { setMatchId(m.id); setView('match'); window.scrollTo(0,0); }} />
+                ))}
+                {filtered.length === 0 && (
+                  <div style={{ border: '1px dashed #cbd5e1', background: '#fff', padding: '48px 24px', textAlign: 'center' }}>
+                    <h2 style={{ fontSize: 16, fontWeight: 600, color: '#0f172a', margin: 0 }}>No {statusFilter} comparisons yet</h2>
+                    <p style={{ maxWidth: 520, margin: '8px auto 0', fontSize: 13, lineHeight: 1.5, color: '#64748b' }}>The current filters did not produce any cross-bookmaker matches.</p>
+                  </div>
+                )}
+              </div>
+            </section>
+          </>
+        )}
+        {view === 'match' && match && (
+          <>
+            <a onClick={() => setView('home')} style={{ fontSize: 12, color: '#475569', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: 'var(--mono)' }}>← Back to board</a>
+            <BestOddsMatchCard match={match} onOpen={() => {}} />
+            <OutcomeBars match={match} />
+            <div>
+              <h2 style={{ fontSize: 16, fontWeight: 600, color: '#0f172a', margin: '0 0 12px 0' }}>All bookmakers</h2>
+              <OddsTable match={match} />
+            </div>
+          </>
+        )}
+      </main>
+      <footer style={{ marginTop: 48, borderTop: '1px solid #e2e8f0', background: '#fff', padding: '20px 0', textAlign: 'center', fontSize: 12, color: '#64748b' }}>
+        <p style={{ margin: 0 }}>BettingMaster © 2026 — live bookmaker comparison</p>
+        <p style={{ marginTop: 4, fontSize: 11, color: '#94a3b8' }}>Play responsibly. 18+. Odds are informational.</p>
+      </footer>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

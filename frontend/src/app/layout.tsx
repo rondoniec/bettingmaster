@@ -1,9 +1,23 @@
 import type { Metadata } from "next";
+import { Geist, JetBrains_Mono } from "next/font/google";
 
 import { Header } from "@/components/Header";
 import { QueryProvider } from "@/providers/QueryProvider";
 
 import "./globals.css";
+
+const geist = Geist({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
+const jetbrains = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  weight: ["400", "500", "600"],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "BettingMaster - Best Odds",
@@ -17,14 +31,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className="min-h-screen bg-slate-50 antialiased">
+    <html lang="sk" suppressHydrationWarning className={`${geist.variable} ${jetbrains.variable}`}>
+      <body className="min-h-screen bg-white text-slate-900 antialiased">
         <QueryProvider>
           <Header />
-          <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">{children}</main>
-          <footer className="mt-12 border-t border-slate-200 bg-white py-6 text-center text-sm text-slate-500">
-            <p>BettingMaster &copy; {new Date().getFullYear()} - live bookmaker comparison</p>
-            <p className="mt-1 text-xs text-slate-400">Play responsibly. 18+. Odds are informational.</p>
+          <main className="mx-auto max-w-screen-xl px-4 py-6 sm:px-6">{children}</main>
+          <footer className="mt-12 border-t border-slate-200 bg-white py-6 text-center font-mono text-[11px] uppercase tracking-wider text-slate-500">
+            <p>BettingMaster &copy; {new Date().getFullYear()} — live bookmaker comparison</p>
+            <p className="mt-1 text-[10px] text-slate-400">Hraj zodpovedne. 18+. Kurzy sú informačné.</p>
           </footer>
         </QueryProvider>
       </body>

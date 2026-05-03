@@ -1,0 +1,236 @@
+/* ==========================================================================
+   BettingMaster — Colors & Type
+   Lifted 1:1 from frontend/src/app/globals.css and tailwind.config.ts
+   (shadcn-style HSL tokens + Tailwind slate neutrals + bookmaker brand
+   palette + emerald success / rose live / amber warning accents).
+   ========================================================================== */
+
+:root {
+  /* --- Shadcn semantic tokens (values are raw HSL triplets so they still
+     work inside hsl(var(--foo) / <alpha-value>) the way the codebase uses
+     them).  Equivalent hex comments are included for quick eyeballing. --- */
+
+  --background: 0 0% 100%;            /* #ffffff */
+  --foreground: 222.2 84% 4.9%;       /* #020817 slate-950 */
+  --card: 0 0% 100%;
+  --card-foreground: 222.2 84% 4.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222.2 84% 4.9%;
+  --primary: 221.2 83.2% 53.3%;       /* #2563eb blue-600 */
+  --primary-foreground: 210 40% 98%;
+  --secondary: 210 40% 96.1%;         /* #f1f5f9 slate-100 */
+  --secondary-foreground: 222.2 47.4% 11.2%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;  /* #64748b slate-500 */
+  --accent: 210 40% 96.1%;
+  --accent-foreground: 222.2 47.4% 11.2%;
+  --destructive: 0 84.2% 60.2%;       /* #ef4444 red-500 */
+  --destructive-foreground: 210 40% 98%;
+  --border: 214.3 31.8% 91.4%;        /* #e2e8f0 slate-200 */
+  --input: 214.3 31.8% 91.4%;
+  --ring: 221.2 83.2% 53.3%;
+  --radius: 0.5rem;
+
+  /* --- Concrete base palette (Tailwind slate scale — the codebase leans on
+     slate heavily, named utilities everywhere: text-slate-500, border-slate-200
+     etc.) --- */
+  --slate-50:  #f8fafc;
+  --slate-100: #f1f5f9;
+  --slate-200: #e2e8f0;
+  --slate-300: #cbd5e1;
+  --slate-400: #94a3b8;
+  --slate-500: #64748b;
+  --slate-600: #475569;
+  --slate-700: #334155;
+  --slate-800: #1e293b;
+  --slate-900: #0f172a;
+  --slate-950: #020617;
+
+  /* --- Brand / action --- */
+  --blue-50:  #eff6ff;
+  --blue-100: #dbeafe;
+  --blue-400: #60a5fa;
+  --blue-500: #3b82f6;
+  --blue-600: #2563eb;  /* wordmark, primary CTA-as-link */
+  --blue-700: #1d4ed8;
+
+  /* --- Semantic accents (surebets, live, warnings) --- */
+  --emerald-50:  #ecfdf5;
+  --emerald-100: #d1fae5;
+  --emerald-200: #a7f3d0;
+  --emerald-500: #10b981;
+  --emerald-600: #059669;
+  --emerald-700: #047857;
+  --emerald-800: #065f46;
+
+  --rose-50:  #fff1f2;
+  --rose-100: #ffe4e6;
+  --rose-600: #e11d48;
+  --rose-700: #be123c;
+
+  --red-100: #fee2e2;          /* live badge bg */
+  --red-600: #dc2626;          /* live badge fg */
+
+  --amber-50:  #fffbeb;
+  --amber-100: #fef3c7;
+  --amber-200: #fde68a;
+  --amber-700: #b45309;
+  --amber-800: #92400e;
+
+  /* --- Bookmaker brand colors.  Corrected to match each bookmaker's own
+     product / logo instead of the placeholder values that shipped in
+     lib/constants.ts.  Each pair = (primary surface, accent).  Used as
+     chip backgrounds — never as full-section fills. --- */
+  --bk-fortuna:       #17171b;   /* accent: near-black wordmark */
+  --bk-fortuna-bg:    #ffdb01;   /* surface: Fortuna yellow */
+  --bk-nike:          #ff8000;   /* accent: Niké orange */
+  --bk-nike-bg:       #0d0d0d;   /* surface: black */
+  --bk-doxxbet:       #f31537;   /* accent: DOXX red */
+  --bk-doxxbet-bg:    #272727;   /* surface: near-black */
+  --bk-tipsport:      #ff8e13;   /* accent: CTA orange */
+  --bk-tipsport-bg:   #167be8;   /* surface: Tipsport blue */
+  --bk-tipos:         #ffffff;   /* accent: white wordmark */
+  --bk-tipos-bg:      #e30613;   /* surface: Tipos red */
+  --bk-polymarket:    #2d9cdb;   /* accent: signature blue */
+  --bk-polymarket-bg: #0d1117;   /* surface: near-black */
+
+  /* --- Semantic aliases (names used elsewhere in this design system) --- */
+  --bg:           #f8fafc;              /* body bg — slate-50 */
+  --bg-elevated:  #ffffff;              /* cards */
+  --bg-muted:     var(--slate-50);
+  --bg-hero:      linear-gradient(135deg, #f8fbff 0%, #ffffff 48%, #f6fff8 100%);
+  --fg1:          var(--slate-950);     /* headlines, strongest text */
+  --fg2:          var(--slate-700);     /* body */
+  --fg3:          var(--slate-500);     /* meta, labels */
+  --fg-muted:     var(--slate-400);     /* placeholders, separators */
+
+  --border-1:     var(--slate-200);     /* default border */
+  --border-soft:  var(--slate-100);     /* ultra-subtle divider (OddsTable rows) */
+  --border-hero:  rgba(255,255,255,0.7);/* on glassy hero cards */
+
+  /* --- Signature shadow (literally shows up in every elevated surface).
+     Low-opacity, long-throw, slate-tinted.  Keep this exact value. --- */
+  --shadow-card:    0 18px 45px -32px rgba(15, 23, 42, 0.45);
+  --shadow-hero:    0 28px 80px -40px rgba(15, 23, 42, 0.45);
+  --shadow-surebet: 0 24px 70px -44px rgba(5, 150, 105, 0.45);
+  --shadow-sm:      0 1px 2px 0 rgba(0, 0, 0, 0.05);
+
+  /* --- Radii — this app deliberately mixes four tiers --- */
+  --r-sm:    0.375rem;    /*  6px — small chips on OddsChip */
+  --r-md:    0.5rem;      /*  8px — inputs, buttons inside cells */
+  --r-lg:    0.75rem;     /* 12px — odds-table wrapper, xl cells */
+  --r-xl:    1rem;        /* 16px — inner cells (rounded-2xl) */
+  --r-2xl:   1.5rem;      /* 24px — outer cards (rounded-3xl) */
+  --r-hero:  1.75rem;     /* 28px — hero wrappers (rounded-[1.75rem]) */
+  --r-hero-lg: 2rem;      /* 32px — homepage hero / surebet hero (rounded-[2rem]) */
+  --r-pill:  9999px;
+
+  /* --- Spacing (Tailwind scale — only the rungs the app actually lands on) --- */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+
+  /* --- Type --- */
+  --font-sans: "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Menlo", "Monaco", monospace;
+  --tabular-nums: "tnum", "lnum";
+
+  /* Fluid-ish scale — matches the literal sizes used: text-5xl hero down to
+     text-[10px] microlabels.  Same ramp as Tailwind defaults. */
+  --t-micro:   0.625rem;   /* 10px — uppercase badge labels, "Live" chip */
+  --t-xs:      0.75rem;    /* 12px — bookmaker table headers */
+  --t-sm:      0.875rem;   /* 14px — body, meta */
+  --t-base:    1rem;       /* 16px */
+  --t-lg:      1.125rem;   /* 18px — card sub-heads */
+  --t-xl:      1.25rem;    /* 20px — card titles */
+  --t-2xl:     1.5rem;     /* 24px — section titles */
+  --t-3xl:     1.875rem;   /* 30px — odds numbers in BestOdds cards */
+  --t-4xl:     2.25rem;    /* 36px — page H1 (mobile) */
+  --t-5xl:     3rem;       /* 48px — hero H1 (desktop) */
+
+  /* Letter-spacing — the signature .24em uppercase label on every hero
+     subhead is unmistakable. */
+  --track-tight:     -0.01em;
+  --track-normal:    0;
+  --track-wide:      0.05em;
+  --track-uppercase: 0.24em;   /* kicker labels */
+  --track-widest:    0.22em;   /* alternate kicker (filters panel) */
+}
+
+/* --------------------------------------------------------------------------
+   Semantic type styles.  Use these names from components: .bm-h1 / .bm-h2 /
+   .bm-kicker / .bm-body / .bm-meta / .bm-odds etc.
+   -------------------------------------------------------------------------- */
+
+html, body {
+  font-family: var(--font-sans);
+  color: var(--fg1);
+  background: var(--bg);
+  font-feature-settings: "rlig" 1, "calt" 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+.bm-h1 {
+  font-size: var(--t-5xl);
+  line-height: 1.05;
+  font-weight: 600;
+  letter-spacing: var(--track-tight);
+  color: var(--fg1);
+}
+@media (max-width: 640px) {
+  .bm-h1 { font-size: var(--t-4xl); }
+}
+
+.bm-h2 {
+  font-size: var(--t-2xl);
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: var(--track-tight);
+  color: var(--fg1);
+}
+
+.bm-h3 {
+  font-size: var(--t-xl);
+  line-height: 1.3;
+  font-weight: 600;
+  color: var(--fg1);
+}
+
+.bm-kicker {
+  font-size: var(--t-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--track-uppercase);
+  color: var(--fg3);
+}
+
+.bm-body {
+  font-size: var(--t-sm);
+  line-height: 1.6;
+  color: var(--fg2);
+}
+
+.bm-meta {
+  font-size: var(--t-sm);
+  color: var(--fg3);
+}
+
+/* The number itself — always tabular, always heavy */
+.bm-odds {
+  font-size: var(--t-3xl);
+  font-weight: 600;
+  letter-spacing: var(--track-tight);
+  font-variant-numeric: tabular-nums;
+  color: var(--fg1);
+}
+
+.bm-mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}

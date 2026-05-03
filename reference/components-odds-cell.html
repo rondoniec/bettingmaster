@@ -1,0 +1,94 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Odds Cell</title><link rel="stylesheet" href="_shared.css">
+<style>
+  .c-wrap { padding: 20px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; font-family: inherit; width: 100%; }
+  .c-title { font-size: 15px; font-weight: 600; color: #0f172a; letter-spacing: -0.01em; }
+  .c-sub   { font-size: 12px; color: #64748b; margin-top: 4px; line-height: 1.5; }
+  .c-group-head { font-size: 11px; font-weight: 600; color: #64748b; letter-spacing: 0.06em; text-transform: uppercase; margin-top: 18px; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0; }
+  .c-legend { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 18px; font-size: 12px; color: #475569; margin-top: 14px; padding-top: 14px; border-top: 1px dashed #e2e8f0; }
+  .c-legend b { color: #0f172a; font-weight: 600; }
+
+  .cells { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 14px; }
+
+  .cell {
+    position: relative; border: 1px solid #e2e8f0; background: #f8fafc;
+    border-radius: 12px; padding: 14px 14px 12px;
+  }
+  .cell .selection {
+    font-size: 11px; font-weight: 600; color: #64748b;
+    letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .cell .team { display: block; font-size: 13px; font-weight: 600; color: #0f172a; margin-top: 2px; letter-spacing: 0; text-transform: none; }
+  .cell .odd { font-size: 28px; font-weight: 600; color: #0f172a; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; margin-top: 10px; line-height: 1; }
+  .cell .implied { font-size: 11px; color: #94a3b8; font-variant-numeric: tabular-nums; margin-top: 2px; }
+  .cell .bar { height: 6px; background: #f1f5f9; border-radius: 999px; overflow: hidden; margin-top: 8px; position: relative; }
+  .cell .bar .fill { position: absolute; inset: 0 auto 0 0; background: #cbd5e1; border-radius: 999px; }
+  .cell .book { margin-top: 10px; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; }
+  .cell .book .sw { width: 10px; height: 10px; border-radius: 2px; }
+
+  .cell.best { background: #ffffff; border-color: #047857; }
+  .cell.best .odd { color: #047857; }
+  .cell.best .bar .fill { background: #047857; }
+  .cell.best::before {
+    content: 'BEST'; position: absolute; top: 10px; right: 10px;
+    background: #047857; color: #fff; font-size: 9px; font-weight: 700;
+    letter-spacing: 0.08em; padding: 2px 6px; border-radius: 3px;
+  }
+
+  .cell.empty { background: #f8fafc; border-style: dashed; border-color: #cbd5e1; }
+  .cell.empty .odd { color: #94a3b8; font-weight: 400; }
+  .cell.empty .book { color: #cbd5e1; }
+</style>
+</head>
+<body class="card"><div class="c-wrap">
+
+<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px">
+  <div>
+    <div class="c-title">Outcome cell — three states</div>
+    <div class="c-sub"><b style="color:#0f172a">Default</b>: a price from one bookmaker. <b style="color:#047857">Best</b>: highest odds we've found for this outcome — tagged, green-numbered, solid-border. <b style="color:#94a3b8">Empty</b>: this bookmaker doesn't quote this market.</div>
+  </div>
+  <div style="font-size:11px;color:#64748b;text-align:right;white-space:nowrap">3 states</div>
+</div>
+
+<div class="c-group-head">Side by side — same match, three selections</div>
+<div class="cells">
+
+  <!-- Default -->
+  <div class="cell">
+    <div class="selection">1 <span class="team">Real Madrid</span></div>
+    <div class="odd">1.78</div>
+    <div class="implied">implied 56%</div>
+    <div class="bar"><div class="fill" style="width:56%"></div></div>
+    <div class="book" style="color:#ff8000">
+      <span class="sw" style="background:#0d0d0d"></span>Niké
+    </div>
+  </div>
+
+  <!-- Best -->
+  <div class="cell best">
+    <div class="selection">X <span class="team">Draw</span></div>
+    <div class="odd">3.85</div>
+    <div class="implied">implied 26%</div>
+    <div class="bar"><div class="fill" style="width:26%"></div></div>
+    <div class="book" style="color:#ff8e13">
+      <span class="sw" style="background:#167be8"></span>Tipsport
+    </div>
+  </div>
+
+  <!-- Empty -->
+  <div class="cell empty">
+    <div class="selection">2 <span class="team" style="color:#94a3b8">Bayern Munich</span></div>
+    <div class="odd">—</div>
+    <div class="implied">no quote</div>
+    <div class="bar" style="visibility:hidden"></div>
+    <div class="book">Not offered</div>
+  </div>
+
+</div>
+
+<div class="c-legend">
+  <span><b>Odds</b> — what a bookmaker pays per unit staked. <b>Higher = better for the bettor.</b></span>
+  <span><b>Implied probability</b> — derived from the odds (1/odd). Shown under the bar for context only.</span>
+  <span><span style="display:inline-block;width:14px;height:6px;background:#047857;border-radius:999px;vertical-align:middle;margin-right:6px"></span><b>Best</b>: highest odds across all bookmakers for this outcome</span>
+  <span><span style="display:inline-block;width:14px;height:6px;background:#cbd5e1;border-radius:999px;vertical-align:middle;margin-right:6px"></span>Default: one bookmaker's quote</span>
+</div>
+</div></body></html>

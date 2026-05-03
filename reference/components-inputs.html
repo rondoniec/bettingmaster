@@ -1,0 +1,89 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Input & Search</title><link rel="stylesheet" href="_shared.css">
+<style>
+  .c-wrap { padding: 20px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; font-family: inherit; width: 100%; }
+  .c-title { font-size: 15px; font-weight: 600; color: #0f172a; letter-spacing: -0.01em; }
+  .c-sub   { font-size: 12px; color: #64748b; margin-top: 4px; line-height: 1.5; }
+  .c-group-head { font-size: 11px; font-weight: 600; color: #64748b; letter-spacing: 0.06em; text-transform: uppercase; margin-top: 18px; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0; }
+  .c-row { padding: 14px 0; border-bottom: 1px solid #f1f5f9; }
+  .c-row:last-child { border-bottom: 0; }
+  .c-meta { font-size: 11px; color: #64748b; font-family: ui-monospace,"SF Mono",Menlo,monospace; margin-top: 6px; }
+  .input-wrap { position: relative; max-width: 520px; }
+  .input-wrap svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); }
+  .input-wrap input { width: 100%; padding: 10px 90px 10px 36px; border: 1px solid #e2e8f0; background: #f8fafc; border-radius: 9999px; font-size: 14px; outline: none; font-family: inherit; color: #0f172a; }
+  .input-wrap input.focused { background: #fff; border-color: #60a5fa; box-shadow: 0 0 0 3px #dbeafe; }
+  .input-wrap input.empty { color: #94a3b8; }
+  .input-wrap .submit { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); background: #0f172a; color: #fff; padding: 6px 14px; border-radius: 9999px; font-size: 12px; font-weight: 600; border: none; cursor: pointer; }
+  .status-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .status-chip { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 9999px; font-size: 13px; font-weight: 500; border: 1px solid transparent; }
+  .status-chip .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .status-chip.ok { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+  .status-chip.warn { background: #fffbeb; color: #b45309; border-color: #fde68a; }
+  .status-chip.off { background: #f1f5f9; color: #64748b; border-color: #e2e8f0; }
+  .c-legend { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 18px; font-size: 12px; color: #475569; margin-top: 14px; padding-top: 14px; border-top: 1px dashed #e2e8f0; }
+  .c-legend b { color: #0f172a; font-weight: 600; }
+</style>
+</head>
+<body class="card"><div class="c-wrap">
+
+<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px">
+  <div>
+    <div class="c-title">Search and feed-status chips</div>
+    <div class="c-sub">One search input (pill-shaped, with inline submit) and three feed states: <b style="color:#047857">on</b>, <b style="color:#b45309">reconnecting</b>, <b style="color:#64748b">paused</b>.</div>
+  </div>
+  <div style="font-size:11px;color:#64748b;text-align:right;white-space:nowrap">3 feed states</div>
+</div>
+
+<div class="c-group-head">Search — empty, typed, focused</div>
+<div class="c-row">
+  <div class="input-wrap">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+    <input class="empty" value="" placeholder="Search match or team">
+    <button class="submit">Search</button>
+  </div>
+  <div class="c-meta">empty · bg #f8fafc · border #e2e8f0</div>
+</div>
+<div class="c-row">
+  <div class="input-wrap">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+    <input value="Real Madrid">
+    <button class="submit">Search</button>
+  </div>
+  <div class="c-meta">typed · same surface</div>
+</div>
+<div class="c-row">
+  <div class="input-wrap">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+    <input class="focused" value="Real Madrid">
+    <button class="submit">Search</button>
+  </div>
+  <div class="c-meta">focused · bg #fff · border #60a5fa · ring #dbeafe</div>
+</div>
+
+<div class="c-group-head">Feed status</div>
+<div class="c-row">
+  <div class="status-row">
+    <span class="status-chip ok"><span class="dot" style="background:#10b981"></span>Live updates on</span>
+    <span style="font-size:12px;color:#64748b">Healthy connection, odds refreshing.</span>
+  </div>
+  <div class="c-meta">bg #ecfdf5 · fg #047857 · dot #10b981</div>
+</div>
+<div class="c-row">
+  <div class="status-row">
+    <span class="status-chip warn"><span class="dot" style="background:#f59e0b"></span>Reconnecting live feed</span>
+    <span style="font-size:12px;color:#64748b">Temporary interruption, last odds shown.</span>
+  </div>
+  <div class="c-meta">bg #fffbeb · fg #b45309 · dot #f59e0b</div>
+</div>
+<div class="c-row">
+  <div class="status-row">
+    <span class="status-chip off"><span class="dot" style="background:#94a3b8"></span>Live feed paused</span>
+    <span style="font-size:12px;color:#64748b">Tab backgrounded or user-paused.</span>
+  </div>
+  <div class="c-meta">bg #f1f5f9 · fg #64748b · dot #94a3b8</div>
+</div>
+
+<div class="c-legend">
+  <span><b>Pill radius 9999px</b> everywhere — input and feed chips share the capsule shape.</span>
+  <span><b>Focus ring</b> on the input uses the same blue as the "All sports" filter for consistency.</span>
+</div>
+</div></body></html>

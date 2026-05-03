@@ -1,37 +1,16 @@
+// Brand-color palette sampled from each bookmaker's product. The `bgColor`
+// is used as a small marker dot inside the neutral chip — full-color fills
+// were dropped because they made the bookmakers visually dominate the data.
 export const BOOKMAKERS: Record<
   string,
   { displayName: string; color: string; bgColor: string }
 > = {
-  fortuna: {
-    displayName: "Fortuna",
-    color: "#e4003b",
-    bgColor: "#fde8ed",
-  },
-  nike: {
-    displayName: "Nike",
-    color: "#f5a623",
-    bgColor: "#fef3e2",
-  },
-  doxxbet: {
-    displayName: "DOXXbet",
-    color: "#00a859",
-    bgColor: "#e6f7ef",
-  },
-  tipsport: {
-    displayName: "Tipsport",
-    color: "#0066cc",
-    bgColor: "#e6f0fa",
-  },
-  tipos: {
-    displayName: "Tipos",
-    color: "#8b5cf6",
-    bgColor: "#f0ebfe",
-  },
-  polymarket: {
-    displayName: "Polymarket",
-    color: "#0038ff",
-    bgColor: "#e6ecff",
-  },
+  fortuna:    { displayName: "Fortuna",    color: "#17171b", bgColor: "#ffdb01" },
+  nike:       { displayName: "Niké",       color: "#ff8000", bgColor: "#0d0d0d" },
+  doxxbet:    { displayName: "DOXXbet",    color: "#f31537", bgColor: "#272727" },
+  tipsport:   { displayName: "Tipsport",   color: "#ff8e13", bgColor: "#167be8" },
+  tipos:      { displayName: "Tipos",      color: "#ffffff", bgColor: "#e30613" },
+  polymarket: { displayName: "Polymarket", color: "#2d9cdb", bgColor: "#0d1117" },
 };
 
 export const BOOKMAKER_ORDER = ["fortuna", "nike", "doxxbet", "tipsport", "tipos", "polymarket"];

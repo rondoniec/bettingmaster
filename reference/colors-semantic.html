@@ -1,0 +1,100 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Semantic Colors</title><link rel="stylesheet" href="_shared.css">
+<style>
+  .c-wrap { padding: 20px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; font-family: inherit; width: 100%; }
+  .c-title { font-size: 15px; font-weight: 600; color: #0f172a; letter-spacing: -0.01em; }
+  .c-sub   { font-size: 12px; color: #64748b; margin-top: 4px; line-height: 1.5; }
+  .c-group-head { font-size: 11px; font-weight: 600; color: #64748b; letter-spacing: 0.06em; text-transform: uppercase; margin-top: 18px; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0; }
+  .c-row { display: grid; grid-template-columns: 14px 80px 1fr auto; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+  .c-row:last-child { border-bottom: 0; }
+  .c-row .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .c-row .name { font-weight: 600; color: #0f172a; }
+  .c-row .use { color: #64748b; }
+  .c-row .hex { font-family: ui-monospace,"SF Mono",Menlo,monospace; font-size: 11px; color: #94a3b8; }
+  .c-legend { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 18px; font-size: 12px; color: #475569; margin-top: 14px; padding-top: 14px; border-top: 1px dashed #e2e8f0; }
+  .c-legend b { color: #0f172a; font-weight: 600; }
+</style>
+</head>
+<body class="card"><div class="c-wrap">
+
+<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px">
+  <div>
+    <div class="c-title">Semantic accents</div>
+    <div class="c-sub">Five dots. Each carries a single meaning. Used as <b>indicators</b> next to data — never as full fills, badges, or pill backgrounds.</div>
+  </div>
+  <div style="font-size:11px;color:#64748b;text-align:right;white-space:nowrap">5 accents</div>
+</div>
+
+<div class="c-group-head">Accent map</div>
+
+<div class="c-row">
+  <span class="dot" style="background:#0f172a"></span>
+  <span class="name">Live</span>
+  <span class="use">Match in progress · also primary action text</span>
+  <span class="hex">#0f172a</span>
+</div>
+
+<div class="c-row">
+  <span class="dot" style="background:#047857"></span>
+  <span class="name">Best</span>
+  <span class="use">Highest odds for the bettor · tightest margin</span>
+  <span class="hex">#047857</span>
+</div>
+
+<div class="c-row">
+  <span class="dot" style="background:#94a3b8"></span>
+  <span class="name">Mid</span>
+  <span class="use">Typical bookmaker margin · neutral indicator</span>
+  <span class="hex">#94a3b8</span>
+</div>
+
+<div class="c-row">
+  <span class="dot" style="background:#cbd5e1"></span>
+  <span class="name">Wide</span>
+  <span class="use">Poor value · skip or shop around</span>
+  <span class="hex">#cbd5e1</span>
+</div>
+
+<div class="c-row">
+  <span class="dot" style="background:#b45309"></span>
+  <span class="name">Stale</span>
+  <span class="use">Reconnecting feed · last odds shown</span>
+  <span class="hex">#b45309</span>
+</div>
+
+<div class="c-group-head">In context — how they actually appear</div>
+
+<div style="padding: 14px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+  <div style="border:1px solid #e2e8f0; border-radius:6px; padding: 12px;">
+    <div style="font-size:11px;color:#64748b;letter-spacing:0.06em;text-transform:uppercase">Match row</div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
+      <span style="width:6px;height:6px;border-radius:50%;background:#0f172a"></span>
+      <span style="font-size:13px;font-weight:600;color:#0f172a">LIVE</span>
+      <span style="font-size:13px;color:#475569">Real Madrid vs Bayern</span>
+      <span style="margin-left:auto;font-size:13px;font-variant-numeric:tabular-nums;color:#0f172a">1.78</span>
+    </div>
+  </div>
+  <div style="border:1px solid #e2e8f0; border-radius:6px; padding: 12px;">
+    <div style="font-size:11px;color:#64748b;letter-spacing:0.06em;text-transform:uppercase">Margin column</div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
+      <span style="width:6px;height:6px;border-radius:50%;background:#047857"></span>
+      <span style="font-size:13px;color:#475569">Tipsport</span>
+      <span style="margin-left:auto;font-size:13px;font-variant-numeric:tabular-nums;color:#0f172a">+1.42%</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+      <span style="width:6px;height:6px;border-radius:50%;background:#94a3b8"></span>
+      <span style="font-size:13px;color:#475569">Niké</span>
+      <span style="margin-left:auto;font-size:13px;font-variant-numeric:tabular-nums;color:#475569">+4.12%</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+      <span style="width:6px;height:6px;border-radius:50%;background:#cbd5e1"></span>
+      <span style="font-size:13px;color:#64748b">DOXXbet</span>
+      <span style="margin-left:auto;font-size:13px;font-variant-numeric:tabular-nums;color:#64748b">+6.80%</span>
+    </div>
+  </div>
+</div>
+
+<div class="c-legend">
+  <span><b>One dot per data point.</b> Never two side by side, never a coloured fill behind text.</span>
+  <span><b>Numbers stay slate-950</b> regardless of accent — the dot conveys tone, the digit stays readable.</span>
+</div>
+</div></body></html>

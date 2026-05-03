@@ -1,12 +1,13 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, Sparkles, Trophy } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 import { BestOddsMatchCard } from "@/components/BestOddsMatchCard";
 import { BookmakerToggleBar } from "@/components/BookmakerToggleBar";
 import { Countdown } from "@/components/Countdown";
+import { BookmakerChip, Kicker, MarginChip, Tab } from "@/components/Primitives";
 import { LiveUpdatesBadge } from "@/components/LiveUpdatesBadge";
 import { ScrapeHealthPanel } from "@/components/ScrapeHealthPanel";
 import { useBookmakerFilter } from "@/hooks/useBookmakerFilter";
@@ -18,8 +19,8 @@ import {
   type Sport,
   type Surebet,
 } from "@/lib/api";
-import { BOOKMAKER_ORDER, getBookmakerDisplay } from "@/lib/constants";
-import { formatFullDate, formatMargin } from "@/lib/utils";
+import { BOOKMAKER_ORDER } from "@/lib/constants";
+import { formatMargin } from "@/lib/utils";
 
 type Props = {
   date: string;
@@ -172,279 +173,242 @@ export function HomeLiveSection({
   );
 
   return (
-    <>
-      <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.22),_transparent_34%),radial-gradient(circle_at_top_right,_rgba(16,185,129,0.18),_transparent_28%),linear-gradient(135deg,_#f8fbff,_#ffffff_48%,_#f6fff8)] px-6 py-8 shadow-[0_28px_80px_-40px_rgba(15,23,42,0.45)] sm:px-8 sm:py-10">
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(300px,1fr)]">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 backdrop-blur">
-              <Sparkles className="h-3.5 w-3.5" />
-              Market view
-            </div>
-            <h1 className="mt-4 max-w-3xl text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl">
-              Premier League and La Liga odds, next 24 hours only.
+    <div className="space-y-6">
+      {/* HeroBoard — flat data-terminal title + stats strip */}
+      <section className="border border-slate-200 bg-white p-6">
+        <div className="flex flex-wrap items-start justify-between gap-6">
+          <div className="max-w-[720px]">
+            <Kicker>Market view · DNES</Kicker>
+            <h1 className="mt-2 text-[30px] font-semibold leading-[1.15] tracking-[-0.02em] text-slate-900">
+              Najlepšie kurzy na Premier League a La Liga, v reálnom čase.
             </h1>
-            <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">
-              We only track near-term Premier League and La Liga matches now, with each price marked
-              by the time it was last checked.
+            <p className="mt-3 max-w-[560px] text-[13px] leading-6 text-slate-600">
+              Sledujeme len blízke zápasy najvyšších anglickej a španielskej ligy. Pri každom kurze
+              vidíš čas posledného overenia.
             </p>
-
-            <div className="mt-6 flex flex-wrap gap-3">
-              <MetricCard
-                label="Merged matches"
-                value={String(matches.length)}
-                icon={<CalendarDays className="h-4 w-4" />}
-              />
-              <MetricCard
-                label="Live surebets"
-                value={String(surebets.length)}
-                icon={<Trophy className="h-4 w-4" />}
-              />
-              <MetricCard
-                label="Best margin"
-                value={bestMarginMatch ? formatMargin(bestMarginMatch.combined_margin) : "-"}
-                icon={<Sparkles className="h-4 w-4" />}
-              />
-            </div>
-
-            {activeBookmakers.length > 0 ? (
-              <div className="mt-6">
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
-                  Active bookmakers in this view
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {activeBookmakers.map((bookmaker) => {
-                    const bookmakerData = getBookmakerDisplay(bookmaker);
-                    return (
-                      <span
-                        key={bookmaker}
-                        className="rounded-full px-3 py-1.5 text-sm font-semibold"
-                        style={{
-                          backgroundColor: bookmakerData.bgColor,
-                          color: bookmakerData.color,
-                        }}
-                      >
-                        {bookmakerData.displayName}
-                      </span>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : null}
           </div>
 
-          <div className="rounded-[1.75rem] border border-white/80 bg-white/80 p-5 backdrop-blur">
-            <p className="text-sm font-semibold text-slate-900">Filters</p>
-            <LiveUpdatesBadge
-              sport={sport}
-              date={date}
-              className="mt-4"
-              onUpdate={() => {
-                queryClient.invalidateQueries({ queryKey: matchesQueryKey });
-                queryClient.invalidateQueries({ queryKey: surebetsQueryKey });
-              }}
+          <div className="flex divide-x divide-slate-200">
+            <Stat label="Zápasy" value={String(matches.length)} />
+            <Stat
+              label="Sigurebety"
+              value={String(surebets.length)}
+              tone={surebets.length > 0 ? "emerald" : "slate"}
             />
-
-            <div className="mt-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
-                Sort board
-              </p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {SORT_OPTIONS.map((option) => (
-                  <Link
-                    key={option.value}
-                    href={buildHref(
-                      { date, sport, market, status: statusFilter, sort: sortMode },
-                      { sort: option.value }
-                    )}
-                    className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
-                      sortMode === option.value
-                        ? "bg-slate-900 text-white"
-                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                    }`}
-                  >
-                    {option.label}
-                  </Link>
-                ))}
-              </div>
-            </div>
-
-            <div className="mt-4 flex flex-wrap gap-2">
-              {DATE_FILTERS.map((option) => (
-                <Link
-                  key={option.value}
-                  href={buildHref(
-                    { date, sport, market, status: statusFilter, sort: sortMode },
-                    { date: option.value }
-                  )}
-                  className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
-                    date === option.value
-                      ? "bg-slate-900 text-white"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                  }`}
-                >
-                  {option.label}
-                </Link>
-              ))}
-            </div>
-
-            <div className="mt-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
-                Match state
-              </p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {STATUS_FILTERS.map((option) => {
-                  const count = option.value === "live" ? liveCount : upcomingCount;
-                  return (
-                    <Link
-                      key={option.value}
-                      href={buildHref(
-                        { date, sport, market, status: statusFilter, sort: sortMode },
-                        { status: option.value }
-                      )}
-                      className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
-                        statusFilter === option.value
-                          ? "bg-rose-600 text-white"
-                          : "bg-rose-50 text-rose-700 hover:bg-rose-100"
-                      }`}
-                    >
-                      {option.label} ({count})
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Link
-                href={buildHref(
-                  { date, sport, market, status: statusFilter, sort: sortMode },
-                  { sport: undefined }
-                )}
-                className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
-                  !sport
-                    ? "bg-blue-600 text-white"
-                    : "bg-blue-50 text-blue-700 hover:bg-blue-100"
-                }`}
-              >
-                All sports
-              </Link>
-              {sports.map((item) => (
-                <Link
-                  key={item.id}
-                  href={buildHref(
-                    { date, sport, market, status: statusFilter, sort: sortMode },
-                    { sport: item.id }
-                  )}
-                  className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
-                    sport === item.id
-                      ? "bg-blue-600 text-white"
-                      : "bg-blue-50 text-blue-700 hover:bg-blue-100"
-                  }`}
-                >
-                  {item.name}
-                </Link>
-              ))}
-            </div>
-
-            <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
-                Highlight
-              </p>
-              {bestMarginMatch ? (
-                <>
-                  <p className="mt-2 text-lg font-semibold text-slate-950">
-                    {bestMarginMatch.home_team} vs {bestMarginMatch.away_team}
-                  </p>
-                  <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-500">
-                    <span>{formatFullDate(bestMarginMatch.start_time)}</span>
-                    <Countdown
-                      startTime={bestMarginMatch.start_time}
-                      status={bestMarginMatch.status}
-                    />
-                  </div>
-                  <p className="mt-3 text-sm text-slate-600">
-                    Strongest current comparison with a combined margin of{" "}
-                    <span className="font-semibold text-emerald-700">
-                      {formatMargin(bestMarginMatch.combined_margin)}
-                    </span>
-                    .
-                  </p>
-                </>
-              ) : (
-                <p className="mt-2 text-sm text-slate-500">
-                  As soon as merged comparisons are available, the strongest card shows up here.
-                </p>
-              )}
-            </div>
+            <Stat
+              label="Najlepšia marža"
+              value={bestMarginMatch ? formatMargin(bestMarginMatch.combined_margin) : "—"}
+              tone={bestMarginMatch && bestMarginMatch.combined_margin < 0 ? "emerald" : "slate"}
+            />
           </div>
         </div>
+
+        {/* Filter bar */}
+        <div className="mt-6 grid gap-x-8 gap-y-3 border-t border-slate-200 pt-4 sm:flex sm:flex-wrap">
+          <FilterGroup label="Stav">
+            {STATUS_FILTERS.map((option) => {
+              const count = option.value === "live" ? liveCount : upcomingCount;
+              return (
+                <FilterTab
+                  key={option.value}
+                  active={statusFilter === option.value}
+                  href={buildHref(
+                    { date, sport, market, status: statusFilter, sort: sortMode },
+                    { status: option.value },
+                  )}
+                >
+                  {option.label} <span className="text-slate-400">({count})</span>
+                </FilterTab>
+              );
+            })}
+          </FilterGroup>
+
+          <FilterGroup label="Dátum">
+            {DATE_FILTERS.map((option) => (
+              <FilterTab
+                key={option.value}
+                active={date === option.value}
+                href={buildHref(
+                  { date, sport, market, status: statusFilter, sort: sortMode },
+                  { date: option.value },
+                )}
+              >
+                {option.label}
+              </FilterTab>
+            ))}
+          </FilterGroup>
+
+          <FilterGroup label="Zoradiť">
+            {SORT_OPTIONS.map((option) => (
+              <FilterTab
+                key={option.value}
+                active={sortMode === option.value}
+                href={buildHref(
+                  { date, sport, market, status: statusFilter, sort: sortMode },
+                  { sort: option.value },
+                )}
+              >
+                {option.label}
+              </FilterTab>
+            ))}
+          </FilterGroup>
+
+          <FilterGroup label="Šport">
+            <FilterTab
+              active={!sport}
+              href={buildHref(
+                { date, sport, market, status: statusFilter, sort: sortMode },
+                { sport: undefined },
+              )}
+            >
+              Všetky
+            </FilterTab>
+            {sports.map((item) => (
+              <FilterTab
+                key={item.id}
+                active={sport === item.id}
+                href={buildHref(
+                  { date, sport, market, status: statusFilter, sort: sortMode },
+                  { sport: item.id },
+                )}
+              >
+                {item.name}
+              </FilterTab>
+            ))}
+          </FilterGroup>
+        </div>
+
+        {/* Bookmaker row — lists active books in scope */}
+        {activeBookmakers.length > 0 ? (
+          <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-dashed border-slate-200 pt-3">
+            <Kicker>Stávkové kancelárie v ponuke</Kicker>
+            <div className="flex flex-wrap gap-1.5">
+              {activeBookmakers.map((bookmaker) => (
+                <BookmakerChip key={bookmaker} bookmaker={bookmaker} />
+              ))}
+            </div>
+            <div className="ml-auto">
+              <LiveUpdatesBadge
+                sport={sport}
+                date={date}
+                onUpdate={() => {
+                  queryClient.invalidateQueries({ queryKey: matchesQueryKey });
+                  queryClient.invalidateQueries({ queryKey: surebetsQueryKey });
+                }}
+              />
+            </div>
+          </div>
+        ) : null}
       </section>
+
+      {/* Surebet banner */}
+      {surebets.length > 0 && bestMarginMatch ? (
+        <section className="flex items-center justify-between border border-emerald-200 border-l-[3px] border-l-emerald-700 bg-emerald-50 px-4 py-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <Kicker tone="emerald">Príležitosť</Kicker>
+            <span className="text-[13px] text-slate-900">
+              {surebets.length} {surebets.length === 1 ? "živá sigurebet" : "živých sigurebetov"} na boarde
+            </span>
+            {bestMarginMatch.combined_margin < 0 ? (
+              <MarginChip margin={bestMarginMatch.combined_margin} />
+            ) : null}
+          </div>
+          <Link
+            href="/surebets"
+            className="inline-flex items-center gap-1 font-mono text-[12px] font-semibold uppercase tracking-wider text-emerald-700 hover:text-emerald-800"
+          >
+            Zobraziť všetky
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </section>
+      ) : null}
 
       <ScrapeHealthPanel initialHealth={initialHealth} />
 
       <BookmakerToggleBar />
 
-      <section className="space-y-4">
-        <div className="flex flex-wrap items-end justify-between gap-3">
+      <section className="space-y-3">
+        <header className="flex flex-wrap items-end justify-between gap-3 border-b border-slate-200 pb-2">
           <div>
-            <h2 className="text-2xl font-semibold tracking-tight text-slate-950">
-              Best odds board
+            <h2 className="text-lg font-semibold tracking-tight text-slate-900">
+              Najlepšie kurzy
             </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Showing {statusFilter} Premier League and La Liga {market.toUpperCase()} comparisons for {date}, sorted
-              by {SORT_OPTIONS.find((option) => option.value === sortMode)?.label.toLowerCase()}.
+            <p className="mt-1 font-mono text-[11px] tabular-nums text-slate-500">
+              {visibleMatches.length} {statusFilter === "live" ? "živých" : "nadchádzajúcich"} zápasov · {market.toUpperCase()}
             </p>
           </div>
-          <Link
-            href="/surebets"
-            className="rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100"
-          >
-            Open surebets
-          </Link>
-        </div>
+        </header>
 
         {visibleMatches.length > 0 ? (
-          <div className="grid gap-5">
+          <div className="flex flex-col gap-4">
             {visibleMatches.map((match) => (
               <BestOddsMatchCard key={match.id} match={match} />
             ))}
           </div>
         ) : (
           <EmptyState
-            title={`No ${statusFilter} comparisons yet`}
-            body="The current filters did not produce any cross-bookmaker matches for this view."
+            title="Žiadne porovnania"
+            body="Aktuálne filtre nepriniesli žiadne výsledky."
           />
         )}
       </section>
-    </>
+    </div>
   );
 }
 
-function MetricCard({
+function Stat({
   label,
   value,
-  icon,
+  tone = "slate",
 }: {
   label: string;
   value: string;
-  icon: React.ReactNode;
+  tone?: "slate" | "emerald";
 }) {
   return (
-    <div className="rounded-2xl border border-white/80 bg-white/80 px-4 py-3 backdrop-blur">
-      <div className="flex items-center gap-2 text-sm text-slate-500">
-        {icon}
-        <span>{label}</span>
-      </div>
-      <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">{value}</p>
+    <div className="px-6 py-1 first:pl-0 last:pr-0">
+      <Kicker>{label}</Kicker>
+      <p
+        className={`mt-1 font-mono text-[24px] font-semibold tabular-nums ${
+          tone === "emerald" ? "text-emerald-700" : "text-slate-900"
+        }`}
+      >
+        {value}
+      </p>
     </div>
+  );
+}
+
+function FilterGroup({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-3">
+      <Kicker>{label}</Kicker>
+      <div className="flex flex-wrap items-center gap-4">{children}</div>
+    </div>
+  );
+}
+
+function FilterTab({
+  active,
+  href,
+  children,
+}: {
+  active: boolean;
+  href: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link href={href} className="inline-block">
+      <Tab active={active}>{children}</Tab>
+    </Link>
   );
 }
 
 function EmptyState({ title, body }: { title: string; body: string }) {
   return (
-    <div className="rounded-[1.75rem] border border-dashed border-slate-300 bg-white px-6 py-12 text-center">
-      <h2 className="text-xl font-semibold text-slate-950">{title}</h2>
-      <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-500">{body}</p>
+    <div className="border border-dashed border-slate-300 bg-white p-12 text-center">
+      <h2 className="text-base font-semibold text-slate-900">{title}</h2>
+      <p className="mx-auto mt-2 max-w-2xl text-[13px] leading-6 text-slate-500">{body}</p>
     </div>
   );
 }
