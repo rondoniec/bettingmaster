@@ -127,10 +127,17 @@ def _scrape_competition(
         try:
             page = context.pages[0] if context.pages else context.new_page()
             try:
-                page.goto(url, wait_until="networkidle", timeout=60000)
+                page.goto(url, wait_until="domcontentloaded", timeout=60000)
             except Exception:
-                logger.warning("[tipsport_html] networkidle timeout for %s, trying anyway", url)
-            page.wait_for_timeout(2000)
+                logger.warning("[tipsport_html] domcontentloaded timeout for %s", url)
+            try:
+                page.wait_for_selector("span[data-m]", timeout=20000)
+            except Exception:
+                logger.warning(
+                    "[tipsport_html] span[data-m] never appeared for %s",
+                    url,
+                )
+            page.wait_for_timeout(1500)
             try:
                 matches = page.evaluate(_EXTRACT_JS)
             except Exception:
