@@ -42,11 +42,10 @@ export function BestOddsMatchCard({ match }: Props) {
             >
               {match.league_id.replace(/-/g, " ").toUpperCase()}
             </Link>
-            {isLive ? <LiveBadge /> : null}
             <span className="font-mono text-[11px] tabular-nums text-slate-500">
               {formatMatchTime(match.start_time)}
             </span>
-            <Countdown startTime={match.start_time} status={match.status} />
+            {isLive ? <LiveBadge /> : <Countdown startTime={match.start_time} status={match.status} />}
           </div>
           <h2 className="mt-2 text-lg font-semibold tracking-tight text-slate-900">
             {match.home_team}

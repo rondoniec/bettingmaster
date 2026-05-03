@@ -32,7 +32,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="sk" suppressHydrationWarning className={`${geist.variable} ${jetbrains.variable}`}>
-      <body className="min-h-screen bg-white text-slate-900 antialiased">
+      <body className="min-h-screen bg-slate-50 text-slate-900 antialiased">
         <QueryProvider>
           <Header />
           <main className="mx-auto max-w-screen-xl px-4 py-6 sm:px-6">{children}</main>
