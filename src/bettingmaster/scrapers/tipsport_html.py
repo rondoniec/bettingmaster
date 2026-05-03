@@ -155,25 +155,11 @@ def _scrape_competition(
             except Exception:
                 logger.exception("[tipsport_html] DOM extraction failed for %s", url)
                 return []
-            html = page.content()
-            n_data_m = html.count("data-m=")
-            title = page.title()
-            cookies = context.cookies()
-            cookie_names = sorted({c["name"] for c in cookies})
             logger.info(
-                "[tipsport_html] competition=%s scraped %d (html=%d data-m=%d title=%r cookies=%s)",
+                "[tipsport_html] competition=%s scraped %d matches",
                 competition_id,
                 len(matches or []),
-                len(html),
-                n_data_m,
-                title,
-                cookie_names,
             )
-            if n_data_m == 0:
-                logger.info(
-                    "[tipsport_html] sample html: %s",
-                    html[2000:3000].replace("\n", " "),
-                )
             return matches or []
         finally:
             try:

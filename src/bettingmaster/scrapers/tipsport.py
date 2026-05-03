@@ -106,29 +106,7 @@ class TipsportScraper(BaseScraper):
                 from playwright.sync_api import sync_playwright
                 _is_patchright = False
 
-            import asyncio
             import tempfile
-            import threading
-
-            import traceback
-            try:
-                running = asyncio.get_running_loop()
-                logger.warning(
-                    "[tipsport] thread=%s has running loop %r; stack:\n%s",
-                    threading.current_thread().name,
-                    running,
-                    "".join(traceback.format_stack()),
-                )
-            except RuntimeError:
-                logger.info(
-                    "[tipsport] thread=%s no running loop, ok",
-                    threading.current_thread().name,
-                )
-            try:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-            except Exception:
-                pass
 
             self._playwright = sync_playwright().start()
             user_data_dir = tempfile.mkdtemp(prefix="tipsport-profile-")
