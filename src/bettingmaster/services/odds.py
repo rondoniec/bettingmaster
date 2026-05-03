@@ -59,7 +59,7 @@ def utc_day_bounds_for_local_date(target_date: date) -> tuple[datetime, datetime
 
 
 ODDS_MAX_AGE_HOURS = 24
-LIVE_ODDS_MAX_AGE_MINUTES = 20
+LIVE_ODDS_MAX_AGE_MINUTES = 5
 
 
 def odds_max_age_hours_for_status(status: str | None) -> float:
@@ -77,13 +77,18 @@ def build_latest_odds_subquery(
 ):
     """Return the latest timestamp per odds key, excluding stale rows."""
     cutoff = datetime.now(UTC).replace(tzinfo=None) - timedelta(hours=max_age_hours)
+    # Use checked_at when present (= last time the scraper re-confirmed this
+    # exact price). Falling back to scraped_at handles legacy rows. The
+    # previous filter was on scraped_at alone and that misclassified rows
+    # whose value just hadn't moved in days as "fresh".
+    last_seen = func.coalesce(OddsSnapshot.checked_at, OddsSnapshot.scraped_at)
     query = db.query(
         OddsSnapshot.match_id,
         OddsSnapshot.bookmaker,
         OddsSnapshot.market,
         OddsSnapshot.selection,
         func.max(OddsSnapshot.scraped_at).label("max_ts"),
-    ).filter(OddsSnapshot.scraped_at >= cutoff)
+    ).filter(last_seen >= cutoff)
     if match_id:
         query = query.filter(OddsSnapshot.match_id == match_id)
     return query.group_by(
