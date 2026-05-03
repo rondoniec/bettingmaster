@@ -101,26 +101,34 @@ class TipsportScraper(BaseScraper):
         try:
             try:
                 from patchright.sync_api import sync_playwright
+                _is_patchright = True
             except ImportError:
                 from playwright.sync_api import sync_playwright
+                _is_patchright = False
+
+            import tempfile
 
             self._playwright = sync_playwright().start()
-            launch_kwargs = {"headless": settings.tipsport_headless}
-            if settings.tipsport_browser_channel:
-                launch_kwargs["channel"] = settings.tipsport_browser_channel
+            user_data_dir = tempfile.mkdtemp(prefix="tipsport-profile-")
+            context_kwargs: dict = {
+                "user_data_dir": user_data_dir,
+                "channel": settings.tipsport_browser_channel or "chrome",
+                "headless": settings.tipsport_headless,
+                "locale": "sk-SK",
+                "no_viewport": True,
+            }
             if settings.tipsport_proxy_url:
-                launch_kwargs["proxy"] = {"server": settings.tipsport_proxy_url}
+                context_kwargs["proxy"] = {"server": settings.tipsport_proxy_url}
 
-            self._browser = self._playwright.chromium.launch(**launch_kwargs)
-            self._context = self._browser.new_context(
-                user_agent=(
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                    "AppleWebKit/537.36 (KHTML, like Gecko) "
-                    "Chrome/131.0.0.0 Safari/537.36"
-                ),
-                locale="sk-SK",
+            self._context = self._playwright.chromium.launch_persistent_context(
+                **context_kwargs
             )
-            self._page = self._context.new_page()
+            self._browser = None
+            self._page = (
+                self._context.pages[0]
+                if self._context.pages
+                else self._context.new_page()
+            )
 
             logger.info("[tipsport] Loading page via Playwright...")
             self._page.goto(self.BASE_URL, wait_until="networkidle", timeout=30000)
@@ -584,6 +592,11 @@ class TipsportScraper(BaseScraper):
 
     def close(self):
         """Clean up Playwright browser resources."""
+        if self._context:
+            try:
+                self._context.close()
+            except Exception:
+                pass
         if self._browser:
             try:
                 self._browser.close()
