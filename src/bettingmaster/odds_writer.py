@@ -18,41 +18,6 @@ def add_odds_snapshot(
     url: str | None,
     scraped_at: datetime,
 ) -> OddsSnapshot:
-    timestamp = _effective_scraped_at(
-        db_session,
-        match_id=match_id,
-        bookmaker=bookmaker,
-        market=market,
-        selection=selection,
-        odds=odds,
-        url=url,
-        fallback=scraped_at,
-    )
-    snapshot = OddsSnapshot(
-        match_id=match_id,
-        bookmaker=bookmaker,
-        market=market,
-        selection=selection,
-        odds=odds,
-        url=url,
-        scraped_at=timestamp,
-        checked_at=scraped_at,
-    )
-    db_session.add(snapshot)
-    return snapshot
-
-
-def _effective_scraped_at(
-    db_session,
-    *,
-    match_id: str,
-    bookmaker: str,
-    market: str,
-    selection: str,
-    odds: float,
-    url: str | None,
-    fallback: datetime,
-) -> datetime:
     previous = (
         db_session.query(OddsSnapshot)
         .filter_by(
@@ -64,10 +29,24 @@ def _effective_scraped_at(
         .order_by(OddsSnapshot.scraped_at.desc(), OddsSnapshot.id.desc())
         .first()
     )
-    if previous is None:
-        return fallback
-    if abs(previous.odds - odds) > 0.0001:
-        return fallback
-    if (previous.url or "") != (url or ""):
-        return fallback
-    return previous.scraped_at
+    odds_unchanged = (
+        previous is not None
+        and abs(previous.odds - odds) <= 0.0001
+        and (previous.url or "") == (url or "")
+    )
+    if odds_unchanged:
+        previous.checked_at = scraped_at
+        return previous
+
+    snapshot = OddsSnapshot(
+        match_id=match_id,
+        bookmaker=bookmaker,
+        market=market,
+        selection=selection,
+        odds=odds,
+        url=url,
+        scraped_at=scraped_at,
+        checked_at=scraped_at,
+    )
+    db_session.add(snapshot)
+    return snapshot

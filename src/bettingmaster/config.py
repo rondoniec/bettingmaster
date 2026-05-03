@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     tipsport_headless: bool = True
     live_feed_poll_seconds: int = 3
     active_league_ids: str = "en-premier-league,es-la-liga"
-    active_match_window_hours: int = 24
+    active_match_window_hours: int = 48
     active_match_lookback_hours: int = 3
     nike_rate_limit_cooldown_seconds: int = 900
     debug_dump: bool = False
