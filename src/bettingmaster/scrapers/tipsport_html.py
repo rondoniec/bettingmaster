@@ -70,10 +70,11 @@ _EXTRACT_JS = r"""
       if (anchor && !detailHref) {
         detailHref = anchor.getAttribute("href");
       }
-      // Collect numeric labels: spans, divs, buttons.
+      // Collect odds values: require decimal point so integer outcome labels
+      // ("1", "2") are excluded — only real odds like "1.50", "4.20" match.
       const candidates = Array.from(row.querySelectorAll("span, div, button"))
         .map(el => (el.textContent || "").trim())
-        .filter(t => /^[0-9]+(\.[0-9]{1,3})?$/.test(t))
+        .filter(t => /^[0-9]+\.[0-9]{1,3}$/.test(t))
         .map(t => parseFloat(t))
         .filter(v => v >= 1.01 && v <= 100);
       // Dedup adjacent identical values caused by nested span+div pairs.
@@ -235,11 +236,19 @@ class TipsportScraper(BaseScraper):
             self._url_cache[ext] = full_url
 
             odds_1x2 = entry.get("odds_1x2") or []
+            logger.debug(
+                "[tipsport_html] %s vs %s raw odds_1x2=%s",
+                home, away, odds_1x2,
+            )
             cached: list[RawOdds] = []
             if len(odds_1x2) == 3:
                 # Tipsport listing order is home, away, draw (not the
                 # canonical 1X2). Reorder before mapping.
                 home_v, away_v, draw_v = odds_1x2
+                logger.debug(
+                    "[tipsport_html] %s vs %s mapped home=%.2f away=%.2f draw=%.2f",
+                    home, away, home_v, away_v, draw_v,
+                )
                 for selection, value in (("home", home_v), ("draw", draw_v), ("away", away_v)):
                     cached.append(
                         RawOdds(
@@ -252,7 +261,12 @@ class TipsportScraper(BaseScraper):
                     )
             elif len(odds_1x2) == 2:
                 # Some live rows show only home/away (no draw); skip — partial.
-                pass
+                logger.debug("[tipsport_html] %s vs %s only 2 odds, skipping", home, away)
+            else:
+                logger.warning(
+                    "[tipsport_html] %s vs %s unexpected odds count %d: %s",
+                    home, away, len(odds_1x2), odds_1x2,
+                )
             self._odds_cache[ext] = cached
 
             out.append(

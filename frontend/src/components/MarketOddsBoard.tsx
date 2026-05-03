@@ -285,7 +285,7 @@ export function MarketOddsBoard({
                     );
                   })}
                   <div className="text-right font-mono text-[12px] tabular-nums text-slate-500">
-                    {margin != null ? `+${margin.toFixed(2)}%` : "—"}
+                    {margin != null ? `${margin >= 0 ? "+" : ""}${margin.toFixed(2)}%` : "—"}
                   </div>
                 </div>
               );
@@ -319,7 +319,7 @@ export function MarketOddsBoard({
                   );
                 })}
                 <div className="text-right font-mono text-[12px] tabular-nums text-slate-500">
-                  {avgMargin !== null ? `+${avgMargin.toFixed(2)}%` : "—"}
+                  {avgMargin !== null ? `${avgMargin >= 0 ? "+" : ""}${avgMargin.toFixed(2)}%` : "—"}
                 </div>
               </div>
             </div>

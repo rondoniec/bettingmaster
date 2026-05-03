@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from bettingmaster.database import get_db
 from bettingmaster.schemas.common import SurebetOut
-from bettingmaster.services.odds import build_surebets, query_upcoming_latest_odds
+from bettingmaster.services.odds import SUREBET_MAX_AGE_HOURS, build_surebets, query_upcoming_latest_odds
 
 router = APIRouter()
 
@@ -35,7 +35,7 @@ def list_surebets(
     across all selections is < 1.
     """
     bookmaker_list = [item.strip() for item in bookmakers.split(",") if item.strip()] if bookmakers else None
-    rows = query_upcoming_latest_odds(db, sport=sport).all()
+    rows = query_upcoming_latest_odds(db, sport=sport, max_age_hours=SUREBET_MAX_AGE_HOURS).all()
     return build_surebets(
         rows,
         min_profit=min_profit,

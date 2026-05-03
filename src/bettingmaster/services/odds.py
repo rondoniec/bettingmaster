@@ -348,14 +348,18 @@ def live_feed_snapshot(
     }
 
 
+SUREBET_MAX_AGE_HOURS = 2
+
+
 def query_upcoming_latest_odds(
     db: Session,
     *,
     sport: str | None = None,
+    max_age_hours: float = ODDS_MAX_AGE_HOURS,
 ) -> Query:
     """Return a query over the latest odds for upcoming matches."""
     now = datetime.now(UTC).replace(tzinfo=None)
-    latest_subquery = build_latest_odds_subquery(db)
+    latest_subquery = build_latest_odds_subquery(db, max_age_hours=max_age_hours)
     query = (
         db.query(OddsSnapshot, Match)
         .join(

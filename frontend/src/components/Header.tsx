@@ -65,7 +65,6 @@ export function Header() {
               {item.label}
             </NavLink>
           ))}
-          <FeedStatus />
         </nav>
 
         <button
@@ -107,9 +106,6 @@ export function Header() {
                 {item.label}
               </Link>
             ))}
-            <div className="px-3 pt-2">
-              <FeedStatus />
-            </div>
           </nav>
         </div>
       ) : null}
@@ -142,11 +138,3 @@ function NavLink({
   );
 }
 
-function FeedStatus() {
-  return (
-    <span className="ml-2 inline-flex items-center gap-2 border-l border-slate-200 pl-4 font-mono text-[11px] uppercase tracking-wider text-slate-500">
-      <span className="bm-pulse inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
-      Feed OK
-    </span>
-  );
-}

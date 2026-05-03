@@ -45,6 +45,8 @@ class RoundRobinWorkItem:
 
 _last_round_robin_run: dict[str, datetime] = {}
 _bookmaker_cooldowns: dict[str, datetime] = {}
+_adaptive_intervals: dict[str, int] = {}
+_consecutive_successes: dict[str, int] = {}
 
 
 def _register_scrapers():
@@ -306,7 +308,7 @@ def _due_bookmakers(now: datetime) -> list[str]:
         cooldown_until = _bookmaker_cooldowns.get(bookmaker)
         if cooldown_until and cooldown_until > now:
             continue
-        interval_seconds = getattr(settings, interval_attr)
+        interval_seconds = _effective_interval(bookmaker, interval_attr)
         last_run = _last_round_robin_run.get(bookmaker)
         if last_run is None or (now - last_run).total_seconds() >= interval_seconds:
             due.append(bookmaker)
@@ -322,15 +324,38 @@ def _is_rate_limit_error(bookmaker: str, exc: BaseException) -> bool:
     return bookmaker == "nike" and exc.__class__.__name__ == "NikeRateLimitError"
 
 
+def _effective_interval(bookmaker: str, interval_attr: str) -> int:
+    return _adaptive_intervals.get(bookmaker, getattr(settings, interval_attr))
+
+
 def _cool_down_bookmaker(bookmaker: str):
     _bookmaker_cooldowns[bookmaker] = datetime.now(UTC) + timedelta(
         seconds=settings.nike_rate_limit_cooldown_seconds
     )
+    old = _adaptive_intervals.get(bookmaker, getattr(settings, f"scrape_interval_{bookmaker}"))
+    new = old + settings.nike_adaptive_interval_step
+    _adaptive_intervals[bookmaker] = new
+    _consecutive_successes[bookmaker] = 0
     logger.warning(
-        "[%s] Rate limited; cooling down until %s",
+        "[%s] Rate limited; cooling down until %s. Adaptive interval bumped %ds → %ds",
         bookmaker,
         _bookmaker_cooldowns[bookmaker],
+        old,
+        new,
     )
+
+
+def _record_bookmaker_success(bookmaker: str):
+    streak = _consecutive_successes.get(bookmaker, 0) + 1
+    _consecutive_successes[bookmaker] = streak
+    current = _adaptive_intervals.get(bookmaker, getattr(settings, f"scrape_interval_{bookmaker}"))
+    if streak >= settings.nike_gold_spot_streak:
+        logger.info(
+            "[%s] GOLD SPOT CANDIDATE: stable at %ds (%d consecutive clean cycles)",
+            bookmaker,
+            current,
+            streak,
+        )
 
 
 def run_scraper(bookmaker: str):
@@ -392,6 +417,7 @@ def run_round_robin_cycle(force_bookmakers: list[str] | None = None):
 
     db = SessionLocal()
     scrapers = {}
+    rate_limited_in_cycle: set[str] = set()
     try:
         from bettingmaster.normalizer import TeamNormalizer
 
@@ -423,6 +449,7 @@ def run_round_robin_cycle(force_bookmakers: list[str] | None = None):
             except Exception as exc:
                 if _is_rate_limit_error(bookmaker, exc):
                     _cool_down_bookmaker(bookmaker)
+                    rate_limited_in_cycle.add(bookmaker)
                     continue
                 logger.exception("[%s] Round-robin discovery failed", bookmaker)
 
@@ -459,6 +486,7 @@ def run_round_robin_cycle(force_bookmakers: list[str] | None = None):
                 db.rollback()
                 if _is_rate_limit_error(item.bookmaker, exc):
                     _cool_down_bookmaker(item.bookmaker)
+                    rate_limited_in_cycle.add(item.bookmaker)
                 logger.exception(
                     "[%s] Round-robin failed for %s vs %s",
                     item.bookmaker,
@@ -470,6 +498,8 @@ def run_round_robin_cycle(force_bookmakers: list[str] | None = None):
             if bookmaker in _LEAGUELESS_BOOKMAKERS:
                 continue
             _last_round_robin_run[bookmaker] = now
+            if bookmaker not in rate_limited_in_cycle:
+                _record_bookmaker_success(bookmaker)
 
         for bookmaker in due_bookmakers:
             if bookmaker not in _LEAGUELESS_BOOKMAKERS:

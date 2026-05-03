@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from "clsx";
 import { format, formatDistanceToNow, isToday, isTomorrow, parseISO } from "date-fns";
+import { sk } from "date-fns/locale";
 import { twMerge } from "tailwind-merge";
 
 import { BOOKMAKER_REFRESH_INTERVALS } from "@/lib/constants";
@@ -45,7 +46,7 @@ export function formatFullDate(isoString: string): string {
 
 export function formatLastUpdated(isoString: string): string {
   try {
-    return `${formatDistanceToNow(parseISO(isoString), { addSuffix: true })}`;
+    return formatDistanceToNow(parseISO(isoString), { addSuffix: true, locale: sk });
   } catch {
     return isoString;
   }
