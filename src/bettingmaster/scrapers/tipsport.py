@@ -106,7 +106,14 @@ class TipsportScraper(BaseScraper):
                 from playwright.sync_api import sync_playwright
                 _is_patchright = False
 
+            import asyncio
             import tempfile
+
+            try:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            except Exception:
+                pass
 
             self._playwright = sync_playwright().start()
             user_data_dir = tempfile.mkdtemp(prefix="tipsport-profile-")
