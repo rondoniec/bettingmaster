@@ -191,12 +191,20 @@ def _upsert_match_record(db, item: RoundRobinWorkItem) -> Match:
         ext = dict(match.external_ids or {})
         ext[item.bookmaker] = item.raw_match.external_id
         match.external_ids = ext
-        # Only overwrite start_time if the scraper provides a substantially
-        # different value. Tipsport uses now+1h as a placeholder — don't let
-        # that clobber a correct time previously set by football-data.org sync.
-        if match.start_time is None or abs(
-            (item.start_time - match.start_time).total_seconds()
-        ) > 7200:
+        # Protect a correct future start_time from being overwritten by an
+        # earlier placeholder (e.g. Tipsport's now+1h). Only skip the update
+        # when the existing time is well in the future AND the incoming time
+        # would move it earlier.
+        _now = datetime.now(UTC).replace(tzinfo=None)
+        existing_is_future = (
+            match.start_time is not None
+            and (match.start_time - _now).total_seconds() > 5400  # > 1.5h ahead
+        )
+        incoming_is_earlier = (
+            match.start_time is not None
+            and item.start_time < match.start_time
+        )
+        if not (existing_is_future and incoming_is_earlier):
             match.start_time = item.start_time
         if item.status == "live" or match.status != "live":
             match.status = item.status
