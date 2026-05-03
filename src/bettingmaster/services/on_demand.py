@@ -18,7 +18,7 @@ from bettingmaster.scrapers.fortuna import FortunaScraper
 from bettingmaster.scrapers.nike import NikeScraper
 from bettingmaster.scrapers.polymarket import PolymarketScraper
 from bettingmaster.scrapers.tipos import TiposScraper
-from bettingmaster.scrapers.tipsport import TipsportScraper
+from bettingmaster.scrapers.tipsport_html import TipsportScraper
 
 logger = logging.getLogger(__name__)
 

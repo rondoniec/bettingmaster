@@ -52,7 +52,7 @@ def _register_scrapers():
     from bettingmaster.scrapers.nike import NikeScraper
     from bettingmaster.scrapers.fortuna import FortunaScraper
     from bettingmaster.scrapers.doxxbet import DoxxbetScraper
-    from bettingmaster.scrapers.tipsport import TipsportScraper
+    from bettingmaster.scrapers.tipsport_html import TipsportScraper
     from bettingmaster.scrapers.tipos import TiposScraper
     from bettingmaster.scrapers.polymarket import PolymarketScraper
 
