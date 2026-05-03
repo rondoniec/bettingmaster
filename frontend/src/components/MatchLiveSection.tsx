@@ -5,6 +5,7 @@ import { Clock3, Layers3 } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
 
+import { Countdown } from "@/components/Countdown";
 import { FreshnessBadge } from "@/components/FreshnessBadge";
 import { LiveUpdatesBadge } from "@/components/LiveUpdatesBadge";
 import { MarketOddsBoard } from "@/components/MarketOddsBoard";
@@ -115,7 +116,10 @@ export function MatchLiveSection({ initialMatch, initialBestOdds, focusTarget }:
         <h1 className="mt-2 text-4xl font-semibold tracking-tight text-slate-950">
           {match.home_team} vs {match.away_team}
         </h1>
-        <p className="mt-3 text-sm text-slate-500">{formatFullDate(match.start_time)}</p>
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-slate-500">
+          <span>{formatFullDate(match.start_time)}</span>
+          <Countdown startTime={match.start_time} status={match.status} />
+        </div>
 
         <div className="mt-5 flex flex-wrap gap-3">
           <LiveUpdatesBadge

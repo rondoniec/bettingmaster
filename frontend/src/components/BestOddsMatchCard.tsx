@@ -1,6 +1,7 @@
 import { ExternalLink, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
+import { Countdown } from "@/components/Countdown";
 import type { MatchBestOdds } from "@/lib/api";
 import { getBookmakerDisplay, resolveSelectionLabel } from "@/lib/constants";
 import { cn, formatLastUpdated, formatMargin, formatMatchTime, formatOdds } from "@/lib/utils";
@@ -35,9 +36,11 @@ export function BestOddsMatchCard({ match }: Props) {
               <span className="mx-2 text-slate-300">vs</span>
               {match.away_team}
             </h2>
-            <p className="mt-2 text-sm text-slate-500">
-              {formatMatchTime(match.start_time)} • {match.bookmakers.length} bookmakers compared
-            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-500">
+              <span>{formatMatchTime(match.start_time)}</span>
+              <Countdown startTime={match.start_time} status={match.status} />
+              <span>• {match.bookmakers.length} bookmakers compared</span>
+            </div>
           </div>
 
           <div className="flex items-center gap-3">

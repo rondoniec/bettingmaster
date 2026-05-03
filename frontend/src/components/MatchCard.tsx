@@ -1,6 +1,7 @@
 import { Clock } from "lucide-react";
 import Link from "next/link";
 
+import { Countdown } from "@/components/Countdown";
 import type { BestOdds, Match } from "@/lib/api";
 import { formatMatchTime, formatOdds } from "@/lib/utils";
 
@@ -25,11 +26,14 @@ export function MatchCard({ match, bestOdds }: Props) {
   return (
     <Link href={`/match/${match.id}`} className="group block">
       <div className="flex items-center gap-3 rounded-lg border border-slate-100 bg-white px-4 py-3 transition group-hover:bg-blue-50/30 hover:border-blue-200 hover:shadow-sm">
-        <div className="flex w-16 shrink-0 flex-col items-center text-center">
-          <Clock className="mb-0.5 h-3 w-3 text-slate-400" />
-          <span className="text-xs font-medium text-slate-500">
-            {formatMatchTime(match.start_time)}
-          </span>
+        <div className="flex w-20 shrink-0 flex-col items-center gap-1 text-center">
+          <div className="flex items-center gap-1">
+            <Clock className="h-3 w-3 text-slate-400" />
+            <span className="text-xs font-medium text-slate-500">
+              {formatMatchTime(match.start_time)}
+            </span>
+          </div>
+          <Countdown startTime={match.start_time} status={match.status} />
         </div>
 
         <div className="min-w-0 flex-1">

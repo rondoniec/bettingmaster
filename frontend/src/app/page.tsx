@@ -1,6 +1,7 @@
 import { Search } from "lucide-react";
 import Link from "next/link";
 
+import { Countdown } from "@/components/Countdown";
 import { HomeLiveSection } from "@/components/HomeLiveSection";
 import {
   getHealth,
@@ -138,8 +139,9 @@ export default async function HomePage({ searchParams }: HomePageProps) {
                         {match.home_team} vs {match.away_team}
                       </p>
                     </div>
-                    <div className="text-sm text-slate-500">
-                      {formatMatchTime(match.start_time)}
+                    <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
+                      <span>{formatMatchTime(match.start_time)}</span>
+                      <Countdown startTime={match.start_time} status={match.status} />
                     </div>
                   </div>
                 </Link>

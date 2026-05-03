@@ -5,6 +5,7 @@ import { CalendarDays, Sparkles, Trophy } from "lucide-react";
 import Link from "next/link";
 
 import { BestOddsMatchCard } from "@/components/BestOddsMatchCard";
+import { Countdown } from "@/components/Countdown";
 import { LiveUpdatesBadge } from "@/components/LiveUpdatesBadge";
 import { ScrapeHealthPanel } from "@/components/ScrapeHealthPanel";
 import {
@@ -343,9 +344,13 @@ export function HomeLiveSection({
                   <p className="mt-2 text-lg font-semibold text-slate-950">
                     {bestMarginMatch.home_team} vs {bestMarginMatch.away_team}
                   </p>
-                  <p className="mt-1 text-sm text-slate-500">
-                    {formatFullDate(bestMarginMatch.start_time)}
-                  </p>
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-500">
+                    <span>{formatFullDate(bestMarginMatch.start_time)}</span>
+                    <Countdown
+                      startTime={bestMarginMatch.start_time}
+                      status={bestMarginMatch.status}
+                    />
+                  </div>
                   <p className="mt-3 text-sm text-slate-600">
                     Strongest current comparison with a combined margin of{" "}
                     <span className="font-semibold text-emerald-700">
