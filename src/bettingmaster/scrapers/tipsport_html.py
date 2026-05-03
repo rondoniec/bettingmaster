@@ -205,12 +205,25 @@ class TipsportScraper(BaseScraper):
         # Football-data.org status sync corrects start times for known fixtures.
         approx_start = datetime.now(UTC).replace(tzinfo=None) + timedelta(hours=1)
 
+        # Known outright / non-match keywords in team name fields
+        _OUTRIGHT_TOKENS = frozenset(
+            ["liga", "league", "celkovo", "strelec", "strelci", "víťaz",
+             "postup", "zostup", "champion", "winner", "scorer", "serie"]
+        )
+
+        def _is_outright(name: str) -> bool:
+            low = name.lower()
+            return any(tok in low for tok in _OUTRIGHT_TOKENS)
+
         out: list[RawMatch] = []
         for entry in raw:
             ext = entry.get("external_id")
             home = entry.get("home_team") or ""
             away = entry.get("away_team") or ""
             if not ext or not home or not away:
+                continue
+            if _is_outright(home) or _is_outright(away):
+                logger.debug("[tipsport_html] skip outright: %s vs %s", home, away)
                 continue
             detail_href = entry.get("detail_href") or f"/zapas/{ext}"
             full_url = (

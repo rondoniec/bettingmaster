@@ -191,6 +191,10 @@ def _match_lookup_key(home: str, away: str, start: datetime) -> str:
     return f"{_normalize(home)}|{_normalize(away)}|{start.date().isoformat()}"
 
 
+def _match_name_key(home: str, away: str) -> str:
+    return f"{_normalize(home)}|{_normalize(away)}"
+
+
 def _heuristic_status(match: Match) -> str | None:
     """Fallback when no external provider returns a status."""
     if not match.start_time:
@@ -216,6 +220,7 @@ def sync_match_statuses(db: Session) -> dict[str, int]:
     league_ids = list(active_league_ids())
 
     by_key: dict[str, ExternalMatchStatus] = {}
+    by_name: dict[str, ExternalMatchStatus] = {}
     used_provider: str | None = None
     for provider in providers:
         try:
@@ -224,6 +229,7 @@ def sync_match_statuses(db: Session) -> dict[str, int]:
                     by_key[_match_lookup_key(
                         ext.home_team, ext.away_team, ext.start_time
                     )] = ext
+                    by_name[_match_name_key(ext.home_team, ext.away_team)] = ext
             used_provider = provider.name
             break
         except QuotaExhausted:
@@ -236,12 +242,19 @@ def sync_match_statuses(db: Session) -> dict[str, int]:
     matches = db.query(Match).all()
     updated = 0
     fallback = 0
+    start_time_fixed = 0
     for m in matches:
         if not m.start_time:
             continue
         new_status = None
         key = _match_lookup_key(m.home_team, m.away_team, m.start_time)
         ext = by_key.get(key)
+        if ext is None:
+            # Date mismatch (e.g. placeholder time from Tipsport) — try name-only
+            ext = by_name.get(_match_name_key(m.home_team, m.away_team))
+            if ext is not None and ext.start_time != m.start_time:
+                m.start_time = ext.start_time
+                start_time_fixed += 1
         if ext:
             new_status = ext.status
         else:
@@ -251,12 +264,13 @@ def sync_match_statuses(db: Session) -> dict[str, int]:
         if new_status and new_status != m.status:
             m.status = new_status
             updated += 1
-    if updated:
+    if updated or start_time_fixed:
         db.commit()
     logger.info(
-        "[status_sync] provider=%s updated=%s heuristic=%s",
+        "[status_sync] provider=%s updated=%s heuristic=%s start_time_fixed=%s",
         used_provider or "none",
         updated,
         fallback,
+        start_time_fixed,
     )
     return {"updated": updated, "heuristic": fallback}
