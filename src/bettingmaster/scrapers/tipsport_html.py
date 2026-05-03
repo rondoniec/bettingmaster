@@ -136,11 +136,15 @@ def _scrape_competition(
             except Exception:
                 logger.exception("[tipsport_html] DOM extraction failed for %s", url)
                 return []
+            html = page.content()
+            n_data_m = html.count("data-m=")
             logger.info(
-                "[tipsport_html] competition=%s scraped %d matches from %s",
+                "[tipsport_html] competition=%s scraped %d matches from %s (html=%d bytes, data-m=%d)",
                 competition_id,
                 len(matches or []),
                 url,
+                len(html),
+                n_data_m,
             )
             return matches or []
         finally:
