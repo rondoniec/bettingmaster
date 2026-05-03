@@ -223,7 +223,10 @@ class TipsportScraper(BaseScraper):
             odds_1x2 = entry.get("odds_1x2") or []
             cached: list[RawOdds] = []
             if len(odds_1x2) == 3:
-                for selection, value in zip(("home", "draw", "away"), odds_1x2):
+                # Tipsport listing order is home, away, draw (not the
+                # canonical 1X2). Reorder before mapping.
+                home_v, away_v, draw_v = odds_1x2
+                for selection, value in (("home", home_v), ("draw", draw_v), ("away", away_v)):
                     cached.append(
                         RawOdds(
                             match_external_id=ext,
