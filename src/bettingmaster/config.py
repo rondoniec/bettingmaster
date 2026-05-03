@@ -35,6 +35,9 @@ class Settings(BaseSettings):
     active_match_lookback_hours: int = 3
     nike_rate_limit_cooldown_seconds: int = 900
     debug_dump: bool = False
+    football_data_token: str | None = None
+    api_football_token: str | None = None
+    match_status_sync_interval: int = 300
 
     model_config = {"env_prefix": "BM_"}
 

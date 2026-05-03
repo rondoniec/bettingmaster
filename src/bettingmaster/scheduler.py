@@ -469,6 +469,18 @@ def run_round_robin_cycle(force_bookmakers: list[str] | None = None):
         db.close()
 
 
+def _run_status_sync():
+    from bettingmaster.services.match_status import sync_match_statuses
+    db = SessionLocal()
+    try:
+        sync_match_statuses(db)
+    except Exception:
+        logger.exception("[status_sync] cycle failed")
+        db.rollback()
+    finally:
+        db.close()
+
+
 def create_scheduler() -> BackgroundScheduler:
     _register_scrapers()
     scheduler = BackgroundScheduler()
@@ -480,6 +492,16 @@ def create_scheduler() -> BackgroundScheduler:
         id="round_robin_scraper",
         max_instances=1,
         misfire_grace_time=30,
+    )
+
+    scheduler.add_job(
+        _run_status_sync,
+        "interval",
+        seconds=settings.match_status_sync_interval,
+        id="match_status_sync",
+        max_instances=1,
+        misfire_grace_time=60,
+        next_run_time=datetime.now(UTC),
     )
 
     return scheduler

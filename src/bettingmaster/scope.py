@@ -50,7 +50,7 @@ def apply_active_match_scope(query: Query) -> Query:
     if leagues:
         query = query.filter(Match.league_id.in_(leagues))
     return query.filter(
-        Match.status != "finished",
+        Match.status.notin_(["finished", "concluded", "cancelled"]),
         Match.start_time >= window_start,
         Match.start_time <= window_end,
     )
