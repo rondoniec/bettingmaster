@@ -236,25 +236,21 @@ The match page is intended to feel compact and decision-oriented:
 
 ## Server / Deployment Status
 
-### Hetzner deployment
+### Laptop deployment (current — Hetzner decommissioned)
 
-The app is designed to run continuously on a Hetzner server with Docker Compose.
+Everything runs on the home Ubuntu laptop, accessible via SSH alias `laptop` over Tailscale.
 
-Main server details already used in this project:
+- laptop path: `/home/adam/projects/bettingmaster`
+- Tailscale IP: `100.75.68.42`
+- Primary compose: `docker-compose.laptop.yml` with `.env`
+- Worker env adds: `.env.laptop` (API tokens, Tipsport/Tipos Playwright settings)
 
-- server IP: `188.245.79.101`
-- project path: `/opt/bettingmaster`
+Hetzner (`188.245.79.101`) is decommissioned. The files `docker-compose.hetzner-bettingmaster.yml`
+and `.env.hetzner` remain in the repo for reference but should not be deployed to.
 
-Primary deployment files:
+### Running services
 
-- `docker-compose.hetzner-bettingmaster.yml`
-- `.env.hetzner`
-- `HETZNER_BETTINGMASTER_SETUP.md`
-- `SERVER_RUNBOOK.md`
-
-### Running services on the server
-
-Expected services:
+Expected services (all on laptop):
 
 - `db`
 - `backend`
@@ -375,26 +371,32 @@ cd frontend && npm run lint
 cd frontend && npm run build
 ```
 
-### Server update
+### Server update (laptop — all services)
+
+The full stack runs on the home Ubuntu laptop (SSH alias `laptop`).
+Hetzner is decommissioned. Do NOT deploy to Hetzner.
 
 ```bash
-cd /opt/bettingmaster
-git pull
-docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner up -d --build
+ssh laptop "cd /home/adam/projects/bettingmaster && git pull && docker compose -f docker-compose.laptop.yml --env-file .env up -d --build"
 ```
 
 ### Server health
 
 ```bash
-curl http://127.0.0.1:8000/api/health
-curl http://127.0.0.1:8000/api/matches
-curl "http://127.0.0.1:8000/api/matches/best-odds"
+ssh laptop "curl -s http://127.0.0.1:8000/api/health"
+ssh laptop "curl -s http://127.0.0.1:8000/api/matches"
 ```
 
 ### Worker logs
 
 ```bash
-docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner logs -f worker
+ssh laptop "cd /home/adam/projects/bettingmaster && docker compose -f docker-compose.laptop.yml --env-file .env logs -f worker"
+```
+
+### All service logs
+
+```bash
+ssh laptop "cd /home/adam/projects/bettingmaster && docker compose -f docker-compose.laptop.yml --env-file .env logs -f"
 ```
 
 ## Files Worth Knowing First
