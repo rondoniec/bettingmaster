@@ -15,9 +15,15 @@ Discovery notes (from explore_tipos*.py):
   Playwright is used to load the page once, grab the token, then make API
   calls directly from within the browser context (avoiding CORS and auth issues).
 - LanguageID 17 = Slovak
+
+Why an isolated thread: APScheduler's worker threads sometimes carry a running
+asyncio event loop that Playwright's sync API refuses to share. Every scrape
+call spawns a fresh concurrent.futures.ThreadPoolExecutor thread — each new
+Python thread starts with empty asyncio threadlocal state.
 """
 
 import base64
+import concurrent.futures
 import json
 import logging
 import struct
@@ -122,6 +128,199 @@ def _parse_proto_values(data: bytes, depth: int = 0) -> dict:
     return {"strings": strings, "floats": floats, "ints": ints}
 
 
+def _decode_return_value(data: dict) -> dict:
+    rv = data.get("ReturnValue", "")
+    if not rv or not isinstance(rv, str) or len(rv) < 10:
+        return {"strings": [], "floats": [], "ints": []}
+    try:
+        raw = _decode_b64(rv)
+        return _parse_proto_values(raw)
+    except Exception as e:
+        logger.debug("[tipos] ReturnValue decode failed: %s", e)
+        return {"strings": [], "floats": [], "ints": []}
+
+
+def _extract_event_ids_from_data(data: dict) -> list[dict]:
+    """Pull event IDs out of a GetWebTopBets response."""
+    rv = data.get("ReturnValue")
+
+    if isinstance(rv, list):
+        return rv
+
+    if isinstance(rv, str) and len(rv) > 10:
+        parsed = _decode_return_value(data)
+        ids = [i for i in parsed["ints"] if 1_000_000 < i < 9_999_999_999]
+        strings = [s for _, s in parsed["strings"] if len(s) >= 3]
+        events = []
+        for i, eid in enumerate(ids):
+            base = i * 3
+            home = strings[base] if base < len(strings) else ""
+            away = strings[base + 1] if base + 1 < len(strings) else ""
+            events.append({"event_id": eid, "home": home, "away": away})
+        return events
+
+    return []
+
+
+# ---------------------------------------------------------------------------
+# Module-level Playwright functions (run in fresh threads)
+# ---------------------------------------------------------------------------
+
+def _make_api_call(page, endpoint: str, payload: dict) -> dict:
+    """POST to SportsBettingService from within a Playwright page context."""
+    payload_json = json.dumps(payload)
+    url = f"{SVC}/{endpoint}"
+    try:
+        result = page.evaluate(
+            """async ({url, body}) => {
+                const resp = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json;charset=UTF-8',
+                        'Accept': 'application/json'
+                    },
+                    body: body
+                });
+                const text = await resp.text();
+                return {status: resp.status, body: text};
+            }""",
+            {"url": url, "body": payload_json},
+        )
+    except Exception as e:
+        logger.error("[tipos] API call to %s failed: %s", endpoint, e)
+        return {}
+
+    if result.get("status") != 200:
+        logger.warning("[tipos] %s returned HTTP %s", endpoint, result.get("status"))
+        return {}
+
+    try:
+        return json.loads(result.get("body", "{}"))
+    except json.JSONDecodeError:
+        return {}
+
+
+def _open_browser_and_get_token(headless: bool = True):
+    """Start Playwright, load the tipos page, capture the session token.
+
+    Returns (playwright, browser, context, page, token). Caller must close.
+    """
+    from playwright.sync_api import sync_playwright
+
+    pw = sync_playwright().start()
+    browser = pw.chromium.launch(headless=headless)
+    context = browser.new_context(
+        user_agent=(
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/131.0.0.0 Safari/537.36"
+        ),
+        locale="sk-SK",
+    )
+    page = context.new_page()
+
+    captured: list[str] = []
+
+    def _on_response(resp):
+        if "GetLiveInitData" in resp.url:
+            try:
+                body = resp.body()
+                data = json.loads(body)
+                tok = data.get("Token", "")
+                if tok:
+                    captured.append(tok)
+            except Exception:
+                pass
+
+    page.on("response", _on_response)
+    logger.info("[tipos] Loading page via Playwright...")
+    page.goto(f"{BASE}/sk/futbal", wait_until="domcontentloaded", timeout=30000)
+    page.wait_for_timeout(3000)
+    page.remove_listener("response", _on_response)
+
+    token = captured[0] if captured else ""
+    logger.info("[tipos] Browser ready. Token=%s", "<ok>" if token else "<missing>")
+    return pw, browser, context, page, token
+
+
+def _close_browser_session(pw, browser, context) -> None:
+    """Close Playwright browser session objects in reverse order."""
+    for obj in (context, browser):
+        if obj is not None:
+            try:
+                obj.close()
+            except Exception:
+                pass
+    if pw is not None:
+        try:
+            pw.stop()
+        except Exception:
+            pass
+
+
+def _scrape_tipos_matches(headless: bool = True) -> list[dict]:
+    """Full Tipos scraping session: load page, get token, fetch all events + odds.
+
+    Returns list of dicts: {event_id, home, away, detail_data}.
+    """
+    pw = browser = context = None
+    try:
+        pw, browser, context, page, token = _open_browser_and_get_token(headless)
+        if not token:
+            logger.warning("[tipos] No token — skipping scrape")
+            return []
+
+        top_bets = _make_api_call(
+            page,
+            "GetWebTopBets",
+            {"LanguageID": LANG, "Token": token,
+             "TopOfferType": 8, "TypeAddData": None, "TimeStamp": None},
+        )
+        events = _extract_event_ids_from_data(top_bets)
+        logger.info("[tipos] GetWebTopBets → %d events", len(events))
+
+        results = []
+        for ev in events:
+            event_id = ev.get("event_id")
+            if not event_id:
+                continue
+            detail = _make_api_call(
+                page,
+                "GetWebStandardEventExt",
+                {"EventID": event_id, "LanguageID": LANG, "Token": token,
+                 "UseLongPolling": True},
+            )
+            ev["detail_data"] = detail
+            results.append(ev)
+
+        return results
+    except Exception:
+        logger.exception("[tipos] Scrape session failed")
+        return []
+    finally:
+        _close_browser_session(pw, browser, context)
+
+
+def _scrape_tipos_event(event_id: int, headless: bool = True) -> dict:
+    """Fetch a single event's detail data in a fresh browser session."""
+    pw = browser = context = None
+    try:
+        pw, browser, context, page, token = _open_browser_and_get_token(headless)
+        if not token:
+            return {}
+        return _make_api_call(
+            page,
+            "GetWebStandardEventExt",
+            {"EventID": event_id, "LanguageID": LANG, "Token": token,
+             "UseLongPolling": True},
+        )
+    except Exception:
+        logger.exception("[tipos] Single-event fetch failed for %s", event_id)
+        return {}
+    finally:
+        _close_browser_session(pw, browser, context)
+
+
 # ---------------------------------------------------------------------------
 # Scraper
 # ---------------------------------------------------------------------------
@@ -135,269 +334,94 @@ class TiposScraper(BaseScraper):
 
     def __init__(self, db_session, http_client=None):
         super().__init__(db_session, http_client)
-        self._playwright = None
-        self._browser = None
-        self._context = None
-        self._page = None
-        self._token: str = ""
-        self._ready = False
-        self._init_browser()
+        self._odds_cache: dict[str, list[RawOdds]] = {}
+        self._url_cache: dict[str, str] = {}
 
     # ------------------------------------------------------------------
-    # Browser / session setup
+    # Fresh-thread runner
     # ------------------------------------------------------------------
 
-    def _init_browser(self):
+    def _run_in_fresh_thread(self, fn, *args, timeout: int = 180):
+        executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         try:
-            from playwright.sync_api import sync_playwright
-
-            self._playwright = sync_playwright().start()
-            self._browser = self._playwright.chromium.launch(headless=True)
-            self._context = self._browser.new_context(
-                user_agent=(
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                    "AppleWebKit/537.36 (KHTML, like Gecko) "
-                    "Chrome/131.0.0.0 Safari/537.36"
-                ),
-                locale="sk-SK",
-            )
-            self._page = self._context.new_page()
-
-            # Intercept GetLiveInitData response to capture token without a second call.
-            # A second call with an empty body returns <Result>Failed</Result> (session
-            # validation requires the full payload the page sends on its own init).
-            _captured: list[str] = []
-
-            def _on_response(resp):
-                if "GetLiveInitData" in resp.url:
-                    try:
-                        body = resp.body()
-                        data = json.loads(body)
-                        tok = data.get("Token", "")
-                        if tok:
-                            _captured.append(tok)
-                    except Exception:
-                        pass
-
-            self._page.on("response", _on_response)
-            logger.info("[tipos] Loading page via Playwright...")
-            self._page.goto(f"{BASE}/sk/futbal", wait_until="domcontentloaded", timeout=30000)
-            self._page.wait_for_timeout(3000)
-            self._page.remove_listener("response", _on_response)
-
-            self._token = _captured[0] if _captured else ""
-            logger.info("[tipos] Browser ready. Token=%s", "<ok>" if self._token else "<missing>")
-            self._ready = True
+            future = executor.submit(fn, *args)
+            return future.result(timeout=timeout)
         except Exception:
-            logger.exception("[tipos] Playwright init failed")
-            self._ready = False
-
-    def _fetch_token(self) -> str:
-        """Legacy fallback — token is now captured via response interception in _init_browser."""
-        return self._token
-
-    # ------------------------------------------------------------------
-    # API helpers
-    # ------------------------------------------------------------------
-
-    def _api_call(self, endpoint: str, payload: dict) -> dict:
-        """POST to SportsBettingService from within the Playwright context."""
-        import time as _time
-
-        self._rate_limit()
-        self._last_request_time = _time.time()
-
-        payload_json = json.dumps(payload)
-        url = f"{SVC}/{endpoint}"
-        try:
-            result = self._page.evaluate(
-                """async ({url, body}) => {
-                    const resp = await fetch(url, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json;charset=UTF-8',
-                            'Accept': 'application/json'
-                        },
-                        body: body
-                    });
-                    const text = await resp.text();
-                    return {status: resp.status, body: text};
-                }""",
-                {"url": url, "body": payload_json},
-            )
-        except Exception as e:
-            logger.error(f"[tipos] API call to {endpoint} failed: {e}")
-            return {}
-
-        if result.get("status") != 200:
-            logger.warning(f"[tipos] {endpoint} returned HTTP {result.get('status')}")
-            return {}
-
-        try:
-            return json.loads(result.get("body", "{}"))
-        except json.JSONDecodeError:
-            logger.warning(f"[tipos] {endpoint} non-JSON response")
-            return {}
-
-    def _decode_return_value(self, data: dict) -> dict:
-        """Decode the base64+protobuf ReturnValue from an API response."""
-        rv = data.get("ReturnValue", "")
-        if not rv or not isinstance(rv, str) or len(rv) < 10:
-            return {"strings": [], "floats": [], "ints": []}
-        try:
-            raw = _decode_b64(rv)
-            return _parse_proto_values(raw)
-        except Exception as e:
-            logger.debug(f"[tipos] ReturnValue decode failed: {e}")
-            return {"strings": [], "floats": [], "ints": []}
-
-    def _dump_debug(self, name: str, data):
-        if not settings.debug_dump:
-            return
-        DEBUG_DIR.mkdir(parents=True, exist_ok=True)
-        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-        path = DEBUG_DIR / f"tipos_{name}_{ts}.json"
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2, default=str)
-        logger.info(f"[tipos] Debug dump: {path}")
+            logger.exception("[tipos] thread crashed")
+            return None
+        finally:
+            executor.shutdown(wait=False, cancel_futures=True)
 
     # ------------------------------------------------------------------
     # Discovery helpers (used by CLI --discover)
     # ------------------------------------------------------------------
 
-    def discover_categories(self) -> dict:
-        """Fetch the category tree (sports/leagues)."""
-        data = self._api_call(
-            "GetWebStandardCategories",
-            {"LanguageID": LANG, "Token": self._token, "IncludeLiveCategories": True},
-        )
-        self._dump_debug("categories", data)
-        return data
-
     def discover_top_bets(self) -> dict:
-        """Fetch top bet offers."""
-        data = self._api_call(
-            "GetWebTopBets",
-            {"LanguageID": LANG, "Token": self._token, "TopOfferType": 8,
-             "TypeAddData": None, "TimeStamp": None},
-        )
-        self._dump_debug("top_bets", data)
-        return data
+        """Fetch top bet offers (CLI debugging helper)."""
+        def _fetch():
+            pw, browser, context, page, token = _open_browser_and_get_token()
+            try:
+                return _make_api_call(
+                    page, "GetWebTopBets",
+                    {"LanguageID": LANG, "Token": token, "TopOfferType": 8,
+                     "TypeAddData": None, "TimeStamp": None},
+                )
+            finally:
+                _close_browser_session(pw, browser, context)
 
-    def discover_event(self, event_id: int) -> dict:
-        """Fetch full detail for a single event (match + odds)."""
-        data = self._api_call(
-            "GetWebStandardEventExt",
-            {"EventID": event_id, "LanguageID": LANG, "Token": self._token,
-             "UseLongPolling": True},
-        )
-        self._dump_debug(f"event_{event_id}", data)
-        return data
-
-    # ------------------------------------------------------------------
-    # Category → match-listing
-    # ------------------------------------------------------------------
-
-    def _get_top_bets_raw(self) -> dict:
-        """Fetch GetWebTopBets (TopOfferType=8) — returns all active top offers."""
-        return self._api_call(
-            "GetWebTopBets",
-            {"LanguageID": LANG, "Token": self._token,
-             "TopOfferType": 8, "TypeAddData": None, "TimeStamp": None},
-        )
-
-    def _get_category_events(self, category_id: str) -> list[dict]:
-        """
-        Fetch matches for a category (league).
-
-        GetWebStandardCategoryOffer / GetWebCategoryOffer / GetWebEventsByCategory
-        all return 404 — these endpoints were removed from the Tipos API.
-        GetWebTopBets (TopOfferType=8) returns all active top offers across
-        categories as a single protobuf blob. We decode it and filter by
-        CategoryID if present, otherwise return all football events.
-        """
-        data = self._get_top_bets_raw()
-        if not data:
-            logger.warning("[tipos] No events found for category %s", category_id)
-            return []
-
-        self._dump_debug(f"category_{category_id}_topbets", data)
-        event_ids = self._extract_event_ids(data)
-        if event_ids:
-            logger.info("[tipos] GetWebTopBets → %d events (category=%s)", len(event_ids), category_id)
-        else:
-            logger.warning("[tipos] No events found for category %s", category_id)
-        return event_ids
-
-    def _extract_event_ids(self, data: dict) -> list[dict]:
-        """
-        Pull event IDs out of an API response.
-
-        Tipos API returns protobuf; we decode it and look for large integer
-        IDs and paired team-name strings. Returns list of dicts with keys:
-        event_id, home, away (best-effort).
-        """
-        rv = data.get("ReturnValue")
-
-        # Case 1: ReturnValue is a plain list of event dicts
-        if isinstance(rv, list):
-            return rv
-
-        # Case 2: ReturnValue is a base64 protobuf blob
-        if isinstance(rv, str) and len(rv) > 10:
-            parsed = self._decode_return_value(data)
-            ids = [i for i in parsed["ints"] if 1_000_000 < i < 9_999_999_999]
-            strings = [s for _, s in parsed["strings"] if len(s) >= 3]
-            # Pair up IDs (best-effort — each event has one id and two team names)
-            events = []
-            for i, eid in enumerate(ids):
-                base = i * 3
-                home = strings[base] if base < len(strings) else ""
-                away = strings[base + 1] if base + 1 < len(strings) else ""
-                events.append({"event_id": eid, "home": home, "away": away})
-            return events
-
-        return []
+        return self._run_in_fresh_thread(_fetch) or {}
 
     # ------------------------------------------------------------------
     # BaseScraper interface
     # ------------------------------------------------------------------
 
     def scrape_matches(self, league_external_id: str) -> list[RawMatch]:
-        if not self._ready:
-            logger.error("[tipos] Playwright not initialised, skipping")
+        raw = self._run_in_fresh_thread(_scrape_tipos_matches, settings.tipos_headless)
+        if not raw:
             return []
 
-        events = self._get_category_events(league_external_id)
+        self._odds_cache.clear()
+        self._url_cache.clear()
+
         matches = []
-        for ev in events:
+        for ev in raw:
             try:
                 rm = self._event_to_raw_match(ev, league_external_id)
                 if rm:
                     matches.append(rm)
+                    eid = str(ev.get("event_id", ""))
+                    detail = ev.get("detail_data") or {}
+                    if detail:
+                        self._odds_cache[eid] = self._extract_odds(detail, eid)
+                        self._url_cache[eid] = rm.url
             except Exception:
-                logger.exception(f"[tipos] Failed to parse event: {ev}")
+                logger.exception("[tipos] Failed to parse event: %s", ev)
         return matches
 
     def scrape_odds(self, match_external_id: str) -> list[RawOdds]:
-        if not self._ready:
-            return []
+        cached = self._odds_cache.get(match_external_id)
+        if cached is not None:
+            return cached
 
         try:
             event_id = int(match_external_id)
         except (ValueError, TypeError):
-            logger.warning(f"[tipos] Invalid match_external_id: {match_external_id}")
+            logger.warning("[tipos] Invalid match_external_id: %s", match_external_id)
             return []
 
-        data = self._api_call(
-            "GetWebStandardEventExt",
-            {"EventID": event_id, "LanguageID": LANG, "Token": self._token,
-             "UseLongPolling": True},
-        )
-        if not data:
+        detail = self._run_in_fresh_thread(_scrape_tipos_event, event_id, settings.tipos_headless)
+        if not detail:
             return []
-        self._dump_debug(f"odds_{event_id}", data)
-        return self._extract_odds(data, match_external_id)
+
+        odds = self._extract_odds(detail, match_external_id)
+        self._odds_cache[match_external_id] = odds
+        return odds
+
+    def scrape_odds_for_raw_match(self, raw_match: RawMatch) -> list[RawOdds]:
+        cached = self._odds_cache.get(raw_match.external_id)
+        if cached is not None:
+            return cached
+        return self.scrape_odds(raw_match.external_id)
 
     # ------------------------------------------------------------------
     # Parsing helpers
@@ -406,13 +430,11 @@ class TiposScraper(BaseScraper):
     def _event_to_raw_match(self, ev: dict, league_ext_id: str) -> Optional[RawMatch]:
         """Convert a raw event dict (from category listing) to RawMatch."""
         if isinstance(ev, dict) and "event_id" in ev:
-            # From our protobuf extraction
             eid = str(ev["event_id"])
             home = ev.get("home", "")
             away = ev.get("away", "")
             start = ev.get("startTime") or ev.get("start_time")
         else:
-            # Might be a direct JSON dict from ReturnValue list
             eid = str(
                 ev.get("EventID") or ev.get("eventId") or ev.get("ID", "")
             )
@@ -429,7 +451,6 @@ class TiposScraper(BaseScraper):
         if not eid:
             return None
 
-        # Try to parse combined name like "Home - Away"
         if not home or not away:
             name = ev.get("Name") or ev.get("name", "")
             for sep in [" - ", " vs ", " – "]:
@@ -456,15 +477,13 @@ class TiposScraper(BaseScraper):
     def _extract_odds(self, data: dict, match_ext_id: str) -> list[RawOdds]:
         """Extract odds from GetWebStandardEventExt response."""
         odds: list[RawOdds] = []
-        parsed = self._decode_return_value(data)
+        parsed = _decode_return_value(data)
         floats = [(fnum, fval) for fnum, fval in parsed["floats"]
                   if 1.01 <= fval <= 500.0]
 
         if not floats:
             return odds
 
-        # Heuristic: odds come in groups of 2 (home/away) or 3 (1x2)
-        # Try to map to 1x2 if we have exactly 3 odds in range
         plausible = [fval for _, fval in floats if 1.01 <= fval <= 50.0]
 
         url = f"{BASE}/zapas/{match_ext_id}"
@@ -494,8 +513,8 @@ class TiposScraper(BaseScraper):
                 ))
 
         logger.debug(
-            f"[tipos] Extracted {len(odds)} odds for event {match_ext_id} "
-            f"(raw floats: {floats[:10]})"
+            "[tipos] Extracted %d odds for event %s (raw floats: %s)",
+            len(odds), match_ext_id, floats[:10],
         )
         return odds
 
@@ -515,16 +534,3 @@ class TiposScraper(BaseScraper):
                 except ValueError:
                     continue
         return datetime.utcnow()
-
-    def close(self):
-        if self._browser:
-            try:
-                self._browser.close()
-            except Exception:
-                pass
-        if self._playwright:
-            try:
-                self._playwright.stop()
-            except Exception:
-                pass
-        super().close()
