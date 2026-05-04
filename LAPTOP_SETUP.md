@@ -128,12 +128,33 @@ cd bettingmaster
 
 ---
 
-## 5. Done — report back
+## 5. Start the stack
 
-After all above run + Tailscale shows IP, paste back:
+Copy `.env` and `.env.laptop` to `~/projects/bettingmaster/` (get them from the Mac project).
 
-- Tailscale IP (`tailscale ip -4` output)
-- `docker --version`
-- `whoami`
+Then start everything:
 
-Then I prep `.env` + worker compose file pointed at Hetzner DB over Tailscale.
+```bash
+cd ~/projects/bettingmaster
+docker compose -f docker-compose.laptop.yml --env-file .env up -d --build
+```
+
+Check all four services are up:
+
+```bash
+docker compose -f docker-compose.laptop.yml --env-file .env ps
+```
+
+Expected: `db` healthy, `backend` healthy, `frontend` up, `worker` up.
+
+---
+
+## Current status
+
+Setup complete as of 2026-05-03. Laptop is the sole production host.
+
+- Tailscale IP: `100.75.68.42`
+- All 4 services run on this machine
+- Hetzner decommissioned
+
+See `SERVER_RUNBOOK.md` for day-to-day operations.

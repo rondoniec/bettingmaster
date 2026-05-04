@@ -429,19 +429,18 @@ Frontend:
 
 Ops / deployment:
 
-- `docker-compose.hetzner-bettingmaster.yml`
-- `HETZNER_BETTINGMASTER_SETUP.md`
-- `SERVER_RUNBOOK.md`
+- `docker-compose.laptop.yml` — unified laptop compose (all 4 services)
+- `SERVER_RUNBOOK.md` — day-to-day operations reference
 
 ## Recommended Next Steps
 
 Highest-value next work:
 
-1. Make `Tipsport` operational via a residential/home-network route.
-2. Add a match-page toggle to hide stale bookmaker rows.
-3. Continue tightening Polymarket event matching.
-4. Keep improving bookmaker-specific exact outcome links.
-5. If the product expands again, add leagues gradually instead of reopening everything at once.
+1. Verify Tipos odds column order (home/draw/away assumed — cross-check vs Fortuna/Nike for same match).
+2. Expand Tipos coverage beyond PL top-bets (GetWebTopBets only returns ~6 events; need category endpoint or different TopOfferType).
+3. Add a match-page toggle to hide stale bookmaker rows.
+4. Continue tightening Polymarket event matching.
+5. Rotate Postgres password (`jozo` → something strong) before any wider exposure.
 
 ## Final Note
 

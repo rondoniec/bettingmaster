@@ -1,331 +1,178 @@
-# BettingMaster Server Runbook
+# BettingMaster Runbook
 
-Use this when the server is already set up and you just need to run, restart, update, or check the app.
+Everything runs on the home Ubuntu laptop (SSH alias `laptop` over Tailscale).
+Hetzner is decommissioned. Do not deploy there.
 
-Server IP:
+- Laptop path: `/home/adam/projects/bettingmaster`
+- Laptop Tailscale IP: `100.75.68.42`
+- Compose file: `docker-compose.laptop.yml`
+- Env file: `.env` (worker also loads `.env.laptop`)
 
-```bash
-188.245.79.101
-```
+---
 
-Project folder on the server:
-
-```bash
-/opt/bettingmaster
-```
-
-## 1. Connect to the server
-
-From your computer terminal:
+## Connect
 
 ```bash
-ssh root@188.245.79.101
+ssh laptop
 ```
 
-If it asks whether you trust the server, type:
+---
 
-```text
-yes
-```
-
-## 2. Go to the project folder
-
-After you log in:
+## 1. Check status
 
 ```bash
-cd /opt/bettingmaster
+cd /home/adam/projects/bettingmaster
+docker compose -f docker-compose.laptop.yml --env-file .env ps
 ```
 
-Always run the Docker commands from this folder.
+All four services should show:
 
-## 3. Check if everything is running
+- `db` — `healthy`
+- `backend` — `healthy`
+- `frontend` — `Up`
+- `worker` — `Up`
+
+---
+
+## 2. Deploy after pushing new code
 
 ```bash
-docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner ps
+ssh laptop "cd /home/adam/projects/bettingmaster && git pull && docker compose -f docker-compose.laptop.yml --env-file .env up -d --build"
 ```
 
-You want to see these services running:
+Rebuilds changed images, restarts containers, keeps the DB volume intact.
 
-- `db`
-- `backend`
-- `frontend`
-- `worker`
+---
 
-Healthy/good signs:
+## 3. Rebuild only one service
 
-- `db` says `healthy`
-- `backend` says `healthy`
-- `frontend` says `Up`
-- `worker` says `Up`
-
-## 4. Start everything again
-
-Use this if the server restarted, or containers are stopped:
+Frontend (after UI-only change):
 
 ```bash
-docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner up -d
+ssh laptop "cd /home/adam/projects/bettingmaster && git pull && docker compose -f docker-compose.laptop.yml --env-file .env up -d --build frontend"
 ```
 
-Then check status:
+Backend + worker (after scraper/API/DB change):
 
 ```bash
-docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner ps
+ssh laptop "cd /home/adam/projects/bettingmaster && git pull && docker compose -f docker-compose.laptop.yml --env-file .env up -d --build backend worker"
 ```
 
-## 5. Restart everything
+---
 
-Use this if the site is acting weird but you did not update code:
+## 4. Restart without rebuilding
 
 ```bash
-docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner restart
+ssh laptop "cd /home/adam/projects/bettingmaster && docker compose -f docker-compose.laptop.yml --env-file .env restart"
 ```
 
-## 6. Update the server after I push new code
+---
 
-Use this most often:
+## 5. Worker logs
+
+Tail live:
 
 ```bash
-cd /opt/bettingmaster
-git pull
-docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner up -d --build
+ssh laptop "cd /home/adam/projects/bettingmaster && docker compose -f docker-compose.laptop.yml --env-file .env logs -f worker"
 ```
 
-This rebuilds and restarts the app with the latest GitHub code.
-
-## 7. Update only the frontend
-
-Use this after UI-only changes:
+Last 100 lines:
 
 ```bash
-cd /opt/bettingmaster
-git pull
-docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner up -d --build frontend
+ssh laptop "cd /home/adam/projects/bettingmaster && docker compose -f docker-compose.laptop.yml --env-file .env logs worker --tail=100"
 ```
 
-## 8. Update backend and worker
-
-Use this after scraper, API, database, or odds logic changes:
+Filter by scraper:
 
 ```bash
-cd /opt/bettingmaster
-git pull
-docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner up -d --build backend worker
+ssh laptop "cd /home/adam/projects/bettingmaster && docker compose -f docker-compose.laptop.yml --env-file .env logs worker --tail=500 2>&1 | grep nike"
 ```
 
-## 9. Watch scraper progress
+---
 
-Quick worker log check:
+## 6. All service logs
 
 ```bash
-docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner logs worker --tail=100
+ssh laptop "cd /home/adam/projects/bettingmaster && docker compose -f docker-compose.laptop.yml --env-file .env logs -f"
 ```
 
-Live worker logs:
+---
+
+## 7. Health check
 
 ```bash
-docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner logs -f worker
+ssh laptop "curl -s http://127.0.0.1:8000/api/health | python3 -m json.tool"
 ```
 
-To exit live logs, press:
+---
 
-```text
-Ctrl+C
-```
-
-This only stops the log view. It does not stop the scraper.
-
-## 10. Force a scrape manually
-
-Run this if you do not want to wait for the worker schedule. This uses the
-match-first order: discover matches, then scrape the same match across all
-selected bookmakers before moving to the next match.
+## 8. Force a scrape manually
 
 ```bash
-docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner exec worker python -m bettingmaster.cli scrape-cycle --bookmaker fortuna --bookmaker nike --bookmaker doxxbet --bookmaker polymarket
+ssh laptop "cd /home/adam/projects/bettingmaster && docker compose -f docker-compose.laptop.yml --env-file .env exec worker python -m bettingmaster.cli scrape-cycle --bookmaker fortuna --bookmaker nike --bookmaker doxxbet --bookmaker polymarket --bookmaker tipsport --bookmaker tipos"
 ```
 
-Optional scrapers can be added too:
+Single bookmaker for debugging:
 
 ```bash
-docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner exec worker python -m bettingmaster.cli scrape-cycle --bookmaker fortuna --bookmaker nike --bookmaker doxxbet --bookmaker polymarket --bookmaker tipsport --bookmaker tipos
+ssh laptop "cd /home/adam/projects/bettingmaster && docker compose -f docker-compose.laptop.yml --env-file .env exec worker python -m bettingmaster.cli scrape doxxbet"
 ```
 
-Note: `tipsport` and `tipos` may fail or return no data more often than the others.
+---
 
-The older command also still exists for debugging one bookmaker only:
+## 9. Full clean restart
+
+Use when normal restart doesn't help:
 
 ```bash
-docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner exec worker python -m bettingmaster.cli scrape doxxbet
+ssh laptop "cd /home/adam/projects/bettingmaster && docker compose -f docker-compose.laptop.yml --env-file .env down && docker compose -f docker-compose.laptop.yml --env-file .env up -d --build"
 ```
 
-## 11. Check API health
+Keeps the PostgreSQL data volume — does not delete the database.
 
-From the server:
+---
+
+## 10. Delete everything including data (DESTRUCTIVE)
+
+Do not run unless you want to wipe the database:
 
 ```bash
-curl http://127.0.0.1:8000/api/health
+ssh laptop "cd /home/adam/projects/bettingmaster && docker compose -f docker-compose.laptop.yml --env-file .env down -v"
 ```
 
-From your browser:
+The `-v` flag deletes Docker volumes including PostgreSQL data.
 
-```text
-http://188.245.79.101:8000/api/health
-```
+---
 
-Good response looks like this:
+## 11. Useful URLs (via Tailscale or LAN)
 
-```json
-{
-  "status": "ok",
-  "db": "connected",
-  "scrapers": {
-    "fortuna": "2026-04-21 12:00:00"
-  }
-}
-```
+- Frontend: `http://100.75.68.42:3000`
+- API health: `http://100.75.68.42:8000/api/health`
+- API docs: `http://100.75.68.42:8000/docs`
+- Best odds: `http://100.75.68.42:8000/api/matches/best-odds`
 
-The `scrapers` object fills in after successful scrapes.
+---
 
-## 12. Check if matches exist
+## 12. Active scrapers and status
 
-From the server:
+| Scraper | Status | Notes |
+|---------|--------|-------|
+| fortuna | ✅ working | Core reliable source |
+| nike | ✅ working | Adaptive cadence (starts 60s, +5s on 429) |
+| doxxbet | ✅ working | Clean API |
+| polymarket | ✅ working | Ask price (CLOB SELL side) |
+| tipsport | ✅ working | Playwright HTML scraper, patchright + real Chrome + Xvfb |
+| tipos | ✅ working | Playwright API scraper, GetWebTopBets + GetWebStandardEventExt |
 
-```bash
-curl http://127.0.0.1:8000/api/matches
-```
+Tipsport requires residential IP — works on laptop, fails on datacenter IPs.
 
-Check best-odds board data:
+---
 
-```bash
-curl "http://127.0.0.1:8000/api/matches/best-odds"
-```
+## 13. Worker environment files
 
-If `/api/matches` has data but `/api/matches/best-odds` is empty, it usually means only one bookmaker has scraped so far. The homepage needs overlapping bookmaker data.
+| File | Used by | Contains |
+|------|---------|----------|
+| `.env` | db, backend, frontend, worker | DB creds, CORS, API URLs, Tipsport headless=false |
+| `.env.laptop` | worker (merged on top of .env) | football-data.org + API-Football tokens, Tipsport channel |
 
-## 12.1. If only some scrapers appear
-
-If `/api/health` only shows some bookmakers with a timestamp, it means only those bookmakers have saved odds recently.
-
-Check the worker logs:
-
-```bash
-docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner logs worker --tail=300
-```
-
-Look for lines containing:
-
-```text
-[nike]
-[doxxbet]
-[fortuna]
-[polymarket]
-Round-robin scrape cycle
-```
-
-You can also filter logs for one scraper:
-
-```bash
-docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner logs worker --tail=500 | grep nike
-docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner logs worker --tail=500 | grep doxxbet
-```
-
-Force missing scrapers:
-
-```bash
-docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner exec worker python -m bettingmaster.cli scrape-cycle --bookmaker nike --bookmaker doxxbet
-```
-
-Then check health again:
-
-```bash
-curl http://127.0.0.1:8000/api/health
-```
-
-If a forced scraper finishes but still does not show in health, it found no odds to save or failed before saving. Check worker logs immediately after forcing it.
-
-## 13. Useful browser links
-
-Main site:
-
-```text
-http://188.245.79.101:3000
-```
-
-Surebets:
-
-```text
-http://188.245.79.101:3000/surebets
-```
-
-API health:
-
-```text
-http://188.245.79.101:8000/api/health
-```
-
-API docs:
-
-```text
-http://188.245.79.101:8000/docs
-```
-
-## 14. If the worker is restarting or broken
-
-Check logs:
-
-```bash
-docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner logs worker --tail=150
-```
-
-Then rebuild worker and backend:
-
-```bash
-docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner up -d --build backend worker
-```
-
-Check status again:
-
-```bash
-docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner ps
-```
-
-## 15. If the frontend says API did not answer
-
-Rebuild frontend:
-
-```bash
-docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner up -d --build frontend
-```
-
-Check frontend logs:
-
-```bash
-docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner logs frontend --tail=100
-```
-
-Check backend health:
-
-```bash
-curl http://127.0.0.1:8000/api/health
-```
-
-## 16. Full clean restart
-
-Use this only when normal restart does not help:
-
-```bash
-docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner down
-docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner up -d --build
-```
-
-This keeps the PostgreSQL data volume. It does not delete your database.
-
-## 17. Do not run this unless you want to delete data
-
-Do not run this casually:
-
-```bash
-docker compose -f docker-compose.hetzner-bettingmaster.yml --env-file .env.hetzner down -v
-```
-
-The `-v` deletes Docker volumes, including the database.
+`.env.laptop` `BM_DATABASE_URL` uses Docker-internal `db:5432` — do not change to Tailscale IP.
