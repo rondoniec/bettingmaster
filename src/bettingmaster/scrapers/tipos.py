@@ -134,6 +134,7 @@ def _decode_return_value(data: dict) -> dict:
         return {"strings": [], "floats": [], "ints": []}
     try:
         raw = _decode_b64(rv)
+        logger.info("[tipos] ReturnValue decoded: %d bytes, first_hex=%s", len(raw), raw[:16].hex())
         return _parse_proto_values(raw)
     except Exception as e:
         logger.debug("[tipos] ReturnValue decode failed: %s", e)
