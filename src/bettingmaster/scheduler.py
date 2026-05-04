@@ -261,12 +261,17 @@ def _discover_round_robin_matches(
                     away,
                     raw_match.start_time.strftime("%Y-%m-%d"),
                 )
+                # Scrapers with CREATES_MATCHES=False use placeholder start times
+                # (e.g. Tipsport sets now+1h for all matches). Use a wide window
+                # so the placeholder doesn't prevent matching real kickoff times.
+                _tw = timedelta(hours=48) if not scraper.CREATES_MATCHES else timedelta(hours=3)
                 existing_match = find_similar_match(
                     db,
                     league_id,
                     home,
                     away,
                     raw_match.start_time,
+                    time_window=_tw,
                 )
                 if existing_match is not None:
                     match_id = existing_match.id

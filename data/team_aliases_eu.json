@@ -1,332 +1,697 @@
 {
   "Arsenal": {
-    "fortuna": ["Arsenal"],
-    "nike": ["Arsenal FC"]
+    "fortuna": [
+      "Arsenal"
+    ],
+    "nike": [
+      "Arsenal FC"
+    ]
   },
   "Aston Villa": {
-    "fortuna": ["Aston Villa"],
-    "nike": ["Aston Villa"]
+    "fortuna": [
+      "Aston Villa"
+    ],
+    "nike": [
+      "Aston Villa"
+    ]
   },
   "Bournemouth": {
-    "fortuna": ["Bournemouth"],
-    "nike": ["Bournemouth"]
+    "fortuna": [
+      "Bournemouth"
+    ],
+    "nike": [
+      "Bournemouth"
+    ]
   },
   "Brentford": {
-    "fortuna": ["Brentford"],
-    "nike": ["Brentford"]
+    "fortuna": [
+      "Brentford"
+    ],
+    "nike": [
+      "Brentford"
+    ]
   },
   "Brighton & Hove Albion": {
-    "fortuna": ["Brighton"],
-    "nike": ["Brighton & Hove"]
+    "fortuna": [
+      "Brighton"
+    ],
+    "nike": [
+      "Brighton & Hove"
+    ],
+    "tipsport": [
+      "Brighton"
+    ]
   },
   "Burnley": {
-    "fortuna": ["Burnley"],
-    "nike": ["Burnley"]
+    "fortuna": [
+      "Burnley"
+    ],
+    "nike": [
+      "Burnley"
+    ]
   },
   "Chelsea": {
-    "fortuna": ["Chelsea"],
-    "nike": ["Chelsea"]
+    "fortuna": [
+      "Chelsea"
+    ],
+    "nike": [
+      "Chelsea"
+    ]
   },
   "Crystal Palace": {
-    "fortuna": ["Crystal Palace"],
-    "nike": ["Crystal Palace"]
+    "fortuna": [
+      "Crystal Palace"
+    ],
+    "nike": [
+      "Crystal Palace"
+    ]
   },
   "DAC Dunajska Streda": {
-    "doxxbet": ["Dun. Streda"]
+    "doxxbet": [
+      "Dun. Streda"
+    ]
   },
   "Everton": {
-    "fortuna": ["Everton"],
-    "nike": ["Everton"]
+    "fortuna": [
+      "Everton"
+    ],
+    "nike": [
+      "Everton"
+    ]
   },
   "Fulham": {
-    "fortuna": ["Fulham"],
-    "nike": ["Fulham FC"]
+    "fortuna": [
+      "Fulham"
+    ],
+    "nike": [
+      "Fulham FC"
+    ]
   },
   "FK Zeleziarne Podbrezova": {
-    "doxxbet": ["FK Zeleziarne Podbrezova"]
+    "doxxbet": [
+      "FK Zeleziarne Podbrezova"
+    ]
   },
   "Leeds United": {
-    "fortuna": ["Leeds"],
-    "nike": ["Leeds Utd."]
+    "fortuna": [
+      "Leeds"
+    ],
+    "nike": [
+      "Leeds Utd."
+    ],
+    "tipsport": [
+      "Leeds"
+    ]
   },
   "Liverpool": {
-    "fortuna": ["Liverpool"],
-    "nike": ["FC Liverpool"],
-    "doxxbet": ["Liverpool"]
+    "fortuna": [
+      "Liverpool"
+    ],
+    "nike": [
+      "FC Liverpool"
+    ],
+    "doxxbet": [
+      "Liverpool"
+    ]
   },
   "Manchester City": {
-    "fortuna": ["Man.City"],
-    "nike": ["Manchester City"]
+    "fortuna": [
+      "Man.City"
+    ],
+    "nike": [
+      "Manchester City"
+    ]
   },
   "Manchester United": {
-    "fortuna": ["Man.United"],
-    "nike": ["Manchester Utd."]
+    "fortuna": [
+      "Man.United"
+    ],
+    "nike": [
+      "Manchester Utd."
+    ]
   },
   "Newcastle United": {
-    "fortuna": ["Newcastle"],
-    "nike": ["Newcastle Utd."]
+    "fortuna": [
+      "Newcastle"
+    ],
+    "nike": [
+      "Newcastle Utd."
+    ],
+    "tipsport": [
+      "Newcastle"
+    ]
   },
   "Nottingham Forest": {
-    "fortuna": ["Nottingham"],
-    "nike": ["Nottingham"]
+    "fortuna": [
+      "Nottingham"
+    ],
+    "nike": [
+      "Nottingham"
+    ],
+    "tipsport": [
+      "Nottingham"
+    ]
   },
   "Sunderland": {
-    "fortuna": ["Sunderland"],
-    "nike": ["Sunderland"]
+    "fortuna": [
+      "Sunderland"
+    ],
+    "nike": [
+      "Sunderland"
+    ]
   },
   "Tottenham Hotspur": {
-    "fortuna": ["Tottenham"],
-    "nike": ["Tottenham"],
-    "doxxbet": ["Tottenham"]
+    "fortuna": [
+      "Tottenham"
+    ],
+    "nike": [
+      "Tottenham"
+    ],
+    "doxxbet": [
+      "Tottenham"
+    ],
+    "tipsport": [
+      "Tottenham"
+    ]
   },
   "West Ham United": {
-    "fortuna": ["West Ham"],
-    "nike": ["West Ham"]
+    "fortuna": [
+      "West Ham"
+    ],
+    "nike": [
+      "West Ham"
+    ],
+    "tipsport": [
+      "West Ham"
+    ]
   },
   "Wolverhampton Wanderers": {
-    "fortuna": ["Wolverhampton"],
-    "nike": ["Wolverhampton"]
+    "fortuna": [
+      "Wolverhampton"
+    ],
+    "nike": [
+      "Wolverhampton"
+    ],
+    "tipsport": [
+      "Wolverhampton"
+    ]
   },
   "1. FC Koln": {
-    "fortuna": ["1.FC K\u00f6ln"],
-    "nike": ["1. FC K\u00f6ln"]
+    "fortuna": [
+      "1.FC Köln"
+    ],
+    "nike": [
+      "1. FC Köln"
+    ]
   },
   "Bayer Leverkusen": {
-    "fortuna": ["Leverkusen"],
-    "nike": ["Leverkusen"]
+    "fortuna": [
+      "Leverkusen"
+    ],
+    "nike": [
+      "Leverkusen"
+    ]
   },
   "Bayern Munich": {
-    "fortuna": ["Bayern"],
-    "nike": ["Bayern M\u00fcnchen"]
+    "fortuna": [
+      "Bayern"
+    ],
+    "nike": [
+      "Bayern München"
+    ]
   },
   "Borussia Dortmund": {
-    "fortuna": ["Dortmund"],
-    "nike": ["Dortmund"]
+    "fortuna": [
+      "Dortmund"
+    ],
+    "nike": [
+      "Dortmund"
+    ]
   },
   "Borussia Monchengladbach": {
-    "fortuna": ["M gladbach"],
-    "nike": ["M gladbach"]
+    "fortuna": [
+      "M gladbach"
+    ],
+    "nike": [
+      "M gladbach"
+    ]
   },
   "Eintracht Frankfurt": {
-    "fortuna": ["Frankfurt"],
-    "nike": ["Eintracht Frankfurt"]
+    "fortuna": [
+      "Frankfurt"
+    ],
+    "nike": [
+      "Eintracht Frankfurt"
+    ]
   },
   "FC Augsburg": {
-    "fortuna": ["Augsburg"],
-    "nike": ["FC Augsburg"]
+    "fortuna": [
+      "Augsburg"
+    ],
+    "nike": [
+      "FC Augsburg"
+    ]
   },
   "Freiburg": {
-    "fortuna": ["Freiburg"],
-    "nike": ["SC Freiburg"]
+    "fortuna": [
+      "Freiburg"
+    ],
+    "nike": [
+      "SC Freiburg"
+    ]
   },
   "Hamburger SV": {
-    "fortuna": ["Hamburger SV"],
-    "nike": ["Hamburger SV"]
+    "fortuna": [
+      "Hamburger SV"
+    ],
+    "nike": [
+      "Hamburger SV"
+    ]
   },
   "Heidenheim": {
-    "fortuna": ["Heidenheim"],
-    "nike": ["Heidenheim"]
+    "fortuna": [
+      "Heidenheim"
+    ],
+    "nike": [
+      "Heidenheim"
+    ]
   },
   "Hoffenheim": {
-    "fortuna": ["Hoffenheim"],
-    "nike": ["Hoffenheim"]
+    "fortuna": [
+      "Hoffenheim"
+    ],
+    "nike": [
+      "Hoffenheim"
+    ]
   },
   "Mainz": {
-    "fortuna": ["Mainz"],
-    "nike": ["FSV Mainz"]
+    "fortuna": [
+      "Mainz"
+    ],
+    "nike": [
+      "FSV Mainz"
+    ]
   },
   "RB Leipzig": {
-    "fortuna": ["Leipzig"],
-    "nike": ["RB Leipzig"]
+    "fortuna": [
+      "Leipzig"
+    ],
+    "nike": [
+      "RB Leipzig"
+    ]
   },
   "St. Pauli": {
-    "fortuna": ["St.Pauli"],
-    "nike": ["St. Pauli"]
+    "fortuna": [
+      "St.Pauli"
+    ],
+    "nike": [
+      "St. Pauli"
+    ]
   },
   "Union Berlin": {
-    "fortuna": ["Un.Berlin"],
-    "nike": ["Union Berlin"]
+    "fortuna": [
+      "Un.Berlin"
+    ],
+    "nike": [
+      "Union Berlin"
+    ]
   },
   "VfB Stuttgart": {
-    "fortuna": ["VFB Stuttgart"],
-    "nike": ["VfB Stuttgart"]
+    "fortuna": [
+      "VFB Stuttgart"
+    ],
+    "nike": [
+      "VfB Stuttgart"
+    ]
   },
   "Werder Bremen": {
-    "fortuna": ["Bremen"],
-    "nike": ["Werder Bremen"]
+    "fortuna": [
+      "Bremen"
+    ],
+    "nike": [
+      "Werder Bremen"
+    ]
   },
   "Wolfsburg": {
-    "fortuna": ["Wolfsburg"],
-    "nike": ["VfL Wolfsburg"]
+    "fortuna": [
+      "Wolfsburg"
+    ],
+    "nike": [
+      "VfL Wolfsburg"
+    ]
   },
   "Alaves": {
-    "fortuna": ["Alav\u00e9s"],
-    "nike": ["Alaves"]
+    "fortuna": [
+      "Alavés"
+    ],
+    "nike": [
+      "Alaves"
+    ]
   },
   "Athletic Bilbao": {
-    "fortuna": ["Bilbao"],
-    "nike": ["Athletic Bilbao"]
+    "fortuna": [
+      "Bilbao"
+    ],
+    "nike": [
+      "Athletic Bilbao"
+    ],
+    "tipsport": [
+      "Bilbao"
+    ]
   },
   "Atletico Madrid": {
-    "fortuna": ["Atl.Madrid"],
-    "nike": ["Atletico Madrid"],
-    "doxxbet": ["Atl. Madrid"]
+    "fortuna": [
+      "Atl.Madrid"
+    ],
+    "nike": [
+      "Atletico Madrid"
+    ],
+    "doxxbet": [
+      "Atl. Madrid"
+    ]
   },
   "Barcelona": {
-    "fortuna": ["Barcelona"],
-    "nike": ["FC Barcelona"]
+    "fortuna": [
+      "Barcelona"
+    ],
+    "nike": [
+      "FC Barcelona"
+    ]
   },
   "Real Betis": {
-    "fortuna": ["Betis"],
-    "nike": ["Real Betis"]
+    "fortuna": [
+      "Betis"
+    ],
+    "nike": [
+      "Real Betis"
+    ],
+    "tipsport": [
+      "Betis Sevilla"
+    ]
   },
   "Celta Vigo": {
-    "fortuna": ["Celta Vigo"],
-    "nike": ["Celta Vigo"]
+    "fortuna": [
+      "Celta Vigo"
+    ],
+    "nike": [
+      "Celta Vigo"
+    ]
   },
   "Elche": {
-    "fortuna": ["Elche"],
-    "nike": ["Elche"]
+    "fortuna": [
+      "Elche"
+    ],
+    "nike": [
+      "Elche"
+    ]
   },
   "Espanyol": {
-    "fortuna": ["Espanyol"],
-    "nike": ["Espanyol"]
+    "fortuna": [
+      "Espanyol"
+    ],
+    "nike": [
+      "Espanyol"
+    ]
   },
   "Getafe": {
-    "fortuna": ["Getafe"],
-    "nike": ["Getafe"]
+    "fortuna": [
+      "Getafe"
+    ],
+    "nike": [
+      "Getafe"
+    ]
   },
   "Girona": {
-    "fortuna": ["Girona"],
-    "nike": ["Girona"]
+    "fortuna": [
+      "Girona"
+    ],
+    "nike": [
+      "Girona"
+    ]
   },
   "Levante": {
-    "fortuna": ["Levante"],
-    "nike": ["Levante UD"]
+    "fortuna": [
+      "Levante"
+    ],
+    "nike": [
+      "Levante UD"
+    ]
   },
   "Mallorca": {
-    "fortuna": ["Mallorca"],
-    "nike": ["Mallorca"]
+    "fortuna": [
+      "Mallorca"
+    ],
+    "nike": [
+      "Mallorca"
+    ]
   },
   "Osasuna": {
-    "fortuna": ["Osasuna"],
-    "nike": ["Osasuna"]
+    "fortuna": [
+      "Osasuna"
+    ],
+    "nike": [
+      "Osasuna"
+    ]
   },
   "Rayo Vallecano": {
-    "fortuna": ["Vallecano"],
-    "nike": ["R. Vallecano"]
+    "fortuna": [
+      "Vallecano"
+    ],
+    "nike": [
+      "R. Vallecano"
+    ],
+    "tipsport": [
+      "Vallecano"
+    ]
   },
   "Real Madrid": {
-    "fortuna": ["Real Madrid"],
-    "nike": ["Real Madrid"]
+    "fortuna": [
+      "Real Madrid"
+    ],
+    "nike": [
+      "Real Madrid"
+    ]
   },
   "Real Oviedo": {
-    "fortuna": ["Real Oviedo"],
-    "nike": ["Real Oviedo"]
+    "fortuna": [
+      "Real Oviedo"
+    ],
+    "nike": [
+      "Real Oviedo"
+    ],
+    "tipsport": [
+      "Oviedo"
+    ]
   },
   "Real Sociedad": {
-    "fortuna": ["Real Sociedad"],
-    "nike": ["San Sebastian"]
+    "fortuna": [
+      "Real Sociedad"
+    ],
+    "nike": [
+      "San Sebastian"
+    ]
   },
   "Sevilla": {
-    "fortuna": ["FC Sevilla"],
-    "nike": ["FC Sevilla"]
+    "fortuna": [
+      "FC Sevilla"
+    ],
+    "nike": [
+      "FC Sevilla"
+    ]
   },
   "Valencia": {
-    "fortuna": ["Valencia"],
-    "nike": ["Valencia CF"]
+    "fortuna": [
+      "Valencia"
+    ],
+    "nike": [
+      "Valencia CF"
+    ]
   },
   "Villarreal": {
-    "fortuna": ["Villarreal"],
-    "nike": ["Villarreal"]
+    "fortuna": [
+      "Villarreal"
+    ],
+    "nike": [
+      "Villarreal"
+    ]
   },
   "AC Milan": {
-    "fortuna": ["AC Milan"],
-    "nike": ["AC Milan"]
+    "fortuna": [
+      "AC Milan"
+    ],
+    "nike": [
+      "AC Milan"
+    ]
   },
   "AS Roma": {
-    "fortuna": ["AS Roma"],
-    "nike": ["AS Roma"]
+    "fortuna": [
+      "AS Roma"
+    ],
+    "nike": [
+      "AS Roma"
+    ]
   },
   "Atalanta": {
-    "fortuna": ["Atalanta"],
-    "nike": ["Atalanta"]
+    "fortuna": [
+      "Atalanta"
+    ],
+    "nike": [
+      "Atalanta"
+    ]
   },
   "Bologna": {
-    "fortuna": ["Bologna"],
-    "nike": ["Bologna"]
+    "fortuna": [
+      "Bologna"
+    ],
+    "nike": [
+      "Bologna"
+    ]
   },
   "Cagliari": {
-    "fortuna": ["Cagliari"],
-    "nike": ["Cagliari"]
+    "fortuna": [
+      "Cagliari"
+    ],
+    "nike": [
+      "Cagliari"
+    ]
   },
   "Como": {
-    "fortuna": ["Como"],
-    "nike": ["Como"]
+    "fortuna": [
+      "Como"
+    ],
+    "nike": [
+      "Como"
+    ]
   },
   "Cremonese": {
-    "fortuna": ["Cremonese"],
-    "nike": ["Cremonese"]
+    "fortuna": [
+      "Cremonese"
+    ],
+    "nike": [
+      "Cremonese"
+    ]
   },
   "Fiorentina": {
-    "fortuna": ["Fiorentina"],
-    "nike": ["Fiorentina"]
+    "fortuna": [
+      "Fiorentina"
+    ],
+    "nike": [
+      "Fiorentina"
+    ]
   },
   "Genoa": {
-    "fortuna": ["Genoa"],
-    "nike": ["Genoa"]
+    "fortuna": [
+      "Genoa"
+    ],
+    "nike": [
+      "Genoa"
+    ]
   },
   "Hellas Verona": {
-    "fortuna": ["Hellas Verona"],
-    "nike": ["Hellas Verona"]
+    "fortuna": [
+      "Hellas Verona"
+    ],
+    "nike": [
+      "Hellas Verona"
+    ]
   },
   "Inter Milan": {
-    "fortuna": ["Inter Milano"],
-    "nike": ["Inter Milan"]
+    "fortuna": [
+      "Inter Milano"
+    ],
+    "nike": [
+      "Inter Milan"
+    ]
   },
   "Juventus": {
-    "fortuna": ["Juventus"],
-    "nike": ["Juventus"]
+    "fortuna": [
+      "Juventus"
+    ],
+    "nike": [
+      "Juventus"
+    ]
   },
   "Lazio": {
-    "fortuna": ["Lazio"],
-    "nike": ["Lazio"]
+    "fortuna": [
+      "Lazio"
+    ],
+    "nike": [
+      "Lazio"
+    ]
   },
   "Lecce": {
-    "fortuna": ["Lecce"],
-    "nike": ["Lecce"]
+    "fortuna": [
+      "Lecce"
+    ],
+    "nike": [
+      "Lecce"
+    ]
   },
   "Napoli": {
-    "fortuna": ["Napoli"],
-    "nike": ["Napoli"]
+    "fortuna": [
+      "Napoli"
+    ],
+    "nike": [
+      "Napoli"
+    ]
   },
   "Parma": {
-    "fortuna": ["Parma"],
-    "nike": ["Parma"]
+    "fortuna": [
+      "Parma"
+    ],
+    "nike": [
+      "Parma"
+    ]
   },
   "Pisa": {
-    "fortuna": ["Pisa"],
-    "nike": ["Pisa"]
+    "fortuna": [
+      "Pisa"
+    ],
+    "nike": [
+      "Pisa"
+    ]
   },
   "Sassuolo": {
-    "fortuna": ["Sassuolo"],
-    "nike": ["Sassuolo"]
+    "fortuna": [
+      "Sassuolo"
+    ],
+    "nike": [
+      "Sassuolo"
+    ]
   },
   "Torino": {
-    "fortuna": ["Torino"],
-    "nike": ["Torino FC"]
+    "fortuna": [
+      "Torino"
+    ],
+    "nike": [
+      "Torino FC"
+    ]
   },
   "Udinese": {
-    "fortuna": ["Udinese"],
-    "nike": ["Udinese"]
+    "fortuna": [
+      "Udinese"
+    ],
+    "nike": [
+      "Udinese"
+    ]
   },
   "Paris Saint-Germain": {
-    "fortuna": ["PSG"],
-    "nike": ["Paris St.G."],
-    "doxxbet": ["PSG"]
+    "fortuna": [
+      "PSG"
+    ],
+    "nike": [
+      "Paris St.G."
+    ],
+    "doxxbet": [
+      "PSG"
+    ]
   },
   "Sporting CP": {
-    "fortuna": ["Sporting L."],
-    "nike": ["Sporting CP"]
+    "fortuna": [
+      "Sporting L."
+    ],
+    "nike": [
+      "Sporting CP"
+    ]
   }
 }
