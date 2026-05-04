@@ -141,7 +141,12 @@ def _decode_return_value(data: dict) -> dict:
 
 
 def _extract_event_ids_from_data(data: dict) -> list[dict]:
-    """Pull event IDs out of a GetWebTopBets response."""
+    """Pull event IDs out of a GetWebTopBets response.
+
+    The ReturnValue protobuf includes match title strings in "Team A - Team B"
+    format. We prefer those over raw sequential string assignment, which
+    mis-pairs team names with unrelated strings (channel names, etc.).
+    """
     rv = data.get("ReturnValue")
 
     if isinstance(rv, list):
@@ -150,12 +155,23 @@ def _extract_event_ids_from_data(data: dict) -> list[dict]:
     if isinstance(rv, str) and len(rv) > 10:
         parsed = _decode_return_value(data)
         ids = [i for i in parsed["ints"] if 1_000_000 < i < 9_999_999_999]
-        strings = [s for _, s in parsed["strings"] if len(s) >= 3]
+        all_strings = [s for _, s in parsed["strings"] if len(s) >= 2]
+
+        # Prefer "Team A - Team B" title strings over raw sequential pairing.
+        # Match titles contain exactly one " - " and are 6-80 chars long.
+        match_titles = [
+            s for s in all_strings
+            if " - " in s and 6 < len(s) < 80 and s.count(" - ") == 1
+        ]
+
         events = []
         for i, eid in enumerate(ids):
-            base = i * 3
-            home = strings[base] if base < len(strings) else ""
-            away = strings[base + 1] if base + 1 < len(strings) else ""
+            if i < len(match_titles):
+                title = match_titles[i]
+                parts = title.split(" - ", 1)
+                home, away = parts[0].strip(), parts[1].strip()
+            else:
+                home = away = ""
             events.append({"event_id": eid, "home": home, "away": away})
         return events
 
@@ -331,6 +347,7 @@ class TiposScraper(BaseScraper):
     BOOKMAKER = "tipos"
     BASE_URL = BASE
     REQUEST_DELAY = 2.0
+    CREATES_MATCHES = False  # no reliable kickoff times; only attach to existing records
 
     def __init__(self, db_session, http_client=None):
         super().__init__(db_session, http_client)
@@ -383,17 +400,33 @@ class TiposScraper(BaseScraper):
         self._odds_cache.clear()
         self._url_cache.clear()
 
+        _OUTRIGHT_TOKENS = frozenset(
+            ["stávky", "strelec", "strelci", "víťaz", "postup", "zostup",
+             "champion", "winner", "scorer", "liga", "league", "hlavné",
+             "celkovo", "canal", "sport 1", "sport 2"]
+        )
+
+        def _is_garbage(name: str) -> bool:
+            if not name or name[0].isdigit():
+                return True
+            low = name.lower()
+            return any(tok in low for tok in _OUTRIGHT_TOKENS)
+
         matches = []
         for ev in raw:
             try:
                 rm = self._event_to_raw_match(ev, league_external_id)
-                if rm:
-                    matches.append(rm)
-                    eid = str(ev.get("event_id", ""))
-                    detail = ev.get("detail_data") or {}
-                    if detail:
-                        self._odds_cache[eid] = self._extract_odds(detail, eid)
-                        self._url_cache[eid] = rm.url
+                if not rm:
+                    continue
+                if _is_garbage(rm.home_team) or _is_garbage(rm.away_team):
+                    logger.debug("[tipos] skip garbage: %s vs %s", rm.home_team, rm.away_team)
+                    continue
+                matches.append(rm)
+                eid = str(ev.get("event_id", ""))
+                detail = ev.get("detail_data") or {}
+                if detail:
+                    self._odds_cache[eid] = self._extract_odds(detail, eid)
+                    self._url_cache[eid] = rm.url
             except Exception:
                 logger.exception("[tipos] Failed to parse event: %s", ev)
         return matches
