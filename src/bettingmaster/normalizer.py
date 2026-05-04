@@ -103,7 +103,7 @@ class TeamNormalizer:
             self._save_new_alias(raw_name, bookmaker, canonical)
             return canonical
 
-        logger.warning(f"Unmatched team: '{raw_name}' from {bookmaker}")
+        logger.debug(f"Unmatched team: '{raw_name}' from {bookmaker}")
         return None
 
     def _save_new_alias(self, alias: str, bookmaker: str, canonical: str):
