@@ -136,7 +136,6 @@ def _decode_return_value(data: dict) -> dict:
         return {"strings": [], "floats": [], "ints": []}
     try:
         raw = _decode_b64(rv)
-        logger.info("[tipos] ReturnValue decoded: %d bytes, first_hex=%s", len(raw), raw[:16].hex())
         return _parse_proto_values(raw)
     except Exception as e:
         logger.debug("[tipos] ReturnValue decode failed: %s", e)
@@ -310,8 +309,6 @@ def _scrape_tipos_matches(headless: bool = True) -> list[dict]:
                  "UseLongPolling": True},
             )
             ev["detail_data"] = detail
-            rv_len = len(detail.get("ReturnValue", "") or "")
-            logger.info("[tipos] event %s detail ReturnValue len=%d", event_id, rv_len)
             results.append(ev)
 
         return results
@@ -519,21 +516,7 @@ class TiposScraper(BaseScraper):
         floats = [(fnum, fval) for fnum, fval in parsed["floats"]
                   if 1.01 <= fval <= 500.0]
 
-        logger.info(
-            "[tipos] _extract_odds event=%s: total_floats=%d ints_count=%d strs_count=%d",
-            match_ext_id, len(parsed["floats"]), len(parsed["ints"]), len(parsed["strings"]),
-        )
-
         if not floats:
-            # Odds may be fixed-point varints (×100). Try converting ints.
-            ints_as_odds = [
-                round(i / 100, 2) for i in parsed["ints"]
-                if 100 < i < 5000  # 1.00 < odds < 50.00
-            ]
-            logger.info(
-                "[tipos] no IEEE floats for %s, ints_as_x100_odds sample: %s",
-                match_ext_id, ints_as_odds[:10],
-            )
             return odds
 
         plausible = [fval for _, fval in floats if 1.01 <= fval <= 50.0]
