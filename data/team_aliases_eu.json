@@ -5,6 +5,15 @@
     ],
     "nike": [
       "Arsenal FC"
+    ],
+    "tipsport": [
+      "Arsenal"
+    ],
+    "doxxbet": [
+      "Arsenal"
+    ],
+    "tipos": [
+      "Arsenal"
     ]
   },
   "Aston Villa": {
@@ -12,6 +21,15 @@
       "Aston Villa"
     ],
     "nike": [
+      "Aston Villa"
+    ],
+    "tipsport": [
+      "Aston Villa"
+    ],
+    "doxxbet": [
+      "Aston Villa"
+    ],
+    "tipos": [
       "Aston Villa"
     ]
   },
@@ -21,6 +39,15 @@
     ],
     "nike": [
       "Bournemouth"
+    ],
+    "tipsport": [
+      "Bournemouth"
+    ],
+    "doxxbet": [
+      "Bournemouth"
+    ],
+    "tipos": [
+      "Bournemouth"
     ]
   },
   "Brentford": {
@@ -28,6 +55,15 @@
       "Brentford"
     ],
     "nike": [
+      "Brentford"
+    ],
+    "tipsport": [
+      "Brentford"
+    ],
+    "doxxbet": [
+      "Brentford"
+    ],
+    "tipos": [
       "Brentford"
     ]
   },
@@ -40,6 +76,12 @@
     ],
     "tipsport": [
       "Brighton"
+    ],
+    "doxxbet": [
+      "Brighton"
+    ],
+    "tipos": [
+      "Brighton"
     ]
   },
   "Burnley": {
@@ -47,6 +89,15 @@
       "Burnley"
     ],
     "nike": [
+      "Burnley"
+    ],
+    "tipsport": [
+      "Burnley"
+    ],
+    "doxxbet": [
+      "Burnley"
+    ],
+    "tipos": [
       "Burnley"
     ]
   },
@@ -56,6 +107,15 @@
     ],
     "nike": [
       "Chelsea"
+    ],
+    "tipsport": [
+      "Chelsea"
+    ],
+    "doxxbet": [
+      "Chelsea"
+    ],
+    "tipos": [
+      "Chelsea"
     ]
   },
   "Crystal Palace": {
@@ -63,6 +123,15 @@
       "Crystal Palace"
     ],
     "nike": [
+      "Crystal Palace"
+    ],
+    "tipsport": [
+      "Crystal Palace"
+    ],
+    "doxxbet": [
+      "Crystal Palace"
+    ],
+    "tipos": [
       "Crystal Palace"
     ]
   },
@@ -77,6 +146,15 @@
     ],
     "nike": [
       "Everton"
+    ],
+    "tipsport": [
+      "Everton"
+    ],
+    "doxxbet": [
+      "Everton"
+    ],
+    "tipos": [
+      "Everton"
     ]
   },
   "Fulham": {
@@ -85,6 +163,15 @@
     ],
     "nike": [
       "Fulham FC"
+    ],
+    "tipsport": [
+      "Fulham"
+    ],
+    "doxxbet": [
+      "Fulham"
+    ],
+    "tipos": [
+      "Fulham"
     ]
   },
   "FK Zeleziarne Podbrezova": {
@@ -101,6 +188,12 @@
     ],
     "tipsport": [
       "Leeds"
+    ],
+    "doxxbet": [
+      "Leeds"
+    ],
+    "tipos": [
+      "Leeds"
     ]
   },
   "Liverpool": {
@@ -112,6 +205,12 @@
     ],
     "doxxbet": [
       "Liverpool"
+    ],
+    "tipsport": [
+      "Liverpool"
+    ],
+    "tipos": [
+      "Liverpool"
     ]
   },
   "Manchester City": {
@@ -119,6 +218,18 @@
       "Man.City"
     ],
     "nike": [
+      "Manchester City"
+    ],
+    "tipsport": [
+      "Manchester City",
+      "Man. City"
+    ],
+    "doxxbet": [
+      "Manchester City",
+      "Man. City"
+    ],
+    "tipos": [
+      "Man.City",
       "Manchester City"
     ]
   },
@@ -128,6 +239,18 @@
     ],
     "nike": [
       "Manchester Utd."
+    ],
+    "tipsport": [
+      "Manchester United",
+      "Man. United"
+    ],
+    "doxxbet": [
+      "Manchester United",
+      "Man. Utd."
+    ],
+    "tipos": [
+      "Man.United",
+      "Manchester United"
     ]
   },
   "Newcastle United": {
@@ -138,6 +261,13 @@
       "Newcastle Utd."
     ],
     "tipsport": [
+      "Newcastle"
+    ],
+    "doxxbet": [
+      "Newcastle",
+      "Newcastle Utd."
+    ],
+    "tipos": [
       "Newcastle"
     ]
   },
@@ -150,6 +280,14 @@
     ],
     "tipsport": [
       "Nottingham"
+    ],
+    "doxxbet": [
+      "Nottingham",
+      "Nottingham Forest"
+    ],
+    "tipos": [
+      "Nottingham",
+      "Nottingham Forest"
     ]
   },
   "Sunderland": {
@@ -157,6 +295,15 @@
       "Sunderland"
     ],
     "nike": [
+      "Sunderland"
+    ],
+    "tipsport": [
+      "Sunderland"
+    ],
+    "doxxbet": [
+      "Sunderland"
+    ],
+    "tipos": [
       "Sunderland"
     ]
   },
@@ -172,6 +319,9 @@
     ],
     "tipsport": [
       "Tottenham"
+    ],
+    "tipos": [
+      "Tottenham"
     ]
   },
   "West Ham United": {
@@ -182,6 +332,12 @@
       "West Ham"
     ],
     "tipsport": [
+      "West Ham"
+    ],
+    "doxxbet": [
+      "West Ham"
+    ],
+    "tipos": [
       "West Ham"
     ]
   },
@@ -194,6 +350,13 @@
     ],
     "tipsport": [
       "Wolverhampton"
+    ],
+    "doxxbet": [
+      "Wolverhampton",
+      "Wolves"
+    ],
+    "tipos": [
+      "Wolverhampton"
     ]
   },
   "1. FC Koln": {
@@ -202,6 +365,19 @@
     ],
     "nike": [
       "1. FC Köln"
+    ],
+    "tipsport": [
+      "Köln",
+      "Koln",
+      "1. FC Köln"
+    ],
+    "doxxbet": [
+      "Köln",
+      "Koln"
+    ],
+    "tipos": [
+      "1.FC Köln",
+      "Köln"
     ]
   },
   "Bayer Leverkusen": {
@@ -209,6 +385,17 @@
       "Leverkusen"
     ],
     "nike": [
+      "Leverkusen"
+    ],
+    "tipsport": [
+      "Leverkusen",
+      "Bayer Leverkusen"
+    ],
+    "doxxbet": [
+      "Leverkusen",
+      "B. Leverkusen"
+    ],
+    "tipos": [
       "Leverkusen"
     ]
   },
@@ -218,6 +405,19 @@
     ],
     "nike": [
       "Bayern München"
+    ],
+    "tipsport": [
+      "Bayern München",
+      "Bayern",
+      "Bayern Munich"
+    ],
+    "doxxbet": [
+      "Bayern",
+      "Bayern München"
+    ],
+    "tipos": [
+      "Bayern",
+      "Bayern München"
     ]
   },
   "Borussia Dortmund": {
@@ -225,6 +425,17 @@
       "Dortmund"
     ],
     "nike": [
+      "Dortmund"
+    ],
+    "tipsport": [
+      "Dortmund",
+      "Borussia Dortmund"
+    ],
+    "doxxbet": [
+      "Dortmund",
+      "B. Dortmund"
+    ],
+    "tipos": [
       "Dortmund"
     ]
   },
@@ -234,6 +445,19 @@
     ],
     "nike": [
       "M gladbach"
+    ],
+    "tipsport": [
+      "M'gladbach",
+      "M. Gladbach",
+      "Gladbach"
+    ],
+    "doxxbet": [
+      "M gladbach",
+      "Gladbach"
+    ],
+    "tipos": [
+      "M gladbach",
+      "M. Gladbach"
     ]
   },
   "Eintracht Frankfurt": {
@@ -242,6 +466,17 @@
     ],
     "nike": [
       "Eintracht Frankfurt"
+    ],
+    "tipsport": [
+      "Frankfurt",
+      "Eintracht Frankfurt"
+    ],
+    "doxxbet": [
+      "Frankfurt",
+      "Eintr. Frankfurt"
+    ],
+    "tipos": [
+      "Frankfurt"
     ]
   },
   "FC Augsburg": {
@@ -250,6 +485,16 @@
     ],
     "nike": [
       "FC Augsburg"
+    ],
+    "tipsport": [
+      "Augsburg",
+      "FC Augsburg"
+    ],
+    "doxxbet": [
+      "Augsburg"
+    ],
+    "tipos": [
+      "Augsburg"
     ]
   },
   "Freiburg": {
@@ -258,6 +503,17 @@
     ],
     "nike": [
       "SC Freiburg"
+    ],
+    "tipsport": [
+      "Freiburg",
+      "SC Freiburg"
+    ],
+    "doxxbet": [
+      "Freiburg",
+      "SC Freiburg"
+    ],
+    "tipos": [
+      "Freiburg"
     ]
   },
   "Hamburger SV": {
@@ -265,6 +521,18 @@
       "Hamburger SV"
     ],
     "nike": [
+      "Hamburger SV"
+    ],
+    "tipsport": [
+      "Hamburg",
+      "HSV",
+      "Hamburger SV"
+    ],
+    "doxxbet": [
+      "Hamburg",
+      "Hamburger SV"
+    ],
+    "tipos": [
       "Hamburger SV"
     ]
   },
@@ -274,6 +542,16 @@
     ],
     "nike": [
       "Heidenheim"
+    ],
+    "tipsport": [
+      "Heidenheim",
+      "1. FC Heidenheim"
+    ],
+    "doxxbet": [
+      "Heidenheim"
+    ],
+    "tipos": [
+      "Heidenheim"
     ]
   },
   "Hoffenheim": {
@@ -281,6 +559,17 @@
       "Hoffenheim"
     ],
     "nike": [
+      "Hoffenheim"
+    ],
+    "tipsport": [
+      "Hoffenheim",
+      "TSG Hoffenheim",
+      "1899 Hoffenheim"
+    ],
+    "doxxbet": [
+      "Hoffenheim"
+    ],
+    "tipos": [
       "Hoffenheim"
     ]
   },
@@ -290,6 +579,19 @@
     ],
     "nike": [
       "FSV Mainz"
+    ],
+    "tipsport": [
+      "Mainz",
+      "Mainz 05",
+      "FSV Mainz"
+    ],
+    "doxxbet": [
+      "Mainz",
+      "Mainz 05"
+    ],
+    "tipos": [
+      "Mainz",
+      "FSV Mainz"
     ]
   },
   "RB Leipzig": {
@@ -297,6 +599,18 @@
       "Leipzig"
     ],
     "nike": [
+      "RB Leipzig"
+    ],
+    "tipsport": [
+      "Leipzig",
+      "RB Leipzig"
+    ],
+    "doxxbet": [
+      "Leipzig",
+      "RB Leipzig"
+    ],
+    "tipos": [
+      "Leipzig",
       "RB Leipzig"
     ]
   },
@@ -306,6 +620,18 @@
     ],
     "nike": [
       "St. Pauli"
+    ],
+    "tipsport": [
+      "St. Pauli",
+      "St.Pauli",
+      "FC St. Pauli"
+    ],
+    "doxxbet": [
+      "St. Pauli",
+      "St.Pauli"
+    ],
+    "tipos": [
+      "St.Pauli"
     ]
   },
   "Union Berlin": {
@@ -313,6 +639,17 @@
       "Un.Berlin"
     ],
     "nike": [
+      "Union Berlin"
+    ],
+    "tipsport": [
+      "Union Berlin",
+      "Un. Berlin"
+    ],
+    "doxxbet": [
+      "Union Berlin"
+    ],
+    "tipos": [
+      "Un.Berlin",
       "Union Berlin"
     ]
   },
@@ -322,6 +659,18 @@
     ],
     "nike": [
       "VfB Stuttgart"
+    ],
+    "tipsport": [
+      "Stuttgart",
+      "VfB Stuttgart"
+    ],
+    "doxxbet": [
+      "Stuttgart",
+      "VFB Stuttgart"
+    ],
+    "tipos": [
+      "Stuttgart",
+      "VFB Stuttgart"
     ]
   },
   "Werder Bremen": {
@@ -330,6 +679,17 @@
     ],
     "nike": [
       "Werder Bremen"
+    ],
+    "tipsport": [
+      "Bremen",
+      "Werder Bremen"
+    ],
+    "doxxbet": [
+      "Bremen",
+      "Werder Bremen"
+    ],
+    "tipos": [
+      "Bremen"
     ]
   },
   "Wolfsburg": {
@@ -338,6 +698,16 @@
     ],
     "nike": [
       "VfL Wolfsburg"
+    ],
+    "tipsport": [
+      "Wolfsburg",
+      "VfL Wolfsburg"
+    ],
+    "doxxbet": [
+      "Wolfsburg"
+    ],
+    "tipos": [
+      "Wolfsburg"
     ]
   },
   "Alaves": {
@@ -346,6 +716,18 @@
     ],
     "nike": [
       "Alaves"
+    ],
+    "tipsport": [
+      "Alavés",
+      "Alaves"
+    ],
+    "doxxbet": [
+      "Alaves",
+      "Alavés"
+    ],
+    "tipos": [
+      "Alaves",
+      "Alavés"
     ]
   },
   "Athletic Bilbao": {
@@ -356,6 +738,14 @@
       "Athletic Bilbao"
     ],
     "tipsport": [
+      "Bilbao"
+    ],
+    "doxxbet": [
+      "Athletic Bilbao",
+      "Bilbao"
+    ],
+    "tipos": [
+      "Athletic Bilbao",
       "Bilbao"
     ]
   },
@@ -368,6 +758,15 @@
     ],
     "doxxbet": [
       "Atl. Madrid"
+    ],
+    "tipsport": [
+      "Atlético Madrid",
+      "Atletico Madrid",
+      "Atletico"
+    ],
+    "tipos": [
+      "Atl.Madrid",
+      "Atletico Madrid"
     ]
   },
   "Barcelona": {
@@ -376,6 +775,18 @@
     ],
     "nike": [
       "FC Barcelona"
+    ],
+    "tipsport": [
+      "FC Barcelona",
+      "Barcelona"
+    ],
+    "doxxbet": [
+      "Barcelona",
+      "FC Barcelona"
+    ],
+    "tipos": [
+      "FC Barcelona",
+      "Barcelona"
     ]
   },
   "Real Betis": {
@@ -387,6 +798,14 @@
     ],
     "tipsport": [
       "Betis Sevilla"
+    ],
+    "doxxbet": [
+      "Real Betis",
+      "Betis"
+    ],
+    "tipos": [
+      "Betis",
+      "Real Betis"
     ]
   },
   "Celta Vigo": {
@@ -394,6 +813,17 @@
       "Celta Vigo"
     ],
     "nike": [
+      "Celta Vigo"
+    ],
+    "tipsport": [
+      "Celta Vigo",
+      "Celta"
+    ],
+    "doxxbet": [
+      "Celta Vigo",
+      "Celta"
+    ],
+    "tipos": [
       "Celta Vigo"
     ]
   },
@@ -411,6 +841,18 @@
     ],
     "nike": [
       "Espanyol"
+    ],
+    "tipsport": [
+      "Espanyol",
+      "RCD Espanyol de Barcelona",
+      "RCD Espanyol"
+    ],
+    "doxxbet": [
+      "Espanyol",
+      "RCD Espanyol"
+    ],
+    "tipos": [
+      "Espanyol"
     ]
   },
   "Getafe": {
@@ -418,6 +860,15 @@
       "Getafe"
     ],
     "nike": [
+      "Getafe"
+    ],
+    "tipsport": [
+      "Getafe"
+    ],
+    "doxxbet": [
+      "Getafe"
+    ],
+    "tipos": [
       "Getafe"
     ]
   },
@@ -427,6 +878,15 @@
     ],
     "nike": [
       "Girona"
+    ],
+    "tipsport": [
+      "Girona"
+    ],
+    "doxxbet": [
+      "Girona"
+    ],
+    "tipos": [
+      "Girona"
     ]
   },
   "Levante": {
@@ -435,6 +895,16 @@
     ],
     "nike": [
       "Levante UD"
+    ],
+    "tipsport": [
+      "Levante",
+      "Levante UD"
+    ],
+    "doxxbet": [
+      "Levante"
+    ],
+    "tipos": [
+      "Levante"
     ]
   },
   "Mallorca": {
@@ -443,6 +913,16 @@
     ],
     "nike": [
       "Mallorca"
+    ],
+    "tipsport": [
+      "Mallorca",
+      "Real Mallorca"
+    ],
+    "doxxbet": [
+      "Mallorca"
+    ],
+    "tipos": [
+      "Mallorca"
     ]
   },
   "Osasuna": {
@@ -450,6 +930,16 @@
       "Osasuna"
     ],
     "nike": [
+      "Osasuna"
+    ],
+    "tipsport": [
+      "Osasuna",
+      "CA Osasuna"
+    ],
+    "doxxbet": [
+      "Osasuna"
+    ],
+    "tipos": [
       "Osasuna"
     ]
   },
@@ -462,6 +952,14 @@
     ],
     "tipsport": [
       "Vallecano"
+    ],
+    "doxxbet": [
+      "Rayo Vallecano",
+      "Vallecano"
+    ],
+    "tipos": [
+      "Vallecano",
+      "Rayo Vallecano"
     ]
   },
   "Real Madrid": {
@@ -469,6 +967,16 @@
       "Real Madrid"
     ],
     "nike": [
+      "Real Madrid"
+    ],
+    "tipsport": [
+      "Real Madrid"
+    ],
+    "doxxbet": [
+      "Real Madrid",
+      "R. Madrid"
+    ],
+    "tipos": [
       "Real Madrid"
     ]
   },
@@ -481,6 +989,14 @@
     ],
     "tipsport": [
       "Oviedo"
+    ],
+    "doxxbet": [
+      "Real Oviedo",
+      "Oviedo"
+    ],
+    "tipos": [
+      "Oviedo",
+      "Real Oviedo"
     ]
   },
   "Real Sociedad": {
@@ -489,6 +1005,16 @@
     ],
     "nike": [
       "San Sebastian"
+    ],
+    "tipsport": [
+      "Real Sociedad"
+    ],
+    "doxxbet": [
+      "Real Sociedad",
+      "San Sebastian"
+    ],
+    "tipos": [
+      "Real Sociedad"
     ]
   },
   "Sevilla": {
@@ -497,6 +1023,18 @@
     ],
     "nike": [
       "FC Sevilla"
+    ],
+    "tipsport": [
+      "Sevilla",
+      "FC Sevilla"
+    ],
+    "doxxbet": [
+      "Sevilla",
+      "FC Sevilla"
+    ],
+    "tipos": [
+      "FC Sevilla",
+      "Sevilla"
     ]
   },
   "Valencia": {
@@ -505,6 +1043,16 @@
     ],
     "nike": [
       "Valencia CF"
+    ],
+    "tipsport": [
+      "Valencia",
+      "Valencia CF"
+    ],
+    "doxxbet": [
+      "Valencia"
+    ],
+    "tipos": [
+      "Valencia"
     ]
   },
   "Villarreal": {
@@ -512,6 +1060,15 @@
       "Villarreal"
     ],
     "nike": [
+      "Villarreal"
+    ],
+    "tipsport": [
+      "Villarreal"
+    ],
+    "doxxbet": [
+      "Villarreal"
+    ],
+    "tipos": [
       "Villarreal"
     ]
   },
@@ -521,6 +1078,18 @@
     ],
     "nike": [
       "AC Milan"
+    ],
+    "tipsport": [
+      "Milan",
+      "AC Milan"
+    ],
+    "doxxbet": [
+      "AC Milan",
+      "Milan"
+    ],
+    "tipos": [
+      "AC Milan",
+      "Milan"
     ]
   },
   "AS Roma": {
@@ -529,6 +1098,18 @@
     ],
     "nike": [
       "AS Roma"
+    ],
+    "tipsport": [
+      "Roma",
+      "AS Roma"
+    ],
+    "doxxbet": [
+      "Roma",
+      "AS Roma"
+    ],
+    "tipos": [
+      "AS Roma",
+      "Roma"
     ]
   },
   "Atalanta": {
@@ -536,6 +1117,15 @@
       "Atalanta"
     ],
     "nike": [
+      "Atalanta"
+    ],
+    "tipsport": [
+      "Atalanta"
+    ],
+    "doxxbet": [
+      "Atalanta"
+    ],
+    "tipos": [
       "Atalanta"
     ]
   },
@@ -545,6 +1135,15 @@
     ],
     "nike": [
       "Bologna"
+    ],
+    "tipsport": [
+      "Bologna"
+    ],
+    "doxxbet": [
+      "Bologna"
+    ],
+    "tipos": [
+      "Bologna"
     ]
   },
   "Cagliari": {
@@ -552,6 +1151,15 @@
       "Cagliari"
     ],
     "nike": [
+      "Cagliari"
+    ],
+    "tipsport": [
+      "Cagliari"
+    ],
+    "doxxbet": [
+      "Cagliari"
+    ],
+    "tipos": [
       "Cagliari"
     ]
   },
@@ -561,6 +1169,15 @@
     ],
     "nike": [
       "Como"
+    ],
+    "tipsport": [
+      "Como"
+    ],
+    "doxxbet": [
+      "Como"
+    ],
+    "tipos": [
+      "Como"
     ]
   },
   "Cremonese": {
@@ -568,6 +1185,15 @@
       "Cremonese"
     ],
     "nike": [
+      "Cremonese"
+    ],
+    "tipsport": [
+      "Cremonese"
+    ],
+    "doxxbet": [
+      "Cremonese"
+    ],
+    "tipos": [
       "Cremonese"
     ]
   },
@@ -577,6 +1203,16 @@
     ],
     "nike": [
       "Fiorentina"
+    ],
+    "tipsport": [
+      "Fiorentina",
+      "ACF Fiorentina"
+    ],
+    "doxxbet": [
+      "Fiorentina"
+    ],
+    "tipos": [
+      "Fiorentina"
     ]
   },
   "Genoa": {
@@ -584,6 +1220,15 @@
       "Genoa"
     ],
     "nike": [
+      "Genoa"
+    ],
+    "tipsport": [
+      "Genoa"
+    ],
+    "doxxbet": [
+      "Genoa"
+    ],
+    "tipos": [
       "Genoa"
     ]
   },
@@ -593,6 +1238,17 @@
     ],
     "nike": [
       "Hellas Verona"
+    ],
+    "tipsport": [
+      "Hellas Verona",
+      "Verona"
+    ],
+    "doxxbet": [
+      "Verona",
+      "Hellas Verona"
+    ],
+    "tipos": [
+      "Hellas Verona"
     ]
   },
   "Inter Milan": {
@@ -600,6 +1256,18 @@
       "Inter Milano"
     ],
     "nike": [
+      "Inter Milan"
+    ],
+    "tipsport": [
+      "Inter",
+      "Inter Milan"
+    ],
+    "doxxbet": [
+      "Inter",
+      "Inter Milan"
+    ],
+    "tipos": [
+      "Inter Milano",
       "Inter Milan"
     ]
   },
@@ -609,6 +1277,15 @@
     ],
     "nike": [
       "Juventus"
+    ],
+    "tipsport": [
+      "Juventus"
+    ],
+    "doxxbet": [
+      "Juventus"
+    ],
+    "tipos": [
+      "Juventus"
     ]
   },
   "Lazio": {
@@ -616,6 +1293,15 @@
       "Lazio"
     ],
     "nike": [
+      "Lazio"
+    ],
+    "tipsport": [
+      "Lazio"
+    ],
+    "doxxbet": [
+      "Lazio"
+    ],
+    "tipos": [
       "Lazio"
     ]
   },
@@ -625,6 +1311,15 @@
     ],
     "nike": [
       "Lecce"
+    ],
+    "tipsport": [
+      "Lecce"
+    ],
+    "doxxbet": [
+      "Lecce"
+    ],
+    "tipos": [
+      "Lecce"
     ]
   },
   "Napoli": {
@@ -632,6 +1327,15 @@
       "Napoli"
     ],
     "nike": [
+      "Napoli"
+    ],
+    "tipsport": [
+      "Napoli"
+    ],
+    "doxxbet": [
+      "Napoli"
+    ],
+    "tipos": [
       "Napoli"
     ]
   },
@@ -641,6 +1345,15 @@
     ],
     "nike": [
       "Parma"
+    ],
+    "tipsport": [
+      "Parma"
+    ],
+    "doxxbet": [
+      "Parma"
+    ],
+    "tipos": [
+      "Parma"
     ]
   },
   "Pisa": {
@@ -648,6 +1361,15 @@
       "Pisa"
     ],
     "nike": [
+      "Pisa"
+    ],
+    "tipsport": [
+      "Pisa"
+    ],
+    "doxxbet": [
+      "Pisa"
+    ],
+    "tipos": [
       "Pisa"
     ]
   },
@@ -657,6 +1379,15 @@
     ],
     "nike": [
       "Sassuolo"
+    ],
+    "tipsport": [
+      "Sassuolo"
+    ],
+    "doxxbet": [
+      "Sassuolo"
+    ],
+    "tipos": [
+      "Sassuolo"
     ]
   },
   "Torino": {
@@ -665,6 +1396,16 @@
     ],
     "nike": [
       "Torino FC"
+    ],
+    "tipsport": [
+      "Torino"
+    ],
+    "doxxbet": [
+      "Torino"
+    ],
+    "tipos": [
+      "Torino FC",
+      "Torino"
     ]
   },
   "Udinese": {
@@ -673,6 +1414,15 @@
     ],
     "nike": [
       "Udinese"
+    ],
+    "tipsport": [
+      "Udinese"
+    ],
+    "doxxbet": [
+      "Udinese"
+    ],
+    "tipos": [
+      "Udinese"
     ]
   },
   "Paris Saint-Germain": {
@@ -680,9 +1430,18 @@
       "PSG"
     ],
     "nike": [
-      "Paris St.G."
+      "Paris St.G.",
+      "Paris SG"
     ],
     "doxxbet": [
+      "PSG"
+    ],
+    "tipsport": [
+      "Paríž SG",
+      "Paris SG",
+      "PSG"
+    ],
+    "tipos": [
       "PSG"
     ]
   },
@@ -692,6 +1451,541 @@
     ],
     "nike": [
       "Sporting CP"
+    ]
+  },
+  "Marseille": {
+    "fortuna": [
+      "Marseille"
+    ],
+    "nike": [
+      "Marseille"
+    ],
+    "tipsport": [
+      "Marseille"
+    ],
+    "doxxbet": [
+      "Marseille"
+    ],
+    "tipos": [
+      "Marseille"
+    ]
+  },
+  "Olympique Lyonnais": {
+    "fortuna": [
+      "Lyon"
+    ],
+    "nike": [
+      "Lyon",
+      "OL"
+    ],
+    "tipsport": [
+      "Lyon"
+    ],
+    "doxxbet": [
+      "Lyon"
+    ],
+    "tipos": [
+      "Lyon"
+    ]
+  },
+  "Monaco": {
+    "fortuna": [
+      "Monaco"
+    ],
+    "nike": [
+      "AS Monaco",
+      "Monaco"
+    ],
+    "tipsport": [
+      "Monaco"
+    ],
+    "doxxbet": [
+      "Monaco"
+    ],
+    "tipos": [
+      "Monaco"
+    ]
+  },
+  "Lille": {
+    "fortuna": [
+      "Lille"
+    ],
+    "nike": [
+      "Lille",
+      "LOSC"
+    ],
+    "tipsport": [
+      "Lille"
+    ],
+    "doxxbet": [
+      "Lille"
+    ],
+    "tipos": [
+      "Lille"
+    ]
+  },
+  "Nice": {
+    "fortuna": [
+      "Nice"
+    ],
+    "nike": [
+      "Nice",
+      "OGC Nice"
+    ],
+    "tipsport": [
+      "Nice"
+    ],
+    "doxxbet": [
+      "Nice"
+    ],
+    "tipos": [
+      "Nice"
+    ]
+  },
+  "Rennes": {
+    "fortuna": [
+      "Rennes"
+    ],
+    "nike": [
+      "Rennes"
+    ],
+    "tipsport": [
+      "Rennes"
+    ],
+    "doxxbet": [
+      "Rennes"
+    ],
+    "tipos": [
+      "Rennes"
+    ]
+  },
+  "Lens": {
+    "fortuna": [
+      "Lens",
+      "RC Lens"
+    ],
+    "nike": [
+      "Lens",
+      "RC Lens"
+    ],
+    "tipsport": [
+      "Lens"
+    ],
+    "doxxbet": [
+      "Lens"
+    ],
+    "tipos": [
+      "Lens"
+    ]
+  },
+  "Nantes": {
+    "fortuna": [
+      "Nantes"
+    ],
+    "nike": [
+      "Nantes",
+      "FC Nantes"
+    ],
+    "tipsport": [
+      "Nantes"
+    ],
+    "doxxbet": [
+      "Nantes"
+    ],
+    "tipos": [
+      "Nantes"
+    ]
+  },
+  "Strasbourg": {
+    "fortuna": [
+      "Strasbourg"
+    ],
+    "nike": [
+      "Strasbourg",
+      "RC Strasbourg"
+    ],
+    "tipsport": [
+      "Strasbourg"
+    ],
+    "doxxbet": [
+      "Strasbourg"
+    ],
+    "tipos": [
+      "Strasbourg"
+    ]
+  },
+  "Montpellier": {
+    "fortuna": [
+      "Montpellier"
+    ],
+    "nike": [
+      "Montpellier",
+      "MHSC"
+    ],
+    "tipsport": [
+      "Montpellier"
+    ],
+    "doxxbet": [
+      "Montpellier"
+    ],
+    "tipos": [
+      "Montpellier"
+    ]
+  },
+  "Toulouse": {
+    "fortuna": [
+      "Toulouse"
+    ],
+    "nike": [
+      "Toulouse"
+    ],
+    "tipsport": [
+      "Toulouse"
+    ],
+    "doxxbet": [
+      "Toulouse"
+    ],
+    "tipos": [
+      "Toulouse"
+    ]
+  },
+  "Brest": {
+    "fortuna": [
+      "Brest"
+    ],
+    "nike": [
+      "Brest",
+      "Stade Brestois"
+    ],
+    "tipsport": [
+      "Brest"
+    ],
+    "doxxbet": [
+      "Brest"
+    ],
+    "tipos": [
+      "Brest"
+    ]
+  },
+  "Le Havre": {
+    "fortuna": [
+      "Le Havre"
+    ],
+    "nike": [
+      "Le Havre"
+    ],
+    "tipsport": [
+      "Le Havre"
+    ],
+    "doxxbet": [
+      "Le Havre"
+    ],
+    "tipos": [
+      "Le Havre"
+    ]
+  },
+  "Auxerre": {
+    "fortuna": [
+      "Auxerre",
+      "AJ Auxerre"
+    ],
+    "nike": [
+      "Auxerre"
+    ],
+    "tipsport": [
+      "Auxerre"
+    ],
+    "doxxbet": [
+      "Auxerre"
+    ],
+    "tipos": [
+      "Auxerre"
+    ]
+  },
+  "Metz": {
+    "fortuna": [
+      "Metz",
+      "FC Metz"
+    ],
+    "nike": [
+      "Metz"
+    ],
+    "tipsport": [
+      "Metz"
+    ],
+    "doxxbet": [
+      "Metz"
+    ],
+    "tipos": [
+      "Metz"
+    ]
+  },
+  "Clermont": {
+    "fortuna": [
+      "Clermont"
+    ],
+    "nike": [
+      "Clermont",
+      "Clermont Foot"
+    ],
+    "tipsport": [
+      "Clermont"
+    ],
+    "doxxbet": [
+      "Clermont"
+    ],
+    "tipos": [
+      "Clermont"
+    ]
+  },
+  "Angers": {
+    "fortuna": [
+      "Angers"
+    ],
+    "nike": [
+      "Angers",
+      "SCO Angers"
+    ],
+    "tipsport": [
+      "Angers"
+    ],
+    "doxxbet": [
+      "Angers"
+    ],
+    "tipos": [
+      "Angers"
+    ]
+  },
+  "Reims": {
+    "fortuna": [
+      "Reims",
+      "Stade de Reims"
+    ],
+    "nike": [
+      "Reims"
+    ],
+    "tipsport": [
+      "Reims"
+    ],
+    "doxxbet": [
+      "Reims"
+    ],
+    "tipos": [
+      "Reims"
+    ]
+  },
+  "Saint-Etienne": {
+    "fortuna": [
+      "St.Etienne",
+      "Saint-Etienne"
+    ],
+    "nike": [
+      "St. Etienne",
+      "Saint-Etienne"
+    ],
+    "tipsport": [
+      "Saint-Etienne",
+      "St. Etienne"
+    ],
+    "doxxbet": [
+      "St.Etienne"
+    ],
+    "tipos": [
+      "St.Etienne"
+    ]
+  },
+  "Benfica": {
+    "fortuna": [
+      "Benfica",
+      "SL Benfica"
+    ],
+    "nike": [
+      "Benfica"
+    ],
+    "tipsport": [
+      "Benfica"
+    ],
+    "doxxbet": [
+      "Benfica"
+    ],
+    "tipos": [
+      "Benfica"
+    ]
+  },
+  "Porto": {
+    "fortuna": [
+      "Porto",
+      "FC Porto"
+    ],
+    "nike": [
+      "Porto"
+    ],
+    "tipsport": [
+      "Porto"
+    ],
+    "doxxbet": [
+      "Porto"
+    ],
+    "tipos": [
+      "Porto"
+    ]
+  },
+  "Ajax": {
+    "fortuna": [
+      "Ajax"
+    ],
+    "nike": [
+      "Ajax"
+    ],
+    "tipsport": [
+      "Ajax"
+    ],
+    "doxxbet": [
+      "Ajax"
+    ],
+    "tipos": [
+      "Ajax"
+    ]
+  },
+  "Celtic": {
+    "fortuna": [
+      "Celtic"
+    ],
+    "nike": [
+      "Celtic"
+    ],
+    "tipsport": [
+      "Celtic"
+    ],
+    "doxxbet": [
+      "Celtic"
+    ],
+    "tipos": [
+      "Celtic"
+    ]
+  },
+  "Rangers": {
+    "fortuna": [
+      "Rangers"
+    ],
+    "nike": [
+      "Rangers"
+    ],
+    "tipsport": [
+      "Rangers"
+    ],
+    "doxxbet": [
+      "Rangers"
+    ],
+    "tipos": [
+      "Rangers"
+    ]
+  },
+  "PSV Eindhoven": {
+    "fortuna": [
+      "PSV"
+    ],
+    "nike": [
+      "PSV Eindhoven",
+      "PSV"
+    ],
+    "tipsport": [
+      "PSV"
+    ],
+    "doxxbet": [
+      "PSV"
+    ],
+    "tipos": [
+      "PSV"
+    ]
+  },
+  "Feyenoord": {
+    "fortuna": [
+      "Feyenoord"
+    ],
+    "nike": [
+      "Feyenoord"
+    ],
+    "tipsport": [
+      "Feyenoord"
+    ],
+    "doxxbet": [
+      "Feyenoord"
+    ],
+    "tipos": [
+      "Feyenoord"
+    ]
+  },
+  "Anderlecht": {
+    "fortuna": [
+      "Anderlecht"
+    ],
+    "nike": [
+      "Anderlecht"
+    ],
+    "tipsport": [
+      "Anderlecht"
+    ],
+    "doxxbet": [
+      "Anderlecht"
+    ],
+    "tipos": [
+      "Anderlecht"
+    ]
+  },
+  "Club Brugge": {
+    "fortuna": [
+      "Club Brugge"
+    ],
+    "nike": [
+      "Club Brugge"
+    ],
+    "tipsport": [
+      "Club Brugge"
+    ],
+    "doxxbet": [
+      "Club Brugge"
+    ],
+    "tipos": [
+      "Club Brugge"
+    ]
+  },
+  "Shakhtar Donetsk": {
+    "fortuna": [
+      "Shakhtar"
+    ],
+    "nike": [
+      "Shakhtar Donetsk",
+      "Shakhtar"
+    ],
+    "tipsport": [
+      "Šachtar",
+      "Shakhtar"
+    ],
+    "doxxbet": [
+      "Shakhtar"
+    ],
+    "tipos": [
+      "Shakhtar"
+    ]
+  },
+  "Dinamo Zagreb": {
+    "fortuna": [
+      "Din.Zagreb",
+      "Dinamo Zagreb"
+    ],
+    "nike": [
+      "Dinamo Zagreb"
+    ],
+    "tipsport": [
+      "Dinamo Záhreb",
+      "Dinamo Zagreb"
+    ],
+    "doxxbet": [
+      "Dinamo Zagreb"
+    ],
+    "tipos": [
+      "Din.Zagreb"
     ]
   }
 }
