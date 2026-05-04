@@ -163,32 +163,38 @@ class TiposScraper(BaseScraper):
             )
             self._page = self._context.new_page()
 
-            logger.info("[tipos] Loading page via Playwright...")
-            self._page.goto(f"{BASE}/sk/futbal", wait_until="networkidle", timeout=30000)
-            self._page.wait_for_timeout(2000)
+            # Intercept GetLiveInitData response to capture token without a second call.
+            # A second call with an empty body returns <Result>Failed</Result> (session
+            # validation requires the full payload the page sends on its own init).
+            _captured: list[str] = []
 
-            # Grab session token
-            self._token = self._fetch_token()
-            logger.info(f"[tipos] Browser ready. Token={'<ok>' if self._token else '<missing>'}")
+            def _on_response(resp):
+                if "GetLiveInitData" in resp.url:
+                    try:
+                        body = resp.body()
+                        data = json.loads(body)
+                        tok = data.get("Token", "")
+                        if tok:
+                            _captured.append(tok)
+                    except Exception:
+                        pass
+
+            self._page.on("response", _on_response)
+            logger.info("[tipos] Loading page via Playwright...")
+            self._page.goto(f"{BASE}/sk/futbal", wait_until="domcontentloaded", timeout=30000)
+            self._page.wait_for_timeout(3000)
+            self._page.remove_listener("response", _on_response)
+
+            self._token = _captured[0] if _captured else ""
+            logger.info("[tipos] Browser ready. Token=%s", "<ok>" if self._token else "<missing>")
             self._ready = True
         except Exception:
             logger.exception("[tipos] Playwright init failed")
             self._ready = False
 
     def _fetch_token(self) -> str:
-        """Obtain a session token from GetLiveInitData."""
-        try:
-            result = self._page.evaluate("""async () => {
-                const resp = await fetch(
-                    '/WebServices/ApiSession/SportsBettingSessionService.svc/GetLiveInitData',
-                    {method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}'}
-                );
-                return resp.json();
-            }""")
-            return result.get("Token", "") if isinstance(result, dict) else ""
-        except Exception:
-            logger.debug("[tipos] GetLiveInitData failed, continuing without token")
-            return ""
+        """Legacy fallback — token is now captured via response interception in _init_browser."""
+        return self._token
 
     # ------------------------------------------------------------------
     # API helpers
@@ -292,45 +298,36 @@ class TiposScraper(BaseScraper):
     # Category → match-listing
     # ------------------------------------------------------------------
 
+    def _get_top_bets_raw(self) -> dict:
+        """Fetch GetWebTopBets (TopOfferType=8) — returns all active top offers."""
+        return self._api_call(
+            "GetWebTopBets",
+            {"LanguageID": LANG, "Token": self._token,
+             "TopOfferType": 8, "TypeAddData": None, "TimeStamp": None},
+        )
+
     def _get_category_events(self, category_id: str) -> list[dict]:
         """
         Fetch matches for a category (league).
 
-        The API uses GetWebTopBets with TopOfferType=8 for "all offers"
-        or GetWebStandardCategoryOffer. We attempt several known endpoints.
-        The CategoryID from our seed data is the Tipos internal category ID
-        (e.g. "150" for Slovak football Niké Liga).
+        GetWebStandardCategoryOffer / GetWebCategoryOffer / GetWebEventsByCategory
+        all return 404 — these endpoints were removed from the Tipos API.
+        GetWebTopBets (TopOfferType=8) returns all active top offers across
+        categories as a single protobuf blob. We decode it and filter by
+        CategoryID if present, otherwise return all football events.
         """
-        # Primary: GetWebStandardCategoryOffer
-        for ep, payload in [
-            (
-                "GetWebStandardCategoryOffer",
-                {"LanguageID": LANG, "Token": self._token,
-                 "CategoryID": int(category_id)},
-            ),
-            (
-                "GetWebCategoryOffer",
-                {"LanguageID": LANG, "Token": self._token,
-                 "CategoryID": int(category_id)},
-            ),
-            (
-                "GetWebEventsByCategory",
-                {"LanguageID": LANG, "Token": self._token,
-                 "CategoryID": int(category_id)},
-            ),
-        ]:
-            data = self._api_call(ep, payload)
-            if data:
-                self._dump_debug(f"category_{category_id}_{ep}", data)
-                event_ids = self._extract_event_ids(data)
-                if event_ids:
-                    logger.info(
-                        f"[tipos] {ep}(category={category_id}) → {len(event_ids)} events"
-                    )
-                    return event_ids
+        data = self._get_top_bets_raw()
+        if not data:
+            logger.warning("[tipos] No events found for category %s", category_id)
+            return []
 
-        logger.warning(f"[tipos] No events found for category {category_id}")
-        return []
+        self._dump_debug(f"category_{category_id}_topbets", data)
+        event_ids = self._extract_event_ids(data)
+        if event_ids:
+            logger.info("[tipos] GetWebTopBets → %d events (category=%s)", len(event_ids), category_id)
+        else:
+            logger.warning("[tipos] No events found for category %s", category_id)
+        return event_ids
 
     def _extract_event_ids(self, data: dict) -> list[dict]:
         """

@@ -23,12 +23,19 @@ function buildWebSocketUrl({
   sport,
   date,
 }: Omit<Props, "className">) {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-  const url = baseUrl
-    ? new URL(baseUrl)
-    : new URL(window.location.origin);
-
-  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+  // NEXT_PUBLIC_WS_URL: explicit WS base (e.g. "ws://192.168.1.101:8000" or
+  // "wss://yourdomain.com"). When unset, auto-detect from the browser's
+  // current hostname + backend port 8000. We do NOT use NEXT_PUBLIC_API_URL
+  // here because that may point to a domain that requires HTTP auth (e.g.
+  // Cloudflare Access), which blocks WS upgrade handshakes.
+  let url: URL;
+  const explicitWsUrl = process.env.NEXT_PUBLIC_WS_URL;
+  if (explicitWsUrl) {
+    url = new URL(explicitWsUrl);
+  } else {
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    url = new URL(`${protocol}//${window.location.hostname}:8000`);
+  }
   url.pathname = "/ws/odds-feed";
   url.search = "";
 
