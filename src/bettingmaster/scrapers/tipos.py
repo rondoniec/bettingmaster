@@ -307,6 +307,8 @@ def _scrape_tipos_matches(headless: bool = True) -> list[dict]:
                  "UseLongPolling": True},
             )
             ev["detail_data"] = detail
+            rv_len = len(detail.get("ReturnValue", "") or "")
+            logger.info("[tipos] event %s detail ReturnValue len=%d", event_id, rv_len)
             results.append(ev)
 
         return results
@@ -545,7 +547,7 @@ class TiposScraper(BaseScraper):
                     url=url,
                 ))
 
-        logger.debug(
+        logger.info(
             "[tipos] Extracted %d odds for event %s (raw floats: %s)",
             len(odds), match_ext_id, floats[:10],
         )
