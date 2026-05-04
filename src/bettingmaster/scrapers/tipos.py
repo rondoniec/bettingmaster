@@ -361,12 +361,18 @@ class TiposScraper(BaseScraper):
     # ------------------------------------------------------------------
 
     def _run_in_fresh_thread(self, fn, *args, timeout: int = 180):
+        import subprocess as _sp
         executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         try:
             future = executor.submit(fn, *args)
             return future.result(timeout=timeout)
+        except concurrent.futures.TimeoutError:
+            logger.warning("[tipos] Playwright timed out after %ds — killing chrome", timeout)
+            _sp.run(["pkill", "-9", "-f", "chrom"], capture_output=True)
+            return None
         except Exception:
             logger.exception("[tipos] thread crashed")
+            _sp.run(["pkill", "-9", "-f", "chrom"], capture_output=True)
             return None
         finally:
             executor.shutdown(wait=False, cancel_futures=True)

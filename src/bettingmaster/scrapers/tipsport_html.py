@@ -181,6 +181,7 @@ class TipsportScraper(BaseScraper):
         self._url_cache: dict[str, str] = {}
 
     def _run_in_fresh_thread(self, competition_id: str) -> list[dict]:
+        import subprocess as _sp
         executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         try:
             future = executor.submit(
@@ -191,8 +192,13 @@ class TipsportScraper(BaseScraper):
                 settings.tipsport_browser_channel or "chrome",
             )
             return future.result(timeout=120)
+        except concurrent.futures.TimeoutError:
+            logger.warning("[tipsport_html] Playwright timed out for %s — killing chrome", competition_id)
+            _sp.run(["pkill", "-9", "-f", "chrom"], capture_output=True)
+            return []
         except Exception:
             logger.exception("[tipsport_html] thread crashed for %s", competition_id)
+            _sp.run(["pkill", "-9", "-f", "chrom"], capture_output=True)
             return []
         finally:
             executor.shutdown(wait=False, cancel_futures=True)
