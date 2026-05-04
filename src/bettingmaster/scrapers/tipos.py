@@ -69,6 +69,8 @@ def _decode_b64(b64_str: str) -> bytes:
 
 def _parse_proto_values(data: bytes, depth: int = 0) -> dict:
     """Recursively extract strings, floats, and ints from raw protobuf bytes."""
+    # Large Tipos responses have deeply nested wrapper messages (field 1 wraps
+    # everything). Depth 20 is needed to reach actual leaf nodes.
     strings: list[tuple[int, str]] = []
     floats: list[tuple[int, float]] = []
     ints: list[int] = []
@@ -102,13 +104,13 @@ def _parse_proto_values(data: bytes, depth: int = 0) -> dict:
                     ratio = sum(1 for c in s if ord(c) >= 32 or c in "\n\t") / max(len(s), 1)
                     if ratio > 0.7 and len(s.strip()) >= 2:
                         strings.append((field_num, s.strip()))
-                    elif depth < 5:
+                    elif depth < 20:
                         sub = _parse_proto_values(raw, depth + 1)
                         strings.extend(sub["strings"])
                         floats.extend(sub["floats"])
                         ints.extend(sub["ints"])
                 except UnicodeDecodeError:
-                    if depth < 5:
+                    if depth < 20:
                         sub = _parse_proto_values(raw, depth + 1)
                         strings.extend(sub["strings"])
                         floats.extend(sub["floats"])
